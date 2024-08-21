@@ -1,0 +1,19 @@
+.App {
+  text-align: center;
+}
+
+/* Estilos para el header global */
+.App-header {
+  background-color: #1B5C94;
+  color: white;
+  height: 10vh; /* 10% de la altura de la ventana */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estilos para la imagen del logo */
+.App-logo {
+  width: 10%;
+  height: 90%;
+}

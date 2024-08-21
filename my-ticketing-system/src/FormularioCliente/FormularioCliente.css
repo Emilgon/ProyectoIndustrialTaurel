@@ -1,0 +1,10 @@
+.FormularioCliente-header {
+    background-color: #1B5C94;
+    color: white;
+    height: 20vh; /* 20% de la altura de la ventana */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+  
