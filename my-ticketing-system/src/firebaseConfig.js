@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, setDoc, doc, getDocs, updateDoc, deleteDoc } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
 
 // Tu configuración de Firebase
 const firebaseConfig = {
@@ -15,9 +14,6 @@ const firebaseConfig = {
 
 // Inicializa Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-// Inicializa Firestore
 const db = getFirestore(app);
 
 export { db, collection, addDoc, setDoc, doc, getDocs, updateDoc, deleteDoc };

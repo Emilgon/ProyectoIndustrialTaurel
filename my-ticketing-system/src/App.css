@@ -17,3 +17,18 @@
   width: 10%;
   height: 90%;
 }
+
+/* Estilos para el botón "Soy Asesor" */
+.asesor-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #1B5C94;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.asesor-button:hover {
+  background-color: #164f7b;
+}

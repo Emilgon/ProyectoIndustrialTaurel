@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
 import FormularioCliente from './FormularioCliente/FormularioCliente';
 import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario';
-import Respuesta from './Respuesta/Respuesta';
-import Reportes from './Reportes/Reportes';
 import { initializeFirestore } from './initializeFirestore';
 
 function App() {
@@ -12,13 +11,27 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src="/images/taurel-logo-completo.png" alt="Logo Taurel" className="header-logo" />
-      </header>
-      <FormularioCliente />
-      
-    </div>
+    <Router>
+      <div className="App">
+        <header className="App-header">
+          <img src="/images/taurel-logo-completo.png" alt="Logo Taurel" className="App-logo" />
+        </header>
+        <Routes>
+          <Route path="/asesor" element={<VistaAsesorFormulario />} />
+          <Route 
+            path="/" 
+            element={
+              <>
+                <FormularioCliente />
+                <button className="asesor-button" onClick={() => window.location.href = '/asesor'}>
+                  Soy Asesor
+                </button>
+              </>
+            } 
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

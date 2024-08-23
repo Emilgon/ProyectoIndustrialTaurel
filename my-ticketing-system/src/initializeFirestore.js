@@ -8,7 +8,7 @@ const initializeFirestore = async () => {
       nombre: "Juan",
       apellido: "Pérez",
       telefono: "123456789",
-      correo_electronico: "juan.perez@example.com",
+      correo: "juan.perez@example.com",
       empresa: "Empresa S.A.",
       mensaje: "Consulta sobre el producto X.",
       adjuntado: null // Aquí puedes añadir el enlace al archivo si es necesario
