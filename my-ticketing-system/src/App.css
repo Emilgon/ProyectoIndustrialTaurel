@@ -1,6 +1,4 @@
-.App {
-  text-align: center;
-}
+/* App.css */
 
 /* Estilos para el header global */
 .App-header {
@@ -14,8 +12,8 @@
 
 /* Estilos para la imagen del logo */
 .App-logo {
-  width: 10%;
-  height: 90%;
+  width: 74%; /* Ajusta el ancho automáticamente según el alto */
+  height: 80%; /* Ajusta el alto para ser más grande */
 }
 
 /* Estilos para el botón "Soy Asesor" */
@@ -31,4 +29,28 @@
 
 .asesor-button:hover {
   background-color: #164f7b;
+}
+
+/* Estilos para el footer global */
+.App-footer {
+  background-color: #1B5C94;
+  color: white;
+  height: 5vh; /* 10% de la altura de la ventana */
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  padding: 0 20px;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+.footer-link {
+  color: white;
+  text-decoration: none;
+  margin: 0 20px;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }

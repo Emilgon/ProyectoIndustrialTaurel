@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import moment from "moment-timezone";
 import {
   Table,
   TableBody,
@@ -14,6 +15,9 @@ import {
   MenuItem,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChatIcon from "@mui/icons-material/Chat";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Swal from "sweetalert2";
 import {
   db,
   collection,
@@ -60,6 +64,12 @@ const VistaAsesorFormulario = () => {
     }
   };
 
+  const formatDateTime = (timestamp) => {
+    return moment(timestamp.seconds * 1000)
+      .tz("America/Caracas")
+      .format("DD MMM YYYY, HH:mm");
+  };
+
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
@@ -99,23 +109,78 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const [showCommentBox, setShowCommentBox] = useState(false);
-  const [comment, setComment] = useState("");
+  const handleCommentClick = async (id) => {
+    const { value: comment } = await Swal.fire({
+      title: "Escribe tu comentario",
+      input: "textarea",
+      inputPlaceholder: "Escribe tu comentario aquí...",
+      inputAttributes: {
+        "aria-label": "Escribe tu comentario aquí",
+      },
+      showCancelButton: true,
+      confirmButtonText: "Guardar",
+      cancelButtonText: "Cancelar",
+      inputValidator: (value) => {
+        if (!value) {
+          return "El comentario no puede estar vacío";
+        }
+      },
+    });
 
-  const handleCommentToggle = () => {
-    setShowCommentBox(!showCommentBox);
+    if (comment) {
+      // Guardar el comentario en Firebase
+      const consultaRef = doc(db, "Consultas", id);
+      await updateDoc(consultaRef, { comentario: comment });
+      // Actualizar el estado para reflejar el nuevo comentario en la interfaz
+      setConsultas(
+        consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
+      );
+    }
   };
 
-  const handleCommentChange = (event) => {
-    setComment(event.target.value);
-  };
+  const handleViewComment = async (id) => {
+    const consulta = consultas.find((c) => c.id === id);
 
-  // Optionally: you might want to handle saving or processing the comment
-  const handleSaveComment = () => {
-    // Implement the logic to save the comment
-    console.log(comment);
-    setComment(""); // Clear the comment after saving
-    setShowCommentBox(false); // Hide the comment box
+    // Mostrar el comentario en un SweetAlert
+    const { value: result } = await Swal.fire({
+      title: "Comentario",
+      text: consulta?.comentario || "No hay comentario disponible",
+      showCancelButton: true,
+      confirmButtonText: "Aceptar",
+      cancelButtonText: "Eliminar comentario",
+    });
+
+    // Si el usuario selecciona eliminar el comentario
+    if (result === undefined) {
+      // Cancelar en lugar de resultado false
+      const { isConfirmed } = await Swal.fire({
+        title: "Confirmación",
+        text: "¿Estás seguro de que deseas eliminar este comentario?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Eliminar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (isConfirmed) {
+        try {
+          // Eliminar el comentario del documento en Firestore
+          const consultaRef = doc(db, "Consultas", id);
+          await updateDoc(consultaRef, { comentario: "" });
+
+          // Actualizar el estado local
+          setConsultas(
+            consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c))
+          );
+
+          // Confirmación de eliminación exitosa
+          Swal.fire("Eliminado", "El comentario ha sido eliminado.", "success");
+        } catch (error) {
+          // Manejo de errores
+          Swal.fire("Error", "No se pudo eliminar el comentario.", "error");
+        }
+      }
+    }
   };
 
   const sortedConsultas = consultas.sort((a, b) => {
@@ -247,7 +312,8 @@ const VistaAsesorFormulario = () => {
                 />
               </Button>
             </TableCell>
-            <TableCell>Opciones</TableCell>
+            <TableCell>Expandir</TableCell>
+            <TableCell>Comentario</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -256,13 +322,8 @@ const VistaAsesorFormulario = () => {
               <TableRow>
                 <TableCell>{consulta.empresa}</TableCell>
                 <TableCell>{consulta.tipo || "No asignado"}</TableCell>
-                <TableCell>
-                  {new Date(
-                    consulta.fecha_solicitud.seconds * 1000
-                  ).toLocaleString()}
-                </TableCell>
-                <TableCell>{consulta.indicador || 30} Días</TableCell>{" "}
-                {/* Indicador column */}
+                <TableCell>{formatDateTime(consulta.fecha_solicitud)}</TableCell>
+                <TableCell>{consulta.indicador || 0 } {"Días"}</TableCell>
                 <TableCell>{consulta.estado}</TableCell>
                 <TableCell>
                   <Button
@@ -276,16 +337,30 @@ const VistaAsesorFormulario = () => {
                             ? "rotate(180deg)"
                             : "rotate(0deg)",
                         transition: "transform 0.3s ease",
-                        color: "primary.main",
                         fontSize: 20,
                       }}
                     />
                   </Button>
                 </TableCell>
+                <TableCell>
+                  <Button
+                    onClick={() => handleCommentClick(consulta.id)}
+                    className="comment-button"
+                    style={{ marginRight: 8 }}
+                  >
+                    <ChatIcon style={{ fontSize: 20 }} />
+                  </Button>
+                  <Button
+                    onClick={() => handleViewComment(consulta.id)}
+                    className="view-comment-button"
+                  >
+                    <VisibilityIcon style={{ fontSize: 20 }} />
+                  </Button>
+                </TableCell>
               </TableRow>
               {expandedRow === consulta.id && (
                 <TableRow>
-                  <TableCell colSpan={6} className="details-cell">
+                  <TableCell colSpan={8} className="details-cell">
                     <Box className="details-box">
                       <Box className="details-info">
                         <Typography variant="h6">
@@ -327,13 +402,13 @@ const VistaAsesorFormulario = () => {
                       <Box className="details-actions">
                         <Box className="select-group">
                           <Box className="select-container">
-                            <Typography variant="h6">
+                            <Typography variant="h6" >
                               Tipo de Consulta
                             </Typography>
                             <Select
                               value={editType}
                               onChange={(e) => setEditType(e.target.value)}
-                              className="select-type"
+                              className="select-type"                          
                             >
                               <MenuItem value="No asignado">
                                 No asignado
@@ -370,9 +445,9 @@ const VistaAsesorFormulario = () => {
                             gap: 1,
                           }}
                         >
-                          {/* Botón Guardar */}
                           <Button
                             variant="contained"
+                            onClick={handleSave}
                             sx={{
                               backgroundColor: "#1B5C94",
                               color: "white",
@@ -384,10 +459,9 @@ const VistaAsesorFormulario = () => {
                           >
                             Guardar
                           </Button>
-
-                          {/* Botón Cerrar */}
                           <Button
                             variant="contained"
+                            onClick={() => setExpandedRow(null)}
                             sx={{
                               backgroundColor: "#1B5C94",
                               color: "white",
@@ -399,44 +473,7 @@ const VistaAsesorFormulario = () => {
                           >
                             Cerrar
                           </Button>
-
-                          {/* Botón Agregar Comentario */}
-                          <Button
-                            variant="contained"
-                            sx={{
-                              backgroundColor: "#1B5C94",
-                              color: "white",
-                              borderRadius: "70px",
-                              "&:hover": {
-                                backgroundColor: "#145a8c",
-                              },
-                            }}
-                          >
-                            Agregar Comentario
-                          </Button>
                         </Box>
-                        {showCommentBox && (
-                          <Box marginTop={2}>
-                            <Typography variant="h6">
-                              Agregar Comentario:
-                            </Typography>
-                            <textarea
-                              value={comment}
-                              onChange={handleCommentChange}
-                              rows={4}
-                              cols={50}
-                              style={{ width: "100%", marginTop: 8 }}
-                            />
-                            <Button
-                              onClick={handleSaveComment}
-                              variant="contained"
-                              color="primary"
-                              style={{ marginTop: 8 }}
-                            >
-                              Guardar Comentario
-                            </Button>
-                          </Box>
-                        )}
                       </Box>
                     </Box>
                   </TableCell>

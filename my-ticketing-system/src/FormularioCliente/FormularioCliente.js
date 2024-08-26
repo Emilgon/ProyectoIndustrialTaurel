@@ -130,13 +130,21 @@ const FormularioCliente = () => {
                     variant="outlined"
                     fullWidth
                     multiline
-                    rows={4}
+                    rows={10}
                 />
                 <Box display="flex" gap={2} alignItems="center">
                     <Button
                         variant="contained"
                         component="label"
                         className="attach-button"
+                        sx={{
+                            backgroundColor: "#1B5C94",
+                            color: "white",
+                            borderRadius: "70px",
+                            "&:hover": {
+                              backgroundColor: "#145a8c",
+                            },
+                          }}
                     >
                         Adjuntar Archivos
                         <input
@@ -150,6 +158,14 @@ const FormularioCliente = () => {
                         variant="contained"
                         color="primary"
                         onClick={handleSubmit}
+                        sx={{
+                            backgroundColor: "#1B5C94",
+                            color: "white",
+                            borderRadius: "70px",
+                            "&:hover": {
+                              backgroundColor: "#145a8c",
+                            },
+                          }}
                     >
                         Enviar Consulta
                     </Button>
