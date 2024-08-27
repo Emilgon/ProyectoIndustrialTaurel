@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import FormularioCliente from './FormularioCliente/FormularioCliente';
 import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario';
 import Reports from './Reportes/Reportes'; 
+import Respuestas from './Respuesta/Respuesta'; // Importa el componente de Respuestas
 import { initializeFirestore } from './initializeFirestore';
 
 function App() {
@@ -38,6 +39,8 @@ function App() {
               </footer>
             </>
           } />
+          {/* Nueva ruta para manejar las respuestas específicas de las consultas */}
+          <Route path="/Respuestas/:consultaId" element={<Respuestas />} />
           <Route path="/" element={
             <>
               <FormularioCliente />

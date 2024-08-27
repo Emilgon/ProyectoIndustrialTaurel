@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -37,6 +38,8 @@ const VistaAsesorFormulario = () => {
   const [currentId, setCurrentId] = useState(null);
   const [resolverDays, setResolverDays] = useState(0);
 
+  const navigate = useNavigate(); // Add this line to use navigation
+
   useEffect(() => {
     const fetchConsultas = async () => {
       const querySnapshot = await getDocs(collection(db, "Consultas"));
@@ -49,6 +52,10 @@ const VistaAsesorFormulario = () => {
 
     fetchConsultas();
   }, []);
+
+  const handleResponderConsulta = (id) => {
+    navigate(`/Respuestas/${id}`);
+  };
 
   const handleToggleDetails = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -322,8 +329,12 @@ const VistaAsesorFormulario = () => {
               <TableRow>
                 <TableCell>{consulta.empresa}</TableCell>
                 <TableCell>{consulta.tipo || "No asignado"}</TableCell>
-                <TableCell>{formatDateTime(consulta.fecha_solicitud)}</TableCell>
-                <TableCell>{consulta.indicador || 0 } {"Días"}</TableCell>
+                <TableCell>
+                  {formatDateTime(consulta.fecha_solicitud)}
+                </TableCell>
+                <TableCell>
+                  {consulta.indicador || 0} {"Días"}
+                </TableCell>
                 <TableCell>{consulta.estado}</TableCell>
                 <TableCell>
                   <Button
@@ -368,6 +379,14 @@ const VistaAsesorFormulario = () => {
                           {consulta.nombre || "No disponible"}{" "}
                           {consulta.apellido || "No disponible"}
                         </Typography>
+                        <Typography variant="h6">
+                          <strong>Empresa:</strong>{" "}
+                          {consulta.empresa || "No disponible"}
+                        </Typography>
+                        <Typography variant="h6">
+                          <strong>Correo:</strong>{" "}
+                          {consulta.correo || "No disponible"}
+                        </Typography>
                         <Typography variant="h6" marginTop={2}>
                           <strong>Consulta:</strong>{" "}
                           {consulta.mensaje || "No disponible"}
@@ -402,13 +421,13 @@ const VistaAsesorFormulario = () => {
                       <Box className="details-actions">
                         <Box className="select-group">
                           <Box className="select-container">
-                            <Typography variant="h6" >
+                            <Typography variant="h6">
                               Tipo de Consulta
                             </Typography>
                             <Select
                               value={editType}
                               onChange={(e) => setEditType(e.target.value)}
-                              className="select-type"                          
+                              className="select-type"
                             >
                               <MenuItem value="No asignado">
                                 No asignado
@@ -472,6 +491,20 @@ const VistaAsesorFormulario = () => {
                             }}
                           >
                             Cerrar
+                          </Button>
+                          <Button
+                            variant="contained"
+                            onClick={() => handleResponderConsulta(consulta.id)}
+                            sx={{
+                              backgroundColor: "#1B5C94",
+                              color: "white",
+                              borderRadius: "70px",
+                              "&:hover": {
+                                backgroundColor: "#145a8c",
+                              },
+                            }}
+                          >
+                            Responder consulta
                           </Button>
                         </Box>
                       </Box>
