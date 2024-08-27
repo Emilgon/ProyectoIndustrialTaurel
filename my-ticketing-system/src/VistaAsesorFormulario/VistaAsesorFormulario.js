@@ -55,7 +55,7 @@ const VistaAsesorFormulario = () => {
 
   const handleResponderConsulta = (id) => {
     navigate(`/Respuestas/${id}`);
-  };
+  };  
 
   const handleToggleDetails = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
