@@ -1,32 +1,12 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Typography,
-  Box,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import {Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Paper,Button,Typography,Box,Select,MenuItem,Grid,Card,CardContent} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Swal from "sweetalert2";
-import {
-  db,
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  addDoc,
-} from "../firebaseConfig";
+import {db,collection,getDocs,updateDoc,doc,addDoc} from "../firebaseConfig";
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -37,6 +17,9 @@ const VistaAsesorFormulario = () => {
   const [editType, setEditType] = useState("No asignado");
   const [currentId, setCurrentId] = useState(null);
   const [resolverDays, setResolverDays] = useState(0);
+  const [pendientesCount, setPendientesCount] = useState(0);
+  const [enProcesoCount, setEnProcesoCount] = useState(0);
+  const [resueltasCount, setResueltasCount] = useState(0);
 
   const navigate = useNavigate(); // Add this line to use navigation
 
@@ -48,6 +31,20 @@ const VistaAsesorFormulario = () => {
         id: doc.id,
       }));
       setConsultas(consultasData);
+
+      // Contadores
+      const pendientes = consultasData.filter(
+        (c) => c.estado === "Pendiente"
+      ).length;
+      const enProceso = consultasData.filter(
+        (c) => c.estado === "En proceso"
+      ).length;
+      const resueltas = consultasData.filter(
+        (c) => c.estado === "Resuelta"
+      ).length;
+      setPendientesCount(pendientes);
+      setEnProcesoCount(enProceso);
+      setResueltasCount(resueltas);
     };
 
     fetchConsultas();
@@ -55,7 +52,7 @@ const VistaAsesorFormulario = () => {
 
   const handleResponderConsulta = (id) => {
     navigate(`/Respuestas/${id}`);
-  };  
+  };
 
   const handleToggleDetails = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -138,7 +135,6 @@ const VistaAsesorFormulario = () => {
       // Guardar el comentario en Firebase
       const consultaRef = doc(db, "Consultas", id);
       await updateDoc(consultaRef, { comentario: comment });
-      // Actualizar el estado para reflejar el nuevo comentario en la interfaz
       setConsultas(
         consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
       );
@@ -516,6 +512,32 @@ const VistaAsesorFormulario = () => {
           ))}
         </TableBody>
       </Table>
+      <Grid container spacing={2} mt={4}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">CONSULTAS PENDIENTES:</Typography>
+              <Typography variant="h4">{pendientesCount}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">CONSULTAS EN PROCESO:</Typography>
+              <Typography variant="h4">{enProcesoCount}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">CONSULTAS RESUELTAS:</Typography>
+              <Typography variant="h4">{resueltasCount}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </TableContainer>
   );
 };

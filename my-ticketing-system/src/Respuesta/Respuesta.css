@@ -2,8 +2,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-color: #f4f4f9; /* Añade un color de fondo suave para que el contenedor destaque más */
+    height:auto;
+    margin-top: 20px;
 }
 
 .respuesta-content {
@@ -12,8 +12,8 @@
     width: 80%;
     height: 90%;
     padding: 20px;
-    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
-    overflow-y: auto; /* Añadir scroll si hay mucho contenido */
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2); 
+    overflow-y: auto; 
 }
 
 h1 {
