@@ -80,8 +80,8 @@ const Respuesta = () => {
 
       Swal.fire({
         icon: 'success',
-        title: 'Respuesta Enviada',
-        text: 'Tu respuesta ha sido enviada exitosamente.',
+        title: 'Tu respuesta ha sido enviada exitosamente',
+        text: '¿Quisiera seguir respondiendo consultas?',
         showCancelButton: true,
         confirmButtonText: 'Sí',
         cancelButtonText: 'No',

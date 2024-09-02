@@ -1,12 +1,35 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
-import {Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Paper,Button,Typography,Box,Select,MenuItem,Grid,Card,CardContent} from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Typography,
+  Box,
+  Select,
+  MenuItem,
+  Grid,
+  Card,
+  CardContent,
+} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Swal from "sweetalert2";
-import {db,collection,getDocs,updateDoc,doc,addDoc} from "../firebaseConfig";
+import {
+  db,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  addDoc,
+} from "../firebaseConfig";
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -46,9 +69,42 @@ const VistaAsesorFormulario = () => {
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
     };
-
     fetchConsultas();
+
+    const interval = setInterval(() => {
+      setConsultas((prevConsultas) =>
+        prevConsultas.map((consulta) => ({
+          ...consulta,
+          indicador: calculateRemainingDays(
+            consulta.fecha_inicio,
+            consulta.indicador
+          ),
+        }))
+      );
+    }, 3600000);
+    return () => clearInterval(interval);
   }, []);
+
+  function calculateRemainingDays(fechaInicio, indicadorOriginal) {
+    if (!fechaInicio || typeof fechaInicio.toDate !== "function") {
+      return indicadorOriginal; // Devolver el indicador original si la fecha de inicio no es válida
+    }
+
+    const now = new Date(); // Fecha y hora actual
+    const start = fechaInicio.toDate(); // Convertir fechaInicio a un objeto Date
+
+    // Calcular la diferencia en milisegundos entre la fecha actual y la fecha de inicio
+    const differenceInMs = now - start;
+
+    // Convertir la diferencia a días, redondeando hacia abajo
+    const differenceInDays = Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
+
+    // Calcular los días restantes
+    const remainingDays = indicadorOriginal - differenceInDays;
+
+    // Asegurar que el valor del indicador nunca sea negativo
+    return remainingDays > 0 ? remainingDays : 0;
+  }
 
   const handleResponderConsulta = (id) => {
     navigate(`/Respuestas/${id}`);
@@ -84,11 +140,20 @@ const VistaAsesorFormulario = () => {
     if (currentId) {
       // Update existing consulta
       const consultaRef = doc(db, "Consultas", currentId);
-      await updateDoc(consultaRef, { tipo: editType, indicador: resolverDays });
+      await updateDoc(consultaRef, {
+        tipo: editType,
+        indicador: resolverDays,
+        fecha_inicio: new Date(), // Guardar fecha actual
+      });
       setConsultas(
         consultas.map((c) =>
           c.id === currentId
-            ? { ...c, tipo: editType, indicador: resolverDays }
+            ? {
+                ...c,
+                tipo: editType,
+                indicador: resolverDays,
+                fecha_inicio: new Date(),
+              }
             : c
         )
       );
@@ -98,18 +163,16 @@ const VistaAsesorFormulario = () => {
       await addDoc(collection(db, "Consultas"), {
         tipo: editType || "No asignado", // Default to "No asignado"
         indicador: resolverDays || 0, // Default to 0
-        // Include other necessary fields
       });
       setConsultas([
         ...consultas,
         {
           tipo: editType || "No asignado",
-          indicador: resolverDays || 0 /* other fields */,
+          indicador: resolverDays || 0,
         },
       ]);
-      // Reset state after saving
       setEditType("No asignado");
-      setResolverDays(0); // Reset to default value
+      setResolverDays(0);
     }
   };
 
@@ -329,8 +392,23 @@ const VistaAsesorFormulario = () => {
                   {formatDateTime(consulta.fecha_solicitud)}
                 </TableCell>
                 <TableCell>
-                  {consulta.indicador || 0} {"Días"}
+                  {consulta.indicador !== undefined && consulta.indicador !== null && (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: calculateRemainingDays(consulta.fecha_inicio, consulta.indicador) <= 1 ? 'red' : 'green',
+                        marginRight: '8px'
+                      }}
+                    />
+                  )}
+                  {consulta.indicador === undefined || consulta.indicador === null
+                    ? "No asignado"
+                    : `${calculateRemainingDays(consulta.fecha_inicio, consulta.indicador)} Días`}
                 </TableCell>
+
                 <TableCell>{consulta.estado}</TableCell>
                 <TableCell>
                   <Button
