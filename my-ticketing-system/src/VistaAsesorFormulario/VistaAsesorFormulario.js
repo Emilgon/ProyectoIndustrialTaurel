@@ -1,35 +1,12 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Typography,
-  Box,
-  Select,
-  MenuItem,
-  Grid,
-  Card,
-  CardContent,
-} from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Typography, Box, Select, MenuItem, Grid, Card, CardContent, Popover, } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Swal from "sweetalert2";
-import {
-  db,
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  addDoc,
-} from "../firebaseConfig";
+import { db, collection, getDocs, updateDoc, doc, addDoc, } from "../firebaseConfig";
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -43,8 +20,10 @@ const VistaAsesorFormulario = () => {
   const [pendientesCount, setPendientesCount] = useState(0);
   const [enProcesoCount, setEnProcesoCount] = useState(0);
   const [resueltasCount, setResueltasCount] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedState, setSelectedState] = useState("");
 
-  const navigate = useNavigate(); // Add this line to use navigation
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchConsultas = async () => {
@@ -68,6 +47,19 @@ const VistaAsesorFormulario = () => {
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
+
+      const consultasExpiracion = consultasData.filter(
+        (consulta) => calculateRemainingDays(consulta.fecha_inicio, consulta.indicador) <= 1
+      );
+
+      if (consultasExpiracion.length > 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "¡Advertencia!",
+          text: `Hay ${consultasExpiracion.length} consulta(s) con muy poco tiempo restante para ser respondidas.`,
+          confirmButtonText: "Entendido",
+        });
+      }
     };
     fetchConsultas();
 
@@ -81,13 +73,14 @@ const VistaAsesorFormulario = () => {
           ),
         }))
       );
-    }, 3600000);
+    }, 3600000); // 1 hora
+
     return () => clearInterval(interval);
   }, []);
 
   function calculateRemainingDays(fechaInicio, indicadorOriginal) {
     if (!fechaInicio || typeof fechaInicio.toDate !== "function") {
-      return indicadorOriginal; // Devolver el indicador original si la fecha de inicio no es válida
+      return indicadorOriginal; 
     }
 
     const now = new Date(); // Fecha y hora actual
@@ -109,6 +102,24 @@ const VistaAsesorFormulario = () => {
   const handleResponderConsulta = (id) => {
     navigate(`/Respuestas/${id}`);
   };
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSelectState = (state) => {
+    setSelectedState(state);
+    setOrderBy("estado");
+    setOrder("asc"); 
+    handleClose();
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? "simple-popover" : undefined;
 
   const handleToggleDetails = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -149,11 +160,11 @@ const VistaAsesorFormulario = () => {
         consultas.map((c) =>
           c.id === currentId
             ? {
-                ...c,
-                tipo: editType,
-                indicador: resolverDays,
-                fecha_inicio: new Date(),
-              }
+              ...c,
+              tipo: editType,
+              indicador: resolverDays,
+              fecha_inicio: new Date(),
+            }
             : c
         )
       );
@@ -250,34 +261,34 @@ const VistaAsesorFormulario = () => {
   };
 
   const sortedConsultas = consultas.sort((a, b) => {
+    if (orderBy === "estado") {
+      const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
+      const aPriority =
+        a.estado === selectedState ? -1 : statesOrder.indexOf(a.estado);
+      const bPriority =
+        b.estado === selectedState ? -1 : statesOrder.indexOf(b.estado);
+      return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
+    }
+
     if (orderBy === "fecha_solicitud") {
       return order === "asc"
         ? a.fecha_solicitud.seconds - b.fecha_solicitud.seconds
         : b.fecha_solicitud.seconds - a.fecha_solicitud.seconds;
     }
 
-    if (orderBy === "estado") {
-      const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
-      return order === "asc"
-        ? statesOrder.indexOf(a.estado) - statesOrder.indexOf(b.estado)
-        : statesOrder.indexOf(b.estado) - statesOrder.indexOf(a.estado);
+    if (orderBy === "tipo") {
+      const typesOrder = [
+        "Clasificación Arancelaria",
+        "Asesoría técnica",
+        "No asignado",
+      ];
+      const aIndex = typesOrder.indexOf(a.tipo || "No asignado");
+      const bIndex = typesOrder.indexOf(b.tipo || "No asignado");
+      return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
     }
 
     const aValue = a[orderBy] || "";
     const bValue = b[orderBy] || "";
-
-    if (orderBy === "tipo") {
-      const typesOrder = [
-        "Asesoría técnica",
-        "Clasificación arancelaria",
-        "No asignado",
-      ];
-      return order === "asc"
-        ? typesOrder.indexOf(a.tipo || "No asignado") -
-            typesOrder.indexOf(b.tipo || "No asignado")
-        : typesOrder.indexOf(b.tipo || "No asignado") -
-            typesOrder.indexOf(a.tipo || "No asignado");
-    }
 
     if (aValue < bValue) return order === "asc" ? -1 : 1;
     if (aValue > bValue) return order === "asc" ? 1 : -1;
@@ -292,9 +303,8 @@ const VistaAsesorFormulario = () => {
             <TableCell>
               <Button
                 onClick={() => handleRequestSort("empresa")}
-                className={`sort-button ${
-                  orderBy === "empresa" ? "active" : ""
-                }`}
+                className={`sort-button ${orderBy === "empresa" ? "active" : ""
+                  }`}
               >
                 Cliente
                 <ExpandMoreIcon
@@ -331,12 +341,12 @@ const VistaAsesorFormulario = () => {
                 />
               </Button>
             </TableCell>
+
             <TableCell>
               <Button
                 onClick={() => handleRequestSort("fecha_solicitud")}
-                className={`sort-button ${
-                  orderBy === "fecha_solicitud" ? "active" : ""
-                }`}
+                className={`sort-button ${orderBy === "fecha_solicitud" ? "active" : ""
+                  }`}
               >
                 Fecha de Solicitud
                 <ExpandMoreIcon
@@ -354,14 +364,31 @@ const VistaAsesorFormulario = () => {
               </Button>
             </TableCell>
             <TableCell>
-              <Button className="sort-button">Indicador</Button>
+              <Button
+                onClick={() => handleRequestSort("indicador")}
+                className={`sort-button ${orderBy === "indicador" ? "active" : ""
+                  }`}
+              >
+                Indicador
+                <ExpandMoreIcon
+                  style={{
+                    transform:
+                      orderBy === "indicador"
+                        ? order === "asc"
+                          ? "rotate(0deg)"
+                          : "rotate(180deg)"
+                        : "rotate(0deg)",
+                    transition: "transform 0.3s ease",
+                    fontSize: 16,
+                  }}
+                />
+              </Button>
             </TableCell>
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("estado")}
-                className={`sort-button ${
-                  orderBy === "estado" ? "active" : ""
-                }`}
+                onClick={handleClick}
+                className={`sort-button ${orderBy === "estado" ? "active" : ""
+                  }`}
               >
                 Estado
                 <ExpandMoreIcon
@@ -377,6 +404,26 @@ const VistaAsesorFormulario = () => {
                   }}
                 />
               </Button>
+              <Popover
+                id={id}
+                open={open}
+                anchorEl={anchorEl}
+                onClose={handleClose}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "center",
+                }}
+              >
+                <MenuItem onClick={() => handleSelectState("Pendiente")}>
+                  Pendiente
+                </MenuItem>
+                <MenuItem onClick={() => handleSelectState("En proceso")}>
+                  En proceso
+                </MenuItem>
+                <MenuItem onClick={() => handleSelectState("Resuelto")}>
+                  Resuelto
+                </MenuItem>
+              </Popover>
             </TableCell>
             <TableCell>Expandir</TableCell>
             <TableCell>Comentario</TableCell>
@@ -392,23 +439,33 @@ const VistaAsesorFormulario = () => {
                   {formatDateTime(consulta.fecha_solicitud)}
                 </TableCell>
                 <TableCell>
-                  {consulta.indicador !== undefined && consulta.indicador !== null && (
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: calculateRemainingDays(consulta.fecha_inicio, consulta.indicador) <= 1 ? 'red' : 'green',
-                        marginRight: '8px'
-                      }}
-                    />
-                  )}
-                  {consulta.indicador === undefined || consulta.indicador === null
+                  {consulta.indicador !== undefined &&
+                    consulta.indicador !== null && (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          backgroundColor:
+                            calculateRemainingDays(
+                              consulta.fecha_inicio,
+                              consulta.indicador
+                            ) <= 1
+                              ? "red"
+                              : "green",
+                          marginRight: "8px",
+                        }}
+                      />
+                    )}
+                  {consulta.indicador === undefined ||
+                    consulta.indicador === null
                     ? "No asignado"
-                    : `${calculateRemainingDays(consulta.fecha_inicio, consulta.indicador)} Días`}
+                    : `${calculateRemainingDays(
+                      consulta.fecha_inicio,
+                      consulta.indicador
+                    )} Días`}
                 </TableCell>
-
                 <TableCell>{consulta.estado}</TableCell>
                 <TableCell>
                   <Button
