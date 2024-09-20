@@ -9,8 +9,8 @@ import Swal from 'sweetalert2';
 const Respuesta = () => {
   const { consultaId } = useParams();
   const [consultaData, setConsultaData] = useState(null);
-  const [respuesta, setRespuesta] = useState('');
-  const [ setFile] = useState(null);
+  const [reply, setReply] = useState('');
+  const [setFile] = useState(null);
 
   useEffect(() => {
     const fetchConsulta = async () => {
@@ -61,7 +61,7 @@ const Respuesta = () => {
   };
 
   const handleSend = async () => {
-    if (respuesta.trim() === '') {
+    if (reply.trim() === '') {
       Swal.fire({
         icon: 'warning',
         title: 'Campo vacío',
@@ -74,8 +74,8 @@ const Respuesta = () => {
       // Actualiza la consulta en Firestore
       const consultaRef = doc(db, "Consultas", consultaId);
       await updateDoc(consultaRef, {
-        respuesta: respuesta,
-        estado: "En proceso", // Actualiza el estado a "En proceso"
+        reply: reply,
+        status: "En proceso", // Actualiza el estado a "En proceso"
       });
 
       Swal.fire({
@@ -103,20 +103,20 @@ const Respuesta = () => {
   };
 
   return (
-    <div className="respuesta-container">
-      <div className="respuesta-content">
+    <div className="reply-container">
+      <div className="reply-content">
         <h1>
-          Cliente: {consultaData.nombre} {consultaData.apellido} de {consultaData.empresa}
+          Cliente: {consultaData.given_name} {consultaData.last_name} de {consultaData.company}
         </h1>
-        <p>Consulta de tipo {consultaData.tipo}</p>
+        <p>Consulta de tipo {consultaData.type}</p>
         <p>Mensaje:</p>
         <div className="message-container">
-          <p>{consultaData.mensaje}</p>
-          {consultaData.adjuntado && consultaData.adjuntado.length > 0 && (
+          <p>{consultaData.message}</p>
+          {consultaData.attachment && consultaData.attachment.length > 0 && (
             <div className="adjuntos-container">
               <p>Archivos Adjuntos:</p>
               <ul>
-                {consultaData.adjuntado.split(", ").map((fileName, index) => (
+                {consultaData.attachment.split(", ").map((fileName, index) => (
                   <li key={index}>{renderPreview(fileName)}</li>
                 ))}
               </ul>
@@ -130,8 +130,8 @@ const Respuesta = () => {
             rows={6}
             variant="outlined"
             fullWidth
-            value={respuesta}
-            onChange={(e) => setRespuesta(e.target.value)}
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "22px",

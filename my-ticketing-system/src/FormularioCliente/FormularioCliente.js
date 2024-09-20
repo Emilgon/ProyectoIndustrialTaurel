@@ -1,22 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Box } from '@mui/material';
 import Swal from 'sweetalert2';
-import { db, collection, addDoc } from '../firebaseConfig';
+import { db, collection, addDoc, doc, getDoc } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
 import './FormularioCliente.css';
 
 const FormularioCliente = () => {
     const [formData, setFormData] = useState({
-        nombre: '',
-        apellido: '',
-        telefono: '',
-        correo: '',
-        empresa: '',
-        mensaje: ''
+        company: '',
+        company_role: '',
+        email: '',
+        given_name: '',
+        last_name: '',
+        message: '',
+        phone_number: '',
+        request: 0
     });
     const [selectedFiles, setSelectedFiles] = useState([]);
-
     const navigate = useNavigate();
+
+    // Obtener los datos del cliente desde Firebase
+    useEffect(() => {
+        const fetchClientData = async () => {
+            try {
+                const docRef = doc(db, 'Clientes', 'ID_DEL_CLIENTE'); // Usa el ID adecuado
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setFormData(docSnap.data());
+                } else {
+                    console.log("No such document!");
+                }
+            } catch (error) {
+                console.log("Error fetching client data:", error);
+            }
+        };
+
+        fetchClientData();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -32,7 +53,11 @@ const FormularioCliente = () => {
     };
 
     const handleSubmit = async () => {
-        const emptyFields = Object.values(formData).some(value => value.trim() === '');
+        const emptyFields = Object.values(formData).some(value => {
+            // Verifica si el valor es una cadena antes de aplicar trim
+            return typeof value === 'string' && value.trim() === '';
+        });
+
         if (emptyFields) {
             Swal.fire({
                 icon: 'error',
@@ -43,27 +68,43 @@ const FormularioCliente = () => {
         }
 
         try {
+            // Guarda la consulta en la colección 'Consultas'
             await addDoc(collection(db, 'Consultas'), {
                 ...formData,
-                adjuntado: selectedFiles.map(file => file.name).join(', '),
-                fecha_solicitud: new Date(),
-                estado: 'Pendiente',
-                respuesta: null
+                attachment: selectedFiles.map(file => file.given_name).join(', '),
+                apply_date: new Date(),
+                status: 'Pendiente',
+                reply: ''
+            });
+
+            // Guarda al cliente en la colección 'Clientes'
+            await addDoc(collection(db, 'Clientes'), {
+                company: formData.company,
+                company_role: formData.company_role,
+                email: formData.email,
+                given_name: formData.given_name,
+                last_name: formData.last_name,
+                message: formData.message,
+                phone_number: formData.phone_number,
+                request: formData.request
             });
 
             Swal.fire({
                 icon: 'success',
                 title: 'Consulta Enviada',
-                text: 'Tu consulta ha sido enviada exitosamente.',
+                text: 'Tu consulta ha sido enviada exitosamente y el cliente ha sido registrado.',
             });
 
+            // Restablecer el formulario
             setFormData({
-                nombre: '',
-                apellido: '',
-                telefono: '',
-                correo: '',
-                empresa: '',
-                mensaje: ''
+                company: '',
+                company_role: '',
+                email: '',
+                given_name: '',
+                last_name: '',
+                message: '',
+                phone_number: '',
+                request: 0
             });
             setSelectedFiles([]);
         } catch (error) {
@@ -81,16 +122,16 @@ const FormularioCliente = () => {
                 <Box display="flex" gap={2}>
                     <TextField
                         label="Nombre"
-                        name="nombre"
-                        value={formData.nombre}
+                        name="given_name"
+                        value={formData.given_name}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
                     />
                     <TextField
                         label="Apellido"
-                        name="apellido"
-                        value={formData.apellido}
+                        name="last_name"
+                        value={formData.last_name}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
@@ -99,16 +140,16 @@ const FormularioCliente = () => {
                 <Box display="flex" gap={2}>
                     <TextField
                         label="Teléfono"
-                        name="telefono"
-                        value={formData.telefono}
+                        name="phone_number"
+                        value={formData.phone_number}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
                     />
                     <TextField
                         label="Correo"
-                        name="correo"
-                        value={formData.correo}
+                        name="email"
+                        value={formData.email}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
@@ -116,16 +157,24 @@ const FormularioCliente = () => {
                 </Box>
                 <TextField
                     label="Empresa/Compañía"
-                    name="empresa"
-                    value={formData.empresa}
+                    name="company"
+                    value={formData.company}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    fullWidth
+                />
+                <TextField
+                    label="Rol en la compañía"
+                    name="company_role"
+                    value={formData.company_role}
                     onChange={handleInputChange}
                     variant="outlined"
                     fullWidth
                 />
                 <TextField
                     label="Mensaje"
-                    name="mensaje"
-                    value={formData.mensaje}
+                    name="message"
+                    value={formData.message}
                     onChange={handleInputChange}
                     variant="outlined"
                     fullWidth
@@ -142,9 +191,9 @@ const FormularioCliente = () => {
                             color: "white",
                             borderRadius: "70px",
                             "&:hover": {
-                              backgroundColor: "#145a8c",
+                                backgroundColor: "#145a8c",
                             },
-                          }}
+                        }}
                     >
                         Adjuntar Archivos
                         <input
@@ -163,9 +212,9 @@ const FormularioCliente = () => {
                             color: "white",
                             borderRadius: "70px",
                             "&:hover": {
-                              backgroundColor: "#145a8c",
+                                backgroundColor: "#145a8c",
                             },
-                          }}
+                        }}
                     >
                         Enviar Consulta
                     </Button>
@@ -173,12 +222,12 @@ const FormularioCliente = () => {
                 {selectedFiles.length > 0 && (
                     <Box className="file-preview">
                         {selectedFiles.map(file => (
-                            <Box key={file.name} display="flex" justifyContent="space-between" alignItems="center">
-                                <span>{file.name}</span>
+                            <Box key={file.given_name} display="flex" justifyContent="space-between" alignItems="center">
+                                <span>{file.given_name}</span>
                                 <Button
                                     variant="text"
                                     color="secondary"
-                                    onClick={() => handleDeleteFile(file.name)}
+                                    onClick={() => handleDeleteFile(file.given_name)}
                                 >
                                     Eliminar
                                 </Button>

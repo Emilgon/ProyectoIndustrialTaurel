@@ -13,7 +13,7 @@ const VistaAsesorFormulario = () => {
   const [consultas, setConsultas] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [order, setOrder] = useState("asc");
-  const [orderBy, setOrderBy] = useState("empresa");
+  const [orderBy, setOrderBy] = useState("company");
   const [editType, setEditType] = useState("No asignado");
   const [currentId, setCurrentId] = useState(null);
   const [resolverDays, setResolverDays] = useState(0);
@@ -36,20 +36,20 @@ const VistaAsesorFormulario = () => {
 
       // Contadores
       const pendientes = consultasData.filter(
-        (c) => c.estado === "Pendiente"
+        (c) => c.status === "Pendiente"
       ).length;
       const enProceso = consultasData.filter(
-        (c) => c.estado === "En proceso"
+        (c) => c.status === "En proceso"
       ).length;
       const resueltas = consultasData.filter(
-        (c) => c.estado === "Resuelta"
+        (c) => c.status === "Resuelta"
       ).length;
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
 
       const consultasExpiracion = consultasData.filter(
-        (consulta) => calculateRemainingDays(consulta.fecha_inicio, consulta.indicador) <= 1
+        (consulta) => calculateRemainingDays(consulta.start_date, consulta.indicador) <= 1
       );
 
       if (consultasExpiracion.length > 0) {
@@ -68,7 +68,7 @@ const VistaAsesorFormulario = () => {
         prevConsultas.map((consulta) => ({
           ...consulta,
           indicador: calculateRemainingDays(
-            consulta.fecha_inicio,
+            consulta.start_date,
             consulta.indicador
           ),
         }))
@@ -78,13 +78,13 @@ const VistaAsesorFormulario = () => {
     return () => clearInterval(interval);
   }, []);
 
-  function calculateRemainingDays(fechaInicio, indicadorOriginal) {
-    if (!fechaInicio || typeof fechaInicio.toDate !== "function") {
-      return indicadorOriginal; 
+  function calculateRemainingDays(startDate, indicadorOriginal) {
+    if (!startDate || typeof startDate.toDate !== "function") {
+      return indicadorOriginal;
     }
 
     const now = new Date(); // Fecha y hora actual
-    const start = fechaInicio.toDate(); // Convertir fechaInicio a un objeto Date
+    const start = startDate.toDate(); // Convertir fechaInicio a un objeto Date
 
     // Calcular la diferencia en milisegundos entre la fecha actual y la fecha de inicio
     const differenceInMs = now - start;
@@ -111,10 +111,10 @@ const VistaAsesorFormulario = () => {
     setAnchorEl(null);
   };
 
-  const handleSelectState = (state) => {
-    setSelectedState(state);
-    setOrderBy("estado");
-    setOrder("asc"); 
+  const handleSelectState = (status) => {
+    setSelectedState(status);
+    setOrderBy("status");
+    setOrder("asc");
     handleClose();
   };
 
@@ -129,13 +129,18 @@ const VistaAsesorFormulario = () => {
       setResolverDays(30);
     } else {
       const consulta = consultas.find((c) => c.id === id);
-      setEditType(consulta.tipo || "");
+      setEditType(consulta.type || "");
       setCurrentId(id);
       setResolverDays(consulta.indicador || 30);
     }
   };
 
   const formatDateTime = (timestamp) => {
+    // Verificar si el timestamp es válido y tiene la propiedad 'seconds'
+    if (!timestamp || !timestamp.seconds) {
+      return "Fecha no disponible";
+    }
+
     return moment(timestamp.seconds * 1000)
       .tz("America/Caracas")
       .format("DD MMM YYYY, HH:mm");
@@ -152,18 +157,18 @@ const VistaAsesorFormulario = () => {
       // Update existing consulta
       const consultaRef = doc(db, "Consultas", currentId);
       await updateDoc(consultaRef, {
-        tipo: editType,
+        type: editType,
         indicador: resolverDays,
-        fecha_inicio: new Date(), // Guardar fecha actual
+        start_date: new Date(), // Guardar fecha actual
       });
       setConsultas(
         consultas.map((c) =>
           c.id === currentId
             ? {
               ...c,
-              tipo: editType,
+              type: editType,
               indicador: resolverDays,
-              fecha_inicio: new Date(),
+              start_date: new Date(),
             }
             : c
         )
@@ -172,13 +177,13 @@ const VistaAsesorFormulario = () => {
     } else {
       // Add new consulta
       await addDoc(collection(db, "Consultas"), {
-        tipo: editType || "No asignado", // Default to "No asignado"
+        type: editType || "No asignado", // Default to "No asignado"
         indicador: resolverDays || 0, // Default to 0
       });
       setConsultas([
         ...consultas,
         {
-          tipo: editType || "No asignado",
+          type: editType || "No asignado",
           indicador: resolverDays || 0,
         },
       ]);
@@ -261,29 +266,30 @@ const VistaAsesorFormulario = () => {
   };
 
   const sortedConsultas = consultas.sort((a, b) => {
-    if (orderBy === "estado") {
+    if (orderBy === "status") {
       const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
       const aPriority =
-        a.estado === selectedState ? -1 : statesOrder.indexOf(a.estado);
+        a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
       const bPriority =
-        b.estado === selectedState ? -1 : statesOrder.indexOf(b.estado);
+        b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
       return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
     }
 
-    if (orderBy === "fecha_solicitud") {
+    if (orderBy === "apply_date") {
       return order === "asc"
-        ? a.fecha_solicitud.seconds - b.fecha_solicitud.seconds
-        : b.fecha_solicitud.seconds - a.fecha_solicitud.seconds;
+        ? (a.apply_date?.seconds || 0) - (b.apply_date?.seconds || 0)
+        : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
     }
 
-    if (orderBy === "tipo") {
+
+    if (orderBy === "type") {
       const typesOrder = [
         "Clasificación Arancelaria",
         "Asesoría técnica",
         "No asignado",
       ];
-      const aIndex = typesOrder.indexOf(a.tipo || "No asignado");
-      const bIndex = typesOrder.indexOf(b.tipo || "No asignado");
+      const aIndex = typesOrder.indexOf(a.type || "No asignado");
+      const bIndex = typesOrder.indexOf(b.type || "No asignado");
       return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
     }
 
@@ -302,15 +308,15 @@ const VistaAsesorFormulario = () => {
           <TableRow>
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("empresa")}
-                className={`sort-button ${orderBy === "empresa" ? "active" : ""
+                onClick={() => handleRequestSort("company")}
+                className={`sort-button ${orderBy === "company" ? "active" : ""
                   }`}
               >
                 Cliente
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "empresa"
+                      orderBy === "company"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -323,14 +329,14 @@ const VistaAsesorFormulario = () => {
             </TableCell>
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("tipo")}
-                className={`sort-button ${orderBy === "tipo" ? "active" : ""}`}
+                onClick={() => handleRequestSort("type")}
+                className={`sort-button ${orderBy === "type" ? "active" : ""}`}
               >
                 Tipo de Consulta
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "tipo"
+                      orderBy === "type"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -344,15 +350,15 @@ const VistaAsesorFormulario = () => {
 
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("fecha_solicitud")}
-                className={`sort-button ${orderBy === "fecha_solicitud" ? "active" : ""
+                onClick={() => handleRequestSort("apply_date")}
+                className={`sort-button ${orderBy === "apply_date" ? "active" : ""
                   }`}
               >
                 Fecha de Solicitud
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "fecha_solicitud"
+                      orderBy === "apply_date"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -387,14 +393,14 @@ const VistaAsesorFormulario = () => {
             <TableCell>
               <Button
                 onClick={handleClick}
-                className={`sort-button ${orderBy === "estado" ? "active" : ""
+                className={`sort-button ${orderBy === "status" ? "active" : ""
                   }`}
               >
                 Estado
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "estado"
+                      orderBy === "status"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -433,10 +439,10 @@ const VistaAsesorFormulario = () => {
           {sortedConsultas.map((consulta) => (
             <React.Fragment key={consulta.id}>
               <TableRow>
-                <TableCell>{consulta.empresa}</TableCell>
-                <TableCell>{consulta.tipo || "No asignado"}</TableCell>
+                <TableCell>{consulta.company}</TableCell>
+                <TableCell>{consulta.type || "No asignado"}</TableCell>
                 <TableCell>
-                  {formatDateTime(consulta.fecha_solicitud)}
+                  {formatDateTime(consulta.apply_date)}
                 </TableCell>
                 <TableCell>
                   {consulta.indicador !== undefined &&
@@ -449,7 +455,7 @@ const VistaAsesorFormulario = () => {
                           borderRadius: "50%",
                           backgroundColor:
                             calculateRemainingDays(
-                              consulta.fecha_inicio,
+                              consulta.start_date,
                               consulta.indicador
                             ) <= 1
                               ? "red"
@@ -462,11 +468,11 @@ const VistaAsesorFormulario = () => {
                     consulta.indicador === null
                     ? "No asignado"
                     : `${calculateRemainingDays(
-                      consulta.fecha_inicio,
+                      consulta.start_date,
                       consulta.indicador
                     )} Días`}
                 </TableCell>
-                <TableCell>{consulta.estado}</TableCell>
+                <TableCell>{consulta.status}</TableCell>
                 <TableCell>
                   <Button
                     onClick={() => handleToggleDetails(consulta.id)}
@@ -507,28 +513,28 @@ const VistaAsesorFormulario = () => {
                       <Box className="details-info">
                         <Typography variant="h6">
                           <strong>Nombre y Apellido:</strong>{" "}
-                          {consulta.nombre || "No disponible"}{" "}
-                          {consulta.apellido || "No disponible"}
+                          {consulta.given_name || "No disponible"}{" "}
+                          {consulta.last_name || "No disponible"}
                         </Typography>
                         <Typography variant="h6">
                           <strong>Empresa:</strong>{" "}
-                          {consulta.empresa || "No disponible"}
+                          {consulta.company || "No disponible"}
                         </Typography>
                         <Typography variant="h6">
                           <strong>Correo:</strong>{" "}
-                          {consulta.correo || "No disponible"}
+                          {consulta.email || "No disponible"}
                         </Typography>
                         <Typography variant="h6" marginTop={2}>
                           <strong>Consulta:</strong>{" "}
-                          {consulta.mensaje || "No disponible"}
+                          {consulta.message || "No disponible"}
                         </Typography>
-                        {consulta.adjuntado && (
+                        {consulta.attachment && (
                           <Box marginTop={2}>
                             <Typography variant="h6">
                               <strong>Archivo Adjunto:</strong>
                             </Typography>
                             <Box display="flex" alignItems="center">
-                              {consulta.adjuntado
+                              {consulta.attachment
                                 .split(", ")
                                 .map((fileName) => (
                                   <Box key={fileName} marginRight={2}>
