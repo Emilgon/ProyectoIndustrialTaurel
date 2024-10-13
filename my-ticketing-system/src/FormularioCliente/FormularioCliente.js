@@ -2,22 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { TextField, Button, Box } from '@mui/material';
 import Swal from 'sweetalert2';
 import { db, collection, addDoc, doc, getDoc } from '../firebaseConfig';
-import { useNavigate } from 'react-router-dom';
 import './FormularioCliente.css';
 
 const FormularioCliente = () => {
     const [formData, setFormData] = useState({
-        company: '',
-        company_role: '',
-        email: '',
-        given_name: '',
-        last_name: '',
-        message: '',
-        phone_number: '',
-        request: 0
+        address: '',          // Campo para la dirección
+        company: '',          // Campo para la compañía
+        company_role: '',     // Campo para el rol en la compañía
+        email: '',            // Campo para el email
+        name: '',             // Nombre completo del cliente
+        phone: '',            // Número de teléfono
+        messageContent: '',   // Contenido del mensaje
+        message: null,        // ID del mensaje en la colección Messages
+        request: 0            // Número de solicitud (ajusta el tipo si es necesario)
     });
     const [selectedFiles, setSelectedFiles] = useState([]);
-    const navigate = useNavigate();
 
     // Obtener los datos del cliente desde Firebase
     useEffect(() => {
@@ -54,7 +53,6 @@ const FormularioCliente = () => {
 
     const handleSubmit = async () => {
         const emptyFields = Object.values(formData).some(value => {
-            // Verifica si el valor es una cadena antes de aplicar trim
             return typeof value === 'string' && value.trim() === '';
         });
 
@@ -68,25 +66,30 @@ const FormularioCliente = () => {
         }
 
         try {
-            // Guarda la consulta en la colección 'Consultas'
-            await addDoc(collection(db, 'Consultas'), {
+            // 1. Primero creamos el mensaje en la colección 'Messages'
+            const messageRef = await addDoc(collection(db, 'Messages'), {
+                content: formData.messageContent // Aquí se guarda el contenido del mensaje
+            });
+
+            // 2. Guarda la consulta en la colección 'Consultas'
+            await addDoc(collection(db, 'Consults'), {
                 ...formData,
-                attachment: selectedFiles.map(file => file.given_name).join(', '),
-                apply_date: new Date(),
+                attachment: selectedFiles.map(file => file.name).join(', '),
+                star_date: new Date(),
                 status: 'Pendiente',
                 reply: ''
             });
 
-            // Guarda al cliente en la colección 'Clientes'
-            await addDoc(collection(db, 'Clientes'), {
-                company: formData.company,
-                company_role: formData.company_role,
-                email: formData.email,
-                given_name: formData.given_name,
-                last_name: formData.last_name,
-                message: formData.message,
-                phone_number: formData.phone_number,
-                request: formData.request
+            // 3. Guarda el cliente en la colección 'Clients'
+            await addDoc(collection(db, 'Clients'), {
+                address: formData.address,          
+                company: formData.company,          
+                company_role: formData.company_role, 
+                email: formData.email,              
+                name: formData.name,                
+                phone: formData.phone,              
+                message: messageRef.id,             // Aquí se guarda el ID del mensaje
+                request: formData.request            // Número de solicitud
             });
 
             Swal.fire({
@@ -97,15 +100,16 @@ const FormularioCliente = () => {
 
             // Restablecer el formulario
             setFormData({
-                company: '',
-                company_role: '',
-                email: '',
-                given_name: '',
-                last_name: '',
-                message: '',
-                phone_number: '',
-                request: 0
-            });
+                address: '',          
+                company: '',          
+                company_role: '',     
+                email: '',            
+                name: '',             
+                phone: '',            
+                messageContent: '',   // Reiniciar contenido del mensaje
+                message: null,
+                request: 0            
+            });            
             setSelectedFiles([]);
         } catch (error) {
             Swal.fire({
@@ -121,17 +125,9 @@ const FormularioCliente = () => {
             <Box display="flex" flexDirection="column" gap={2}>
                 <Box display="flex" gap={2}>
                     <TextField
-                        label="Nombre"
-                        name="given_name"
-                        value={formData.given_name}
-                        onChange={handleInputChange}
-                        variant="outlined"
-                        fullWidth
-                    />
-                    <TextField
-                        label="Apellido"
-                        name="last_name"
-                        value={formData.last_name}
+                        label="Nombre y apellido"
+                        name="name"
+                        value={formData.name}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
@@ -140,8 +136,8 @@ const FormularioCliente = () => {
                 <Box display="flex" gap={2}>
                     <TextField
                         label="Teléfono"
-                        name="phone_number"
-                        value={formData.phone_number}
+                        name="phone"  // Cambiar 'number' a 'phone'
+                        value={formData.phone}
                         onChange={handleInputChange}
                         variant="outlined"
                         fullWidth
@@ -172,9 +168,17 @@ const FormularioCliente = () => {
                     fullWidth
                 />
                 <TextField
+                    label="Dirección"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    fullWidth
+                />
+                <TextField
                     label="Mensaje"
-                    name="message"
-                    value={formData.message}
+                    name="messageContent"  // Cambiar 'message' a 'messageContent'
+                    value={formData.messageContent}
                     onChange={handleInputChange}
                     variant="outlined"
                     fullWidth
@@ -222,12 +226,12 @@ const FormularioCliente = () => {
                 {selectedFiles.length > 0 && (
                     <Box className="file-preview">
                         {selectedFiles.map(file => (
-                            <Box key={file.given_name} display="flex" justifyContent="space-between" alignItems="center">
-                                <span>{file.given_name}</span>
+                            <Box key={file.name} display="flex" justifyContent="space-between" alignItems="center">
+                                <span>{file.name}</span>
                                 <Button
                                     variant="text"
                                     color="secondary"
-                                    onClick={() => handleDeleteFile(file.given_name)}
+                                    onClick={() => handleDeleteFile(file.name)}
                                 >
                                     Eliminar
                                 </Button>

@@ -15,7 +15,7 @@ const Respuesta = () => {
   useEffect(() => {
     const fetchConsulta = async () => {
       try {
-        const consultaRef = doc(db, "Consultas", consultaId);
+        const consultaRef = doc(db, "Consults", consultaId);
         const consultaDoc = await getDoc(consultaRef);
 
         if (consultaDoc.exists()) {
@@ -72,7 +72,7 @@ const Respuesta = () => {
 
     try {
       // Actualiza la consulta en Firestore
-      const consultaRef = doc(db, "Consultas", consultaId);
+      const consultaRef = doc(db, "Consults", consultaId);
       await updateDoc(consultaRef, {
         reply: reply,
         status: "En proceso", // Actualiza el estado a "En proceso"
@@ -106,12 +106,12 @@ const Respuesta = () => {
     <div className="reply-container">
       <div className="reply-content">
         <h1>
-          Cliente: {consultaData.given_name} {consultaData.last_name} de {consultaData.company}
+          Cliente: {consultaData.name} de {consultaData.company}
         </h1>
         <p>Consulta de tipo {consultaData.type}</p>
         <p>Mensaje:</p>
         <div className="message-container">
-          <p>{consultaData.message}</p>
+          <p>{consultaData.messageContent}</p>
           {consultaData.attachment && consultaData.attachment.length > 0 && (
             <div className="adjuntos-container">
               <p>Archivos Adjuntos:</p>

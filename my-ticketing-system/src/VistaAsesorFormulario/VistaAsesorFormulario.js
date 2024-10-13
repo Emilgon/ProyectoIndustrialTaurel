@@ -27,7 +27,7 @@ const VistaAsesorFormulario = () => {
 
   useEffect(() => {
     const fetchConsultas = async () => {
-      const querySnapshot = await getDocs(collection(db, "Consultas"));
+      const querySnapshot = await getDocs(collection(db, "Consults"));
       const consultasData = querySnapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
@@ -49,7 +49,7 @@ const VistaAsesorFormulario = () => {
       setResueltasCount(resueltas);
 
       const consultasExpiracion = consultasData.filter(
-        (consulta) => calculateRemainingDays(consulta.start_date, consulta.indicador) <= 1
+        (consulta) => calculateRemainingDays(consulta.star_date, consulta.indicator) <= 1
       );
 
       if (consultasExpiracion.length > 0) {
@@ -68,8 +68,8 @@ const VistaAsesorFormulario = () => {
         prevConsultas.map((consulta) => ({
           ...consulta,
           indicador: calculateRemainingDays(
-            consulta.start_date,
-            consulta.indicador
+            consulta.star_date,
+            consulta.indicator
           ),
         }))
       );
@@ -131,7 +131,7 @@ const VistaAsesorFormulario = () => {
       const consulta = consultas.find((c) => c.id === id);
       setEditType(consulta.type || "");
       setCurrentId(id);
-      setResolverDays(consulta.indicador || 30);
+      setResolverDays(consulta.indicator || 30);
     }
   };
 
@@ -155,11 +155,11 @@ const VistaAsesorFormulario = () => {
   const handleSave = async () => {
     if (currentId) {
       // Update existing consulta
-      const consultaRef = doc(db, "Consultas", currentId);
+      const consultaRef = doc(db, "Consults", currentId);
       await updateDoc(consultaRef, {
         type: editType,
-        indicador: resolverDays,
-        start_date: new Date(), // Guardar fecha actual
+        indicator: resolverDays,
+        star_date: new Date(), // Guardar fecha actual
       });
       setConsultas(
         consultas.map((c) =>
@@ -167,8 +167,8 @@ const VistaAsesorFormulario = () => {
             ? {
               ...c,
               type: editType,
-              indicador: resolverDays,
-              start_date: new Date(),
+              indicator: resolverDays,
+              star_date: new Date(),
             }
             : c
         )
@@ -176,15 +176,15 @@ const VistaAsesorFormulario = () => {
       setExpandedRow(null);
     } else {
       // Add new consulta
-      await addDoc(collection(db, "Consultas"), {
+      await addDoc(collection(db, "Consults"), {
         type: editType || "No asignado", // Default to "No asignado"
-        indicador: resolverDays || 0, // Default to 0
+        indicator: resolverDays || 0, // Default to 0
       });
       setConsultas([
         ...consultas,
         {
           type: editType || "No asignado",
-          indicador: resolverDays || 0,
+          indicator: resolverDays || 0,
         },
       ]);
       setEditType("No asignado");
@@ -212,7 +212,7 @@ const VistaAsesorFormulario = () => {
 
     if (comment) {
       // Guardar el comentario en Firebase
-      const consultaRef = doc(db, "Consultas", id);
+      const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, { comentario: comment });
       setConsultas(
         consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
@@ -247,7 +247,7 @@ const VistaAsesorFormulario = () => {
       if (isConfirmed) {
         try {
           // Eliminar el comentario del documento en Firestore
-          const consultaRef = doc(db, "Consultas", id);
+          const consultaRef = doc(db, "Consults", id);
           await updateDoc(consultaRef, { comentario: "" });
 
           // Actualizar el estado local
@@ -350,15 +350,15 @@ const VistaAsesorFormulario = () => {
 
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("apply_date")}
-                className={`sort-button ${orderBy === "apply_date" ? "active" : ""
+                onClick={() => handleRequestSort("star_date")}
+                className={`sort-button ${orderBy === "star_date" ? "active" : ""
                   }`}
               >
                 Fecha de Solicitud
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "apply_date"
+                      orderBy === "star_date"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -371,15 +371,15 @@ const VistaAsesorFormulario = () => {
             </TableCell>
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("indicador")}
-                className={`sort-button ${orderBy === "indicador" ? "active" : ""
+                onClick={() => handleRequestSort("indicator")}
+                className={`sort-button ${orderBy === "indicator" ? "active" : ""
                   }`}
               >
                 Indicador
                 <ExpandMoreIcon
                   style={{
                     transform:
-                      orderBy === "indicador"
+                      orderBy === "indicator"
                         ? order === "asc"
                           ? "rotate(0deg)"
                           : "rotate(180deg)"
@@ -442,11 +442,11 @@ const VistaAsesorFormulario = () => {
                 <TableCell>{consulta.company}</TableCell>
                 <TableCell>{consulta.type || "No asignado"}</TableCell>
                 <TableCell>
-                  {formatDateTime(consulta.apply_date)}
+                  {formatDateTime(consulta.star_date)}
                 </TableCell>
                 <TableCell>
-                  {consulta.indicador !== undefined &&
-                    consulta.indicador !== null && (
+                  {consulta.indicator !== undefined &&
+                    consulta.indicator !== null && (
                       <span
                         style={{
                           display: "inline-block",
@@ -455,8 +455,8 @@ const VistaAsesorFormulario = () => {
                           borderRadius: "50%",
                           backgroundColor:
                             calculateRemainingDays(
-                              consulta.start_date,
-                              consulta.indicador
+                              consulta.apply_date,
+                              consulta.indicator
                             ) <= 1
                               ? "red"
                               : "green",
@@ -464,12 +464,12 @@ const VistaAsesorFormulario = () => {
                         }}
                       />
                     )}
-                  {consulta.indicador === undefined ||
-                    consulta.indicador === null
+                  {consulta.indicator === undefined ||
+                    consulta.indicator === null
                     ? "No asignado"
                     : `${calculateRemainingDays(
-                      consulta.start_date,
-                      consulta.indicador
+                      consulta.apply_date,
+                      consulta.indicator
                     )} Días`}
                 </TableCell>
                 <TableCell>{consulta.status}</TableCell>
@@ -513,8 +513,7 @@ const VistaAsesorFormulario = () => {
                       <Box className="details-info">
                         <Typography variant="h6">
                           <strong>Nombre y Apellido:</strong>{" "}
-                          {consulta.given_name || "No disponible"}{" "}
-                          {consulta.last_name || "No disponible"}
+                          {consulta.name || "No disponible"}{" "}
                         </Typography>
                         <Typography variant="h6">
                           <strong>Empresa:</strong>{" "}
@@ -525,9 +524,10 @@ const VistaAsesorFormulario = () => {
                           {consulta.email || "No disponible"}
                         </Typography>
                         <Typography variant="h6" marginTop={2}>
-                          <strong>Consulta:</strong>{" "}
-                          {consulta.message || "No disponible"}
+                            <strong>Consulta:</strong>{" "}
+                            {consulta.messageContent || "No disponible"}
                         </Typography>
+
                         {consulta.attachment && (
                           <Box marginTop={2}>
                             <Typography variant="h6">
