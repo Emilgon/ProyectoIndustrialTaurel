@@ -225,19 +225,26 @@ const FormularioCliente = () => {
                 </Box>
                 {selectedFiles.length > 0 && (
                     <Box className="file-preview">
-                        {selectedFiles.map(file => (
-                            <Box key={file.name} display="flex" justifyContent="space-between" alignItems="center">
-                                <span>{file.name}</span>
-                                <Button
-                                    variant="text"
-                                    color="secondary"
-                                    onClick={() => handleDeleteFile(file.name)}
-                                >
-                                    Eliminar
-                                </Button>
-                            </Box>
-                        ))}
-                    </Box>
+                    {selectedFiles.map(file => (
+                      <Box key={file.name} display="flex" justifyContent="space-between" alignItems="center">
+                        {file.type.startsWith('image/') ? (
+                          <img src={URL.createObjectURL(file)} alt={file.name} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
+                            <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer">{file.name}</a>
+                          </div>
+                        )}
+                        <Button
+                          variant="text"
+                          color="secondary"
+                          onClick={() => handleDeleteFile(file.name)}
+                        >
+                          Eliminar
+                        </Button>
+                      </Box>
+                    ))}
+                  </Box>                  
                 )}
             </Box>
         </Box>

@@ -10,7 +10,8 @@ const Respuesta = () => {
   const { consultaId } = useParams();
   const [consultaData, setConsultaData] = useState(null);
   const [reply, setReply] = useState('');
-  const [setFile] = useState(null);
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
 
   useEffect(() => {
     const fetchConsulta = async () => {
@@ -43,21 +44,32 @@ const Respuesta = () => {
 
     if (isImage) {
       return (
-        <div className="image-preview">
-          <img src={`/uploads/${fileName}`} alt={`Preview of ${fileName}`} />
+        <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
+          <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
         </div>
       );
     } else {
       return (
-        <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">
-          {fileName}
-        </a>
+        <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
+          <i className="fas fa-file" style={{ marginRight: '8px' }}></i> {/* Icono genérico de archivo */}
+          <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
+        </div>
       );
     }
   };
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+
+    if (selectedFile) {
+      const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
+      if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
+        setFilePreview(URL.createObjectURL(selectedFile));
+      } else {
+        setFilePreview(null); // Para otros tipos de archivos, limpia la vista previa
+      }
+    }
   };
 
   const handleSend = async () => {
@@ -113,14 +125,31 @@ const Respuesta = () => {
         <div className="message-container">
           <p>{consultaData.messageContent}</p>
           {consultaData.attachment && consultaData.attachment.length > 0 && (
-            <div className="adjuntos-container">
+            <Box className="adjuntos-container">
               <p>Archivos Adjuntos:</p>
-              <ul>
-                {consultaData.attachment.split(", ").map((fileName, index) => (
-                  <li key={index}>{renderPreview(fileName)}</li>
-                ))}
-              </ul>
-            </div>
+              <Box className="attachments-preview">
+                {consultaData.attachment ? (
+                  consultaData.attachment.length > 0 ? (
+                    consultaData.attachment.split(", ").map((fileName, index) => (
+                      <Box key={index} className="file-preview" display="flex" alignItems="center">
+                        {fileName.startsWith('image/') ? (
+                          <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
+                            <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
+                          </div>
+                        )}
+                      </Box>
+                    ))
+                  ) : (
+                    <p>No hay archivos adjuntos.</p>
+                  )
+                ) : (
+                  <p>No hay archivos adjuntos.</p>
+                )}
+              </Box>
+            </Box>                              
           )}
         </div>
         <Box mt={2}>
@@ -139,6 +168,24 @@ const Respuesta = () => {
               },
             }}
           />
+        </Box>
+        
+        <Box mt={2}>
+          <p>Archivo seleccionado:</p>
+          {file ? (
+            <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
+              {file.type.startsWith('image/') ? (
+                <img src={filePreview} alt={file.name} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
+                  <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer">{file.name}</a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <span>No se ha seleccionado ningún archivo.</span>
+          )}
         </Box>
         <Box display="flex" justifyContent="space-between" mt={2}>
           <Button
