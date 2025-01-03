@@ -6,7 +6,7 @@ import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario
 import Reports from './Reportes/Reportes'; 
 import Respuestas from './Respuesta/Respuesta'; // Importa el componente de Respuestas
 import { initializeFirestore } from './initializeFirestore';
-
+import '@fortawesome/fontawesome-free/css/all.min.css';
 function App() {
   useEffect(() => {
     initializeFirestore();

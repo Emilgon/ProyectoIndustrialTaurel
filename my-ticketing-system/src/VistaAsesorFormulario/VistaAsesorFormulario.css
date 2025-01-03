@@ -1,106 +1,148 @@
 .table-container {
-    max-width: 100%;
-    margin: 20px auto;
+  max-width: 100%;
+  margin: 20px auto;
 }
 
 .sort-button {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-size: 16px;
-    color: #1B5C94;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #1b5c94;
 }
 
 .sort-button.active {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .expand-button {
-    background: none;
-    border: none;
-    cursor: pointer;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .details-cell {
-    padding: 0;
+  padding: 0;
 }
 
 .details-box {
-    padding: 20px;
-    background-color: #f5f5f5;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .details-info {
-    display: flex;
-    flex-direction: column;
-    background-color: #e0e0e0; /* Gray background for the details info */
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  background-color: #e0e0e0; /* Gray background for the details info */
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 10px;
 }
 
 .details-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px; /* Espacio entre los selects y los botones */
-    margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px; /* Espacio entre los selects y los botones */
+  margin-top: 10px;
 }
 
 .select-group {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px; /* Espacio entre los selects */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px; /* Espacio entre los selects */
 }
 
 .select-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 200px; /* Ajusta este valor según lo necesites */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px; /* Ajusta este valor según lo necesites */
 }
 
 .select-type {
-    min-width: 120px; /* Ajusta este valor según lo necesites */
+  min-width: 120px; /* Ajusta este valor según lo necesites */
 }
 
 .button-group {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px; /* Espacio entre los botones */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* Espacio entre los botones */
 }
 
 .action-button {
-    width: 100px;
-    text-align: center;
+  width: 100px;
+  text-align: center;
 }
 
 /* Estilo general para los botones */
 .button-custom {
-    background-color: #1B5C94; /* Color de fondo */
-    color: white; /* Color del texto */
-    border-radius: 70px; /* Radio del borde */
-    padding: 10px 20px; /* Espaciado interno */
-    font-size: 16px; /* Tamaño de fuente */
-    border: none; /* Sin borde */
-    cursor: pointer; /* Cursor de puntero al pasar por encima */
-    transition: background-color 0.3s ease; /* Transición suave */
+  background-color: #1b5c94; /* Color de fondo */
+  color: white; /* Color del texto */
+  border-radius: 70px; /* Radio del borde */
+  padding: 10px 20px; /* Espaciado interno */
+  font-size: 16px; /* Tamaño de fuente */
+  border: none; /* Sin borde */
+  cursor: pointer; /* Cursor de puntero al pasar por encima */
+  transition: background-color 0.3s ease; /* Transición suave */
 }
 
 .button-custom:hover {
-    background-color: #145a8c; /* Color al pasar el ratón por encima */
+  background-color: #145a8c; /* Color al pasar el ratón por encima */
 }
 
 .file-thumbnail {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 5px;
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.comment-button {
+  background-color: transparent;
+  color: #1b5c94;
+  cursor: pointer;
+}
+
+.view-comment-button {
+  background-color: transparent;
+  color: #1b5c94;
+  cursor: pointer;
+}
+
+.comment-button,
+.view-comment-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.TableHead,
+.TableRow,
+.TableCell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.TableContainer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.TableBody {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.Grid {
+  margin-top: auto;
 }

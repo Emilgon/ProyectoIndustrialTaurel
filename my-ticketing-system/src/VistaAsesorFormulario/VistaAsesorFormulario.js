@@ -6,7 +6,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Swal from "sweetalert2";
-import { db, collection, getDocs, updateDoc, doc, addDoc, } from "../firebaseConfig";
+import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from "../firebaseConfig";
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -220,6 +220,28 @@ const VistaAsesorFormulario = () => {
     }
   };
 
+  const handleDeleteConsulta = async (id) => {
+    const { isConfirmed } = await Swal.fire({
+      title: "Confirmación",
+      text: "¿Estás seguro de que deseas eliminar esta consulta?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (isConfirmed) {
+      try {
+        const consultaRef = doc(db, "Consults", id);
+        await deleteDoc(consultaRef);
+        setConsultas(consultas.filter((c) => c.id !== id));
+        Swal.fire("Eliminado", "La consulta ha sido eliminada.", "success");
+      } catch (error) {
+        Swal.fire("Error", "No se pudo eliminar la consulta.", "error");
+      }
+    }
+  };
+
   const handleViewComment = async (id) => {
     const consulta = consultas.find((c) => c.id === id);
 
@@ -309,8 +331,7 @@ const VistaAsesorFormulario = () => {
             <TableCell>
               <Button
                 onClick={() => handleRequestSort("company")}
-                className={`sort-button ${orderBy === "company" ? "active" : ""
-                  }`}
+                className={`sort-button ${orderBy === "company" ? "active" : ""}`}
               >
                 Cliente
                 <ExpandMoreIcon
@@ -347,12 +368,10 @@ const VistaAsesorFormulario = () => {
                 />
               </Button>
             </TableCell>
-
             <TableCell>
               <Button
                 onClick={() => handleRequestSort("star_date")}
-                className={`sort-button ${orderBy === "star_date" ? "active" : ""
-                  }`}
+                className={`sort-button ${orderBy === "star_date" ? "active" : ""}`}
               >
                 Fecha de Solicitud
                 <ExpandMoreIcon
@@ -372,8 +391,7 @@ const VistaAsesorFormulario = () => {
             <TableCell>
               <Button
                 onClick={() => handleRequestSort("indicator")}
-                className={`sort-button ${orderBy === "indicator" ? "active" : ""
-                  }`}
+                className={`sort-button ${orderBy === "indicator" ? "active" : ""}`}
               >
                 Indicador
                 <ExpandMoreIcon
@@ -393,8 +411,7 @@ const VistaAsesorFormulario = () => {
             <TableCell>
               <Button
                 onClick={handleClick}
-                className={`sort-button ${orderBy === "status" ? "active" : ""
-                  }`}
+                className={`sort-button ${orderBy === "status" ? "active" : ""}`}
               >
                 Estado
                 <ExpandMoreIcon
@@ -431,14 +448,21 @@ const VistaAsesorFormulario = () => {
                 </MenuItem>
               </Popover>
             </TableCell>
-            <TableCell>Expandir</TableCell>
             <TableCell>Comentario</TableCell>
+            <TableCell>Borrar</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {sortedConsultas.map((consulta) => (
             <React.Fragment key={consulta.id}>
-              <TableRow>
+              <TableRow
+                onClick={(e) => {
+                  if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('comment-button') && !e.target.classList.contains('view-comment-button') && !e.target.classList.contains('delete-button')) {
+                    handleToggleDetails(consulta.id)
+                  }
+                }}
+                style={{ cursor: "pointer" }}
+              >
                 <TableCell>{consulta.company}</TableCell>
                 <TableCell>{consulta.type || "No asignado"}</TableCell>
                 <TableCell>
@@ -475,34 +499,35 @@ const VistaAsesorFormulario = () => {
                 <TableCell>{consulta.status}</TableCell>
                 <TableCell>
                   <Button
-                    onClick={() => handleToggleDetails(consulta.id)}
-                    className="expand-button"
-                  >
-                    <ExpandMoreIcon
-                      style={{
-                        transform:
-                          expandedRow === consulta.id
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s ease",
-                        fontSize: 20,
-                      }}
-                    />
-                  </Button>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    onClick={() => handleCommentClick(consulta.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCommentClick(consulta.id)
+                    }}
                     className="comment-button"
-                    style={{ marginRight: 8 }}
+                    style={{ marginRight: 8, border: 'none', padding: 0 }}
                   >
                     <ChatIcon style={{ fontSize: 20 }} />
                   </Button>
                   <Button
-                    onClick={() => handleViewComment(consulta.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewComment(consulta.id)
+                    }}
                     className="view-comment-button"
+                    style={{ border: 'none', padding: 0 }}
                   >
                     <VisibilityIcon style={{ fontSize: 20 }} />
+                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConsulta(consulta.id)
+                    }}
+                    className="delete-button"
+                  >
+                    <i className="fas fa-trash-alt"></i>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -524,8 +549,8 @@ const VistaAsesorFormulario = () => {
                           {consulta.email || "No disponible"}
                         </Typography>
                         <Typography variant="h6" marginTop={2}>
-                            <strong>Consulta:</strong>{" "}
-                            {consulta.messageContent || "No disponible"}
+                          <strong>Consulta:</strong>{" "}
+                          {consulta.messageContent || "No disponible"}
                         </Typography>
 
                         {consulta.attachment && (
