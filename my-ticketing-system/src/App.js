@@ -6,7 +6,11 @@ import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario
 import Reports from './Reportes/Reportes'; 
 import Respuestas from './Respuesta/Respuesta'; // Importa el componente de Respuestas
 import { initializeFirestore } from './initializeFirestore';
+import LoginRegisterClient from './LoginRegisterClient/LoginRegisterClient';
+import VistaCliente from './VistaCliente/VistaCliente';
+import Consulta from './Consulta/Consulta';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+
 function App() {
   useEffect(() => {
     initializeFirestore();
@@ -41,14 +45,11 @@ function App() {
           } />
           {/* Nueva ruta para manejar las respuestas específicas de las consultas */}
           <Route path="/Respuestas/:consultaId" element={<Respuestas />} />
-          <Route path="/" element={
-            <>
-              <FormularioCliente />
-              <button className="asesor-button" onClick={() => window.location.href = '/asesor'}>
-                SOY ASESOR
-              </button>
-            </>
-          } />
+          <Route path="/login" element={<LoginRegisterClient />} />
+          <Route path="/formulario-cliente" element={<FormularioCliente />} />
+          <Route path="/vista-cliente" element={<VistaCliente />} />
+          <Route path="/consulta" element={<Consulta />} />
+          <Route path="/" element={<LoginRegisterClient />} />
         </Routes>
       </div>
     </Router>

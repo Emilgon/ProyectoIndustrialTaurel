@@ -52,7 +52,7 @@ const VistaAsesorFormulario = () => {
         (consulta) => calculateRemainingDays(consulta.star_date, consulta.indicator) <= 1
       );
 
-      if (consultasExpiracion.length < 1) {
+      if (consultasExpiracion.length > 0) {
         Swal.fire({
           icon: "warning",
           title: "¡Advertencia!",
