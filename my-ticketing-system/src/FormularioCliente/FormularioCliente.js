@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, collection, addDoc, getDocs } from '../firebaseConfig';
+import { db, collection, addDoc } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Box, Button, TextField } from '@mui/material';
 import Swal from 'sweetalert2';
 import './FormularioCliente.css';
 
@@ -16,6 +16,13 @@ const FormularioCliente = () => {
     phone: '',            // Número de teléfono
     password: '',         // Contraseña del cliente
   });
+  const [addressError, setAddressError] = useState('');
+  const [companyError, setCompanyError] = useState('');
+  const [companyRoleError, setCompanyRoleError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
   const auth = getAuth();
@@ -26,6 +33,35 @@ const FormularioCliente = () => {
   };
 
   const handleSubmit = async () => {
+    if (formData.name.trim() === '') {
+      setNameError('El campo nombre no puede estar vacío.');
+      return;
+    }
+    if (formData.email.trim() === '') {
+      setEmailError('El campo correo electrónico no puede estar vacío.');
+      return;
+    }
+    if (formData.password.trim() === '') {
+      setPasswordError('El campo contraseña no puede estar vacío.');
+      return;
+    }
+    if (formData.phone.trim() === '') {
+      setPhoneError('El campo teléfono no puede estar vacío.');
+      return;
+    }
+    if (formData.address.trim() === '') {
+      setAddressError('El campo dirección no puede estar vacío.');
+      return;
+    }
+    if (formData.company.trim() === '') {
+      setCompanyError('El campo empresa/compañía no puede estar vacío.');
+      return;
+    }
+    if (formData.company_role.trim() === '') {
+      setCompanyRoleError('El campo rol en la compañía no puede estar vacío.');
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       console.log('Usuario registrado con éxito:', userCredential.user);
@@ -45,11 +81,7 @@ const FormularioCliente = () => {
       navigate('/vista-cliente');
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
-        Swal.fire({
-          icon: 'error',
-          title: 'Correo electrónico en uso',
-          text: 'El correo electrónico ya está en uso. Por favor, ingresa un correo electrónico diferente.',
-        });
+        setEmailError('El correo electrónico ya está en uso.');
       } else {
         console.error('Error al registrar usuario:', error);
       }
@@ -67,6 +99,8 @@ const FormularioCliente = () => {
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
+            error={nameError !== ''}
+            helperText={nameError}
           />
         </Box>
         <Box display="flex" gap={2}>
@@ -77,14 +111,18 @@ const FormularioCliente = () => {
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
+            error={phoneError !== ''}
+            helperText={phoneError}
           />
           <TextField
-            label="Correo"
+            label="Correo electrónico"
             name="email"
             value={formData.email}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
+            error={emailError !== ''}
+            helperText={emailError}
           />
         </Box>
         <TextField
@@ -94,6 +132,8 @@ const FormularioCliente = () => {
           onChange={handleInputChange}
           variant="outlined"
           fullWidth
+          error={companyError !== ''}
+          helperText={companyError}
         />
         <TextField
           label="Rol en la compañía"
@@ -102,6 +142,8 @@ const FormularioCliente = () => {
           onChange={handleInputChange}
           variant="outlined"
           fullWidth
+          error={companyRoleError !== ''}
+          helperText={companyRoleError}
         />
         <TextField
           label="Dirección"
@@ -110,6 +152,8 @@ const FormularioCliente = () => {
           onChange={handleInputChange}
           variant="outlined"
           fullWidth
+          error={addressError !== ''}
+          helperText={addressError}
         />
         <TextField
           label="Contraseña"
@@ -119,6 +163,8 @@ const FormularioCliente = () => {
           variant="outlined"
           fullWidth
           type="password"
+          error={passwordError !== ''}
+          helperText={passwordError}
         />
         <Button variant="contained" onClick={handleSubmit}>
           Registrarse
