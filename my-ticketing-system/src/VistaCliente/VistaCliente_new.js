@@ -12,6 +12,8 @@ const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [historialMensajes, setHistorialMensajes] = useState([]);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [loading, setLoading] = useState(true); // New loading state
+  const [error, setError] = useState(null); // New error state
   const auth = getAuth();
   const navigate = useNavigate();
 
@@ -23,29 +25,33 @@ const VistaCliente = () => {
   // Obtener datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          const userId = user.uid;
-          const userRef = collection(db, 'Clients');
-          const querySnapshot = getDocs(userRef);
-          querySnapshot.then((snapshot) => {
-            snapshot.forEach((doc) => {
+      setLoading(true); // Set loading to true when fetching starts
+      try {
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            const userId = user.uid;
+            const userRef = collection(db, 'Clients');
+            const querySnapshot = await getDocs(userRef); // Await the query
+            querySnapshot.forEach((doc) => {
               if (doc.data().email === user.email) {
-                setUserData({ ...doc.data(), uid: user.uid });  // Asegúrate de que el uid se agregue correctamente a userData
+                setUserData({ ...doc.data(), uid: user.uid });
               }
             });
-          });
-        }
-      });
+          }
+        });
+      } catch (err) {
+        setError('Error fetching user data'); // Set error state
+        console.error(err);
+      } finally {
+        setLoading(false); // Set loading to false when fetching is done
+      }
     };
     fetchUserData();
-  }, []);
-
+  }, [auth]);
 
   // Función para obtener las respuestas
   const obtenerConsultas = async (clienteId) => {
     console.log('Obteniendo consultas para el cliente:', clienteId);
-    // Modificar la consulta para buscar respuestas basadas en el clienteId
     const respuestasRef = query(collection(db, 'Responses'), where('clienteId', '==', clienteId));
     const respuestasSnapshot = await getDocs(respuestasRef);
     return respuestasSnapshot.docs.map((doc) => doc.data());
@@ -60,11 +66,18 @@ const VistaCliente = () => {
 
     console.log('Cargando historial de consultas...');
     setMostrarHistorial(true);
-    const respuestas = await obtenerConsultas(userData.uid); // Usar userData.uid para obtener respuestas del cliente autenticado
+    const respuestas = await obtenerConsultas(userData.uid);
     setHistorialMensajes(respuestas);
     console.log('Respuestas cargadas:', respuestas);
   };
 
+  if (loading) {
+    return <div>Cargando datos del cliente...</div>; // Loading message
+  }
+
+  if (error) {
+    return <div>{error}</div>; // Error message
+  }
 
   return (
     <div className="container">

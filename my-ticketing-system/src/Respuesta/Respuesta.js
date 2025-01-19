@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore"; // Importa updateDoc para actualizar documentos
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore"; // Importar query y getDocs
 import { db } from "../firebaseConfig";
 import "./Respuesta.css";
 import { TextField, Box, Button } from '@mui/material';
@@ -12,6 +12,7 @@ const Respuesta = () => {
   const [reply, setReply] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const [respuestas, setRespuestas] = useState([]);  // Para almacenar las respuestas
 
   useEffect(() => {
     const fetchConsulta = async () => {
@@ -29,34 +30,27 @@ const Respuesta = () => {
       }
     };
 
+    const obtenerRespuestas = async () => {
+      try {
+        // Query para obtener respuestas relacionadas con la consulta actual
+        const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
+        const respuestasSnapshot = await getDocs(respuestasRef);
+        const respuestasData = respuestasSnapshot.docs.map(doc => doc.data());
+        setRespuestas(respuestasData);
+      } catch (error) {
+        console.error("Error al obtener las respuestas:", error);
+      }
+    };
+
     if (consultaId) {
       fetchConsulta();
+      obtenerRespuestas();  // Llamar para obtener las respuestas cuando se cargue la consulta
     }
   }, [consultaId]);
 
   if (!consultaData) {
     return <div>Loading...</div>;
   }
-
-  const renderPreview = (fileName) => {
-    const fileExtension = fileName.split(".").pop().toLowerCase();
-    const isImage = ["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension);
-
-    if (isImage) {
-      return (
-        <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
-        </div>
-      );
-    } else {
-      return (
-        <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
-          <i className="fas fa-file" style={{ marginRight: '8px' }}></i> {/* Icono genérico de archivo */}
-          <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
-        </div>
-      );
-    }
-  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -83,19 +77,18 @@ const Respuesta = () => {
     }
 
     try {
-      // Actualiza la consulta en Firestore
-      const consultaRef = doc(db, "Consults", consultaId);
-      await updateDoc(consultaRef, {
+      // Crear una nueva respuesta
+      const respuestaRef = collection(db, "Responses");
+      await addDoc(respuestaRef, {
+        consultaId: consultaId,
         reply: reply,
-        status: "En proceso", // Actualiza el estado a "En proceso"
+        timestamp: new Date(),
       });
 
-      // Actualiza el estado de consultaData para que refleje la respuesta
-      setConsultaData((prevData) => ({
-        ...prevData,
-        reply: reply,
-        status: "En proceso"
-      }));
+      const consultaRef = doc(db, "Consults", consultaId);
+      await updateDoc(consultaRef, {
+        status: "En proceso", 
+      });
 
       Swal.fire({
         icon: 'success',
@@ -131,25 +124,19 @@ const Respuesta = () => {
         <p>Mensaje:</p>
         <div className="message-container">
           <p>{consultaData.messageContent}</p>
-          {consultaData.attachment && consultaData.attachment.length > 0 && (
-            <Box className="adjuntos-container">
-              <p>Archivos Adjuntos:</p>
-              <Box className="attachments-preview">
-                {consultaData.attachment.split(", ").map((fileName, index) => (
-                  <Box key={index} className="file-preview" display="flex" alignItems="center">
-                    {fileName.startsWith('image/') ? (
-                      <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
-                        <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
-                      </div>
-                    )}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
+          {/* Mostrar las respuestas previas */}
+          <div className="respuestas-historial">
+            {respuestas.length > 0 ? (
+              respuestas.map((respuesta, index) => (
+                <div key={index} className="respuesta-item">
+                  <p><strong>Respuesta:</strong> {respuesta.reply}</p>
+                  <p><small>Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}</small></p>
+                </div>
+              ))
+            ) : (
+              <p>No hay respuestas aún.</p>
+            )}
+          </div>
         </div>
         <Box mt={2}>
           <TextField
@@ -168,7 +155,6 @@ const Respuesta = () => {
             }}
           />
         </Box>
-
         <Box mt={2}>
           <p>Archivo seleccionado:</p>
           {file ? (
