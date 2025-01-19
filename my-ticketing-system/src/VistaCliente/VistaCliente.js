@@ -8,17 +8,16 @@ import { useNavigate } from 'react-router-dom';
 import { Navbar, Nav } from 'react-bootstrap';
 import './VistaCliente.css';
 
-
-
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
+  const [historialMensajes, setHistorialMensajes] = useState([]);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const auth = getAuth();
+  const navigate = useNavigate();
+
   const handleSalir = () => {
     navigate('/login');
   };
-  const navigate = useNavigate();
-  const [historialMensajes, setHistorialMensajes] = useState([]);
-  const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -40,22 +39,25 @@ const VistaCliente = () => {
     fetchUserData();
   }, []);
 
-  const obtenerConsultas = async () => {
-    console.log('La función obtenerConsultas está siendo llamada');
-    const consultasRef = query(collection(db, 'Consults'), where('clienteId', '==', 'id-del-cliente'));
+  const obtenerConsultas = async (clienteId) => {
+    if (!clienteId) {
+      console.error("El clienteId es inválido o no está disponible.");
+      return [];
+    }
+    const consultasRef = query(collection(db, 'Consults'), where('clienteId', '==', clienteId));
     const consultas = await getDocs(consultasRef);
-    console.log('La consulta a la base de datos ha sido realizada con éxito');
     const consultasData = consultas.docs.map((doc) => doc.data());
-    console.log('Los datos han sido obtenidos correctamente:', consultasData);
     return consultasData;
   };
 
   const handleHistorial = async () => {
-    console.log('La función handleHistorial está siendo llamada');
     setMostrarHistorial(true);
-    const respuestas = await obtenerConsultas();
-    setHistorialMensajes(respuestas);
-    console.log('El estado historialMensajes ha sido actualizado:', historialMensajes);
+    if (userData && userData.uid) {
+      const respuestas = await obtenerConsultas(userData.uid);
+      setHistorialMensajes(respuestas);
+    } else {
+      console.error('No se ha encontrado el UID del cliente.');
+    }
   };
 
   return (
@@ -78,15 +80,20 @@ const VistaCliente = () => {
         <p>Rol en la empresa: {userData.company_role}</p>
         <p>Correo electrónico: {userData.email}</p>
         <p>Teléfono: {userData.phone}</p>
+
         {mostrarHistorial && (
           <div className="historial-mensajes">
             <h3>Historial de Mensajes</h3>
             <ul>
-              {historialMensajes.map((consulta, index) => (
-                <li key={index}>
-                  <p>Respuesta: {consulta.reply}</p>
-                </li>
-              ))}
+              {historialMensajes.length > 0 ? (
+                historialMensajes.map((consulta, index) => (
+                  <li key={index}>
+                    <p><strong>Respuesta:</strong> {consulta.reply}</p>
+                  </li>
+                ))
+              ) : (
+                <p>No hay respuestas disponibles para mostrar.</p>
+              )}
             </ul>
           </div>
         )}

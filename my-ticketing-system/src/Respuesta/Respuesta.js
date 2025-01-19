@@ -90,6 +90,13 @@ const Respuesta = () => {
         status: "En proceso", // Actualiza el estado a "En proceso"
       });
 
+      // Actualiza el estado de consultaData para que refleje la respuesta
+      setConsultaData((prevData) => ({
+        ...prevData,
+        reply: reply,
+        status: "En proceso"
+      }));
+
       Swal.fire({
         icon: 'success',
         title: 'Tu respuesta ha sido enviada exitosamente',
@@ -128,28 +135,20 @@ const Respuesta = () => {
             <Box className="adjuntos-container">
               <p>Archivos Adjuntos:</p>
               <Box className="attachments-preview">
-                {consultaData.attachment ? (
-                  consultaData.attachment.length > 0 ? (
-                    consultaData.attachment.split(", ").map((fileName, index) => (
-                      <Box key={index} className="file-preview" display="flex" alignItems="center">
-                        {fileName.startsWith('image/') ? (
-                          <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
-                            <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
-                          </div>
-                        )}
-                      </Box>
-                    ))
-                  ) : (
-                    <p>No hay archivos adjuntos.</p>
-                  )
-                ) : (
-                  <p>No hay archivos adjuntos.</p>
-                )}
+                {consultaData.attachment.split(", ").map((fileName, index) => (
+                  <Box key={index} className="file-preview" display="flex" alignItems="center">
+                    {fileName.startsWith('image/') ? (
+                      <img src={`/uploads/${fileName}`} alt={fileName} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
+                        <a href={`/uploads/${fileName}`} target="_blank" rel="noopener noreferrer">{fileName}</a>
+                      </div>
+                    )}
+                  </Box>
+                ))}
               </Box>
-            </Box>                              
+            </Box>
           )}
         </div>
         <Box mt={2}>
@@ -169,7 +168,7 @@ const Respuesta = () => {
             }}
           />
         </Box>
-        
+
         <Box mt={2}>
           <p>Archivo seleccionado:</p>
           {file ? (
