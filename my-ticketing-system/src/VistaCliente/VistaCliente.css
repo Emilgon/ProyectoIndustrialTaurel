@@ -1,17 +1,36 @@
-.vista-cliente-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    background-color: #f5f5f5;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .vista-cliente-data {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
+.container {
+  display: flex;
+}
+
+.menu-lateral {
+  background-color: #1B5C94;
+  color: white;
+  padding: 20px;
+  width: 200px;
+  height: 100vh;
+  display: flex; /* Agrega esta propiedad */
+  flex-direction: column; /* Agrega esta propiedad */
+}
+
+.menu-lateral ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-lateral li {
+  margin-bottom: 10px;
+}
+
+.menu-lateral a {
+  color: white;
+  text-decoration: none;
+}
+
+.content {
+  width: 100%;
+  padding: 20px;
+}
+.menu-lateral a {
+  cursor: pointer;
+}

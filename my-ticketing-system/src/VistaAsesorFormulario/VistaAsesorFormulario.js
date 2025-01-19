@@ -22,6 +22,8 @@ const VistaAsesorFormulario = () => {
   const [resueltasCount, setResueltasCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedState, setSelectedState] = useState("");
+  const [selectedType, setSelectedType] = useState(null);
+
 
   const navigate = useNavigate();
 
@@ -322,6 +324,10 @@ const VistaAsesorFormulario = () => {
     if (aValue > bValue) return order === "asc" ? 1 : -1;
     return 0;
   });
+  
+  const handleSelectType = (type) => {
+    setSelectedType(type);
+  };
 
   return (
     <TableContainer component={Paper} className="table-container">
