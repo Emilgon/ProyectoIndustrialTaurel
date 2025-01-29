@@ -1,23 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useParams, useNavigate } from "react-router-dom";
-import { db } from '../firebaseConfig';
-import { query, where, getDocs, collection } from 'firebase/firestore';
-import './VistaCliente.css';
+import React, { useEffect, useState } from 'react';
+import { db, auth } from '../firebaseConfig'; // Asegúrate de que la ruta es correcta
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import Respuesta from '../Respuesta/Respuesta'; // Importa el componente Respuesta
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
-  const auth = getAuth();
-  const navigate = useNavigate();
-  const { consultaId } = useParams();
 
-  // Función para cerrar sesión
-  const handleSalir = () => {
-    navigate('/login');
-  };
-
-  // Obtener datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
       onAuthStateChanged(auth, async (user) => {
@@ -33,8 +23,26 @@ const VistaCliente = () => {
       });
     };
 
+    const fetchRespuestas = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const respuestasRef = query(collection(db, 'Responses'), where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(respuestasRef);
+        const respuestasArray = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setRespuestas(respuestasArray);
+      }
+    };
+
     fetchUserData();
+    fetchRespuestas();
   }, []);
+
+  const handleSalir = () => {
+    // Manejar la salida del usuario
+  };
 
   return (
     <div className="container">
@@ -61,17 +69,10 @@ const VistaCliente = () => {
         <div className="respuestas-historial">
           {respuestas.length > 0 ? (
             respuestas.map((respuesta) => (
-              <div key={respuesta.id} className="respuesta-item">
-                <p><strong>Respuesta:</strong> {respuesta.reply}</p>
-                <p><small>
-                  Enviado el: {respuesta.timestamp?.seconds
-                    ? new Date(respuesta.timestamp.seconds * 1000).toLocaleString()
-                    : "Sin fecha"}
-                </small></p>
-              </div>
+              <Respuesta key={respuesta.id} respuesta={respuesta} />
             ))
           ) : (
-            <p>No hay respuestas aún.</p>
+            <p>No hay respuestas disponibles.</p>
           )}
         </div>
       </div>

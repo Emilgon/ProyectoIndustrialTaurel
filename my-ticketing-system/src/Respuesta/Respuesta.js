@@ -35,23 +35,21 @@ const Respuesta = () => {
         // Query para obtener respuestas de la colección "Responses"
         const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
         const respuestasSnapshot = await getDocs(respuestasRef);
-        const respuestasData = respuestasSnapshot.docs.map(doc => doc.data());
+        const respuestasData = respuestasSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
         setRespuestas(respuestasData);
       } catch (error) {
         console.error("Error al obtener las respuestas:", error);
       }
     };
 
-
     if (consultaId) {
       fetchConsulta();
       obtenerRespuestas();  // Llamar para obtener las respuestas cuando se cargue la consulta
     }
   }, [consultaId]);
-
-  if (!consultaData) {
-    return <div>Loading...</div>;
-  }
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -92,6 +90,22 @@ const Respuesta = () => {
         status: "En proceso",
       });
 
+      // Actualizar las respuestas después de enviar una nueva
+      const obtenerRespuestas = async () => {
+        try {
+          // Query para obtener respuestas de la colección "Responses"
+          const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
+          const respuestasSnapshot = await getDocs(respuestasRef);
+          const respuestasData = respuestasSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setRespuestas(respuestasData);
+        } catch (error) {
+          console.error("Error al obtener las respuestas:", error);
+        }
+      };
+
       Swal.fire({
         icon: 'success',
         title: 'Tu respuesta ha sido enviada exitosamente',
@@ -116,6 +130,9 @@ const Respuesta = () => {
     }
   };
 
+  if (!consultaData) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="reply-container">

@@ -49,19 +49,6 @@ const VistaAsesorFormulario = () => {
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
-
-      const consultasExpiracion = consultasData.filter(
-        (consulta) => calculateRemainingDays(consulta.star_date, consulta.indicator) <= 1
-      );
-
-      if (consultasExpiracion.length > 0) {
-        Swal.fire({
-          icon: "warning",
-          title: "¡Advertencia!",
-          text: `Hay ${consultasExpiracion.length} consulta(s) con muy poco tiempo restante para ser respondidas.`,
-          confirmButtonText: "Entendido",
-        });
-      }
     };
     fetchConsultas();
 
