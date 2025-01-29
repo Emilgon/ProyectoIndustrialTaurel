@@ -32,7 +32,7 @@ const Respuesta = () => {
 
     const obtenerRespuestas = async () => {
       try {
-        // Query para obtener respuestas relacionadas con la consulta actual
+        // Query para obtener respuestas de la colección "Responses"
         const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
         const respuestasSnapshot = await getDocs(respuestasRef);
         const respuestasData = respuestasSnapshot.docs.map(doc => doc.data());
@@ -41,6 +41,7 @@ const Respuesta = () => {
         console.error("Error al obtener las respuestas:", error);
       }
     };
+
 
     if (consultaId) {
       fetchConsulta();
@@ -77,23 +78,24 @@ const Respuesta = () => {
     }
 
     try {
-      // Crear una nueva respuesta
+      // Guardar la respuesta en la colección "Responses"
       const respuestaRef = collection(db, "Responses");
       await addDoc(respuestaRef, {
-        consultaId: consultaId,
+        consultaId: consultaId,  // Mantiene la referencia a la consulta
         reply: reply,
         timestamp: new Date(),
       });
 
+      // Actualizar el estado de la consulta a "En proceso"
       const consultaRef = doc(db, "Consults", consultaId);
       await updateDoc(consultaRef, {
-        status: "En proceso", 
+        status: "En proceso",
       });
 
       Swal.fire({
         icon: 'success',
         title: 'Tu respuesta ha sido enviada exitosamente',
-        text: '¿Quisiera seguir respondiendo consultas?',
+        text: '¿Quieres seguir respondiendo consultas?',
         showCancelButton: true,
         confirmButtonText: 'Sí',
         cancelButtonText: 'No',
@@ -113,6 +115,7 @@ const Respuesta = () => {
       });
     }
   };
+
 
   return (
     <div className="reply-container">
