@@ -50,17 +50,16 @@ const VistaCliente = () => {
   }, [auth]);
 
   // Función para obtener las respuestas
-  const obtenerConsultas = async (clienteId) => {
-    console.log('Obteniendo consultas para el cliente:', clienteId);
-    const respuestasRef = query(collection(db, 'Responses'), where('clienteId', '==', clienteId));
+  const obtenerConsultas = async (name) => {
+    const respuestasRef = query(collection(db, 'Consults'), where('name', '==', name));
     const respuestasSnapshot = await getDocs(respuestasRef);
+    console.log(respuestasSnapshot)
     return respuestasSnapshot.docs.map((doc) => doc.data());
   };
 
   // Mostrar historial de consultas
   const handleHistorial = async () => {
     if (!userData.uid) {
-      console.log("El UID del usuario no está disponible.");
       return;
     }
 
