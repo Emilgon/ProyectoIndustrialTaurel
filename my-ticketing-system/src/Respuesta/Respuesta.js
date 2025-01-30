@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore"; // Importar query y getDocs
-import { db } from "../firebaseConfig";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { db, auth } from "../firebaseConfig";
 import "./Respuesta.css";
 import { TextField, Box, Button } from '@mui/material';
 import Swal from 'sweetalert2';
@@ -12,7 +12,22 @@ const Respuesta = () => {
   const [reply, setReply] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
-  const [respuestas, setRespuestas] = useState([]);  // Para almacenar las respuestas
+  const [respuestas, setRespuestas] = useState([]);
+
+  // Función para obtener las respuestas
+  const obtenerRespuestas = async () => {
+    try {
+      const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
+      const respuestasSnapshot = await getDocs(respuestasRef);
+      const respuestasData = respuestasSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setRespuestas(respuestasData);
+    } catch (error) {
+      console.error("Error al obtener las respuestas:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchConsulta = async () => {
@@ -30,24 +45,9 @@ const Respuesta = () => {
       }
     };
 
-    const obtenerRespuestas = async () => {
-      try {
-        // Query para obtener respuestas de la colección "Responses"
-        const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
-        const respuestasSnapshot = await getDocs(respuestasRef);
-        const respuestasData = respuestasSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setRespuestas(respuestasData);
-      } catch (error) {
-        console.error("Error al obtener las respuestas:", error);
-      }
-    };
-
     if (consultaId) {
       fetchConsulta();
-      obtenerRespuestas();  // Llamar para obtener las respuestas cuando se cargue la consulta
+      obtenerRespuestas();
     }
   }, [consultaId]);
 
@@ -60,7 +60,7 @@ const Respuesta = () => {
       if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
         setFilePreview(URL.createObjectURL(selectedFile));
       } else {
-        setFilePreview(null); // Para otros tipos de archivos, limpia la vista previa
+        setFilePreview(null);
       }
     }
   };
@@ -76,35 +76,25 @@ const Respuesta = () => {
     }
 
     try {
-      // Guardar la respuesta en la colección "Responses"
+      const user = auth.currentUser; // Obtén el usuario autenticado
+      if (!user) {
+        throw new Error('No se encontró al usuario autenticado');
+      }
+
       const respuestaRef = collection(db, "Responses");
       await addDoc(respuestaRef, {
-        consultaId: consultaId,  // Mantiene la referencia a la consulta
+        consultaId: consultaId,
         reply: reply,
         timestamp: new Date(),
+        userId: user.uid,  // Aquí agregamos el userId
       });
 
-      // Actualizar el estado de la consulta a "En proceso"
       const consultaRef = doc(db, "Consults", consultaId);
       await updateDoc(consultaRef, {
         status: "En proceso",
       });
 
-      // Actualizar las respuestas después de enviar una nueva
-      const obtenerRespuestas = async () => {
-        try {
-          // Query para obtener respuestas de la colección "Responses"
-          const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
-          const respuestasSnapshot = await getDocs(respuestasRef);
-          const respuestasData = respuestasSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setRespuestas(respuestasData);
-        } catch (error) {
-          console.error("Error al obtener las respuestas:", error);
-        }
-      };
+      await obtenerRespuestas();
 
       Swal.fire({
         icon: 'success',
@@ -137,26 +127,33 @@ const Respuesta = () => {
   return (
     <div className="reply-container">
       <div className="reply-content">
-        <h1>
-          Cliente: {consultaData.name} de {consultaData.company}
-        </h1>
+        {/* Contenedor Cliente */}
+        <div className="client-container">
+          <h1>
+            Cliente: {consultaData.name} de {consultaData.company}
+          </h1>
+        </div>
+
         <p>Consulta de tipo {consultaData.type}</p>
         <p>Mensaje:</p>
         <div className="message-container">
           <p>{consultaData.messageContent}</p>
-          {/* Mostrar las respuestas previas */}
           <div className="respuestas-historial">
             {respuestas.length > 0 ? (
               respuestas.map((respuesta, index) => (
                 <div key={index} className="respuesta-item">
                   <p><strong>Respuesta:</strong> {respuesta.reply}</p>
-                  <p><small>Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}</small></p>
+                  {respuesta.timestamp && (
+                    <p><small>Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}</small></p>
+                  )}
                 </div>
               ))
             ) : (
               <p>No hay respuestas aún.</p>
             )}
           </div>
+
+
         </div>
         <Box mt={2}>
           <TextField

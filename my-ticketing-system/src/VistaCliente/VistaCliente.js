@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebaseConfig'; // Asegúrate de que la ruta es correcta
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import Respuesta from '../Respuesta/Respuesta'; // Importa el componente Respuesta
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
@@ -12,7 +11,7 @@ const VistaCliente = () => {
     const fetchUserData = async () => {
       onAuthStateChanged(auth, async (user) => {
         if (user) {
-          const userRef = collection(db, 'Clients'); // Verifica el nombre correcto de la colección
+          const userRef = collection(db, 'Clients');
           const querySnapshot = await getDocs(userRef);
           querySnapshot.forEach((doc) => {
             if (doc.data().email.toLowerCase() === user.email.toLowerCase()) {
@@ -69,7 +68,10 @@ const VistaCliente = () => {
         <div className="respuestas-historial">
           {respuestas.length > 0 ? (
             respuestas.map((respuesta) => (
-              <Respuesta key={respuesta.id} respuesta={respuesta} />
+              <div key={respuesta.id}>
+                <p><strong>Respuesta:</strong> {respuesta.reply}</p>
+                <p><strong>Fecha:</strong> {respuesta.timestamp?.toDate().toLocaleString()}</p>
+              </div>
             ))
           ) : (
             <p>No hay respuestas disponibles.</p>
