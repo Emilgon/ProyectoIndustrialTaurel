@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { db, auth } from '../firebaseConfig'; // Asegúrate de que la ruta es correcta
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import React, { useEffect, useState } from "react";
+import { db, auth } from "../firebaseConfig"; // Asegúrate de que la ruta es correcta
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
@@ -11,7 +11,7 @@ const VistaCliente = () => {
     const fetchUserData = async () => {
       onAuthStateChanged(auth, async (user) => {
         if (user) {
-          const userRef = collection(db, 'Clients');
+          const userRef = collection(db, "Clients");
           const querySnapshot = await getDocs(userRef);
           querySnapshot.forEach((doc) => {
             if (doc.data().email.toLowerCase() === user.email.toLowerCase()) {
@@ -24,12 +24,24 @@ const VistaCliente = () => {
 
     const fetchRespuestas = async () => {
       const user = auth.currentUser;
+      console.log(user);
       if (user) {
-        const respuestasRef = query(collection(db, 'Responses'), where('userId', '==', user.uid));
+        const consultsRef = query(
+          collection(db, "Consults"),
+          where("email", "==", user.email)
+        );
+        const consultsSnapshot = await getDocs(consultsRef);
+        const consultaIds = consultsSnapshot.docs.map((doc) => doc.id);
+
+        // Fetch Responses where consultaId is in consultaIds
+        const respuestasRef = query(
+          collection(db, "Responses"),
+          where("consultaId", "in", consultaIds)
+        );
         const querySnapshot = await getDocs(respuestasRef);
-        const respuestasArray = querySnapshot.docs.map(doc => ({
+        const respuestasArray = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setRespuestas(respuestasArray);
       }
@@ -69,8 +81,13 @@ const VistaCliente = () => {
           {respuestas.length > 0 ? (
             respuestas.map((respuesta) => (
               <div key={respuesta.id}>
-                <p><strong>Respuesta:</strong> {respuesta.reply}</p>
-                <p><strong>Fecha:</strong> {respuesta.timestamp?.toDate().toLocaleString()}</p>
+                <p>
+                  <strong>Respuesta:</strong> {respuesta.reply}
+                </p>
+                <p>
+                  <strong>Fecha:</strong>{" "}
+                  {respuesta.timestamp?.toDate().toLocaleString()}
+                </p>
               </div>
             ))
           ) : (
