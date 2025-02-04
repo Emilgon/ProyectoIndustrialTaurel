@@ -29,6 +29,7 @@ const Respuesta = () => {
     }
   };
 
+
   useEffect(() => {
     const fetchConsulta = async () => {
       try {

@@ -8,8 +8,8 @@
   padding: 20px;
   width: 200px;
   height: 100vh;
-  display: flex; /* Agrega esta propiedad */
-  flex-direction: column; /* Agrega esta propiedad */
+  display: flex;
+  flex-direction: column;
 }
 
 .menu-lateral ul {
@@ -25,12 +25,28 @@
 .menu-lateral a {
   color: white;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .content {
-  width: 100%;
+  flex: 1; /* Para que ocupe todo el espacio restante */
   padding: 20px;
+  display: flex;
+  justify-content: space-between;
 }
-.menu-lateral a {
-  cursor: pointer;
+
+.cliente-info {
+  width: 45%;
+  background-color: white;
+  padding: 20px;
+  border-radius: 16px; /* Bordes más redondeados */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.historial {
+  width: 45%;
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 16px; /* Bordes más redondeados */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }

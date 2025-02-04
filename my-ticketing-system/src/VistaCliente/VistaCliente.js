@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { db, auth } from "../firebaseConfig"; // Asegúrate de que la ruta es correcta
-import { collection, getDocs, query, where } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { Drawer, List, ListItem, ListItemText, Box, Typography, Button, Paper, Toolbar } from "@mui/material";
+
+const drawerWidth = 240;
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
+  const [showHistorial, setShowHistorial] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -24,78 +30,118 @@ const VistaCliente = () => {
 
     const fetchRespuestas = async () => {
       const user = auth.currentUser;
-      console.log(user);
       if (user) {
+        // Obtener todas las consultas del cliente
         const consultsRef = query(
           collection(db, "Consults"),
           where("email", "==", user.email)
         );
         const consultsSnapshot = await getDocs(consultsRef);
-        const consultaIds = consultsSnapshot.docs.map((doc) => doc.id);
-
-        // Fetch Responses where consultaId is in consultaIds
-        const respuestasRef = query(
-          collection(db, "Responses"),
-          where("consultaId", "in", consultaIds)
-        );
-        const querySnapshot = await getDocs(respuestasRef);
-        const respuestasArray = querySnapshot.docs.map((doc) => ({
+        const consultasArray = consultsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setRespuestas(respuestasArray);
+
+        // Obtener las respuestas para cada consulta
+        for (let consulta of consultasArray) {
+          const respuestasRef = query(
+            collection(db, "Responses"),
+            where("consultaId", "==", consulta.id)
+          );
+          const respuestasSnapshot = await getDocs(respuestasRef);
+          const respuestasArray = respuestasSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          consulta.respuestas = respuestasArray;  // Añadir las respuestas a la consulta
+        }
+
+        // Guardar todas las consultas con sus respuestas
+        setRespuestas(consultasArray);
       }
     };
+
 
     fetchUserData();
     fetchRespuestas();
   }, []);
 
   const handleSalir = () => {
-    // Manejar la salida del usuario
+    navigate("/login");
+  };
+
+  const toggleHistorial = () => {
+    setShowHistorial(!showHistorial);
   };
 
   return (
-    <div className="container">
-      <nav className="menu-lateral">
-        <ul>
-          <li>
-            <a onClick={handleSalir}>Salir</a>
-          </li>
-        </ul>
-      </nav>
+    <Box sx={{ display: "flex" }}>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: { width: drawerWidth, backgroundColor: "#1B5C94", color: "white" },
+        }}
+      >
+        <Toolbar />
+        <List>
+          <ListItem button onClick={toggleHistorial}>
+            <ListItemText primary="Historial" />
+          </ListItem>
+          <ListItem button onClick={handleSalir}>
+            <ListItemText primary="Salir" />
+          </ListItem>
+        </List>
+      </Drawer>
 
-      <div className="content">
-        <h2>Datos del Cliente</h2>
-        <p>Nombre: {userData.name}</p>
-        <p>Dirección: {userData.address}</p>
-        <p>Empresa: {userData.company}</p>
-        <p>Rol en la empresa: {userData.company_role}</p>
-        <p>Correo electrónico: {userData.email}</p>
-        <p>Teléfono: {userData.phone}</p>
-      </div>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, display: "flex", justifyContent: "space-between" }}>
+        <Paper sx={{ width: "48%", padding: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Typography variant="h5" fontWeight="bold">Datos del Cliente</Typography>
+          <Typography><strong>Nombre:</strong> {userData.name}</Typography>
+          <Typography><strong>Dirección:</strong> {userData.address}</Typography>
+          <Typography><strong>Empresa:</strong> {userData.company}</Typography>
+          <Typography><strong>Rol en la empresa:</strong> {userData.company_role}</Typography>
+          <Typography><strong>Correo electrónico:</strong> {userData.email}</Typography>
+          <Typography><strong>Teléfono:</strong> {userData.phone}</Typography>
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: '#4CAF50', color: '#fff', marginTop: 2 }}
+            onClick={() => navigate('/consulta')}
+          >
+            Hacer Consulta
+          </Button>
+        </Paper>
 
-      <div className="vista-cliente-container">
-        <h2>Historial de Respuestas</h2>
-        <div className="respuestas-historial">
-          {respuestas.length > 0 ? (
-            respuestas.map((respuesta) => (
-              <div key={respuesta.id}>
-                <p>
-                  <strong>Respuesta:</strong> {respuesta.reply}
-                </p>
-                <p>
-                  <strong>Fecha:</strong>{" "}
-                  {respuesta.timestamp?.toDate().toLocaleString()}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p>No hay respuestas disponibles.</p>
-          )}
-        </div>
-      </div>
-    </div>
+        {showHistorial && (
+          <Paper sx={{ width: "48%", padding: 2 }}>
+            <Typography variant="h6" fontWeight="bold">Historial de Consultas y Respuestas</Typography>
+            {respuestas.length > 0 ? (
+              respuestas.map((consulta) => (
+                <Box key={consulta.id} sx={{ borderBottom: "1px solid gray", py: 1 }}>
+                  <Typography><strong>Consulta:</strong> {consulta.messageContent}</Typography>
+                  <Typography><strong>Fecha de Envío:</strong> {new Date(consulta.timestamp?.seconds * 1000).toLocaleString()}</Typography>
+                  <Typography><strong>Respuestas:</strong></Typography>
+                  {consulta.respuestas && consulta.respuestas.length > 0 ? (
+                    consulta.respuestas.map((respuesta) => (
+                      <Box key={respuesta.id} sx={{ borderBottom: "1px solid lightgray", py: 1 }}>
+                        <Typography><strong>Respuesta:</strong> {respuesta.reply}</Typography>
+                        <Typography><strong>Fecha:</strong> {new Date(respuesta.timestamp?.seconds * 1000).toLocaleString()}</Typography>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography>No hay respuestas para esta consulta.</Typography>
+                  )}
+                </Box>
+              ))
+            ) : (
+              <Typography>No hay consultas disponibles.</Typography>
+            )}
+
+          </Paper>
+        )}
+      </Box>
+    </Box>
   );
 };
 
