@@ -1,12 +1,33 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Typography, Box, Select, MenuItem, Grid, Card, CardContent, Popover, } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Typography,
+  Box,
+  Select,
+  MenuItem,
+  Grid,
+  Card,
+  CardContent,
+  Menu,
+  Popover,
+} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Swal from "sweetalert2";
 import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from "../firebaseConfig";
+import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -20,10 +41,12 @@ const VistaAsesorFormulario = () => {
   const [pendientesCount, setPendientesCount] = useState(0);
   const [enProcesoCount, setEnProcesoCount] = useState(0);
   const [resueltasCount, setResueltasCount] = useState(0);
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorElEstado, setAnchorElEstado] = useState(null);
+  const [anchorElTipo, setAnchorElTipo] = useState(null);
+  const [anchorElFecha, setAnchorElFecha] = useState(null); // Estado para el Popover de fecha
   const [selectedState, setSelectedState] = useState("");
-  const [selectedType, setSelectedType] = useState(null);
-
+  const [selectedType, setSelectedType] = useState("");
+  const [dateRange, setDateRange] = useState([null, null]); // Estado para el rango de fechas
 
   const navigate = useNavigate();
 
@@ -36,16 +59,9 @@ const VistaAsesorFormulario = () => {
       }));
       setConsultas(consultasData);
 
-      // Contadores
-      const pendientes = consultasData.filter(
-        (c) => c.status === "Pendiente"
-      ).length;
-      const enProceso = consultasData.filter(
-        (c) => c.status === "En proceso"
-      ).length;
-      const resueltas = consultasData.filter(
-        (c) => c.status === "Resuelta"
-      ).length;
+      const pendientes = consultasData.filter((c) => c.status === "Pendiente").length;
+      const enProceso = consultasData.filter((c) => c.status === "En proceso").length;
+      const resueltas = consultasData.filter((c) => c.status === "Resuelta").length;
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
@@ -56,59 +72,40 @@ const VistaAsesorFormulario = () => {
       setConsultas((prevConsultas) =>
         prevConsultas.map((consulta) => ({
           ...consulta,
-          indicador: calculateRemainingDays(
-            consulta.star_date,
-            consulta.indicator
-          ),
+          indicador: calculateRemainingDays(consulta.star_date, consulta.indicator),
         }))
       );
-    }, 3600000); // 1 hora
+    }, 3600000);
 
     return () => clearInterval(interval);
   }, []);
 
-  function calculateRemainingDays(startDate, indicadorOriginal) {
+  const calculateRemainingDays = (startDate, indicadorOriginal) => {
     if (!startDate || typeof startDate.toDate !== "function") {
       return indicadorOriginal;
     }
 
-    const now = new Date(); // Fecha y hora actual
-    const start = startDate.toDate(); // Convertir fechaInicio a un objeto Date
-
-    // Calcular la diferencia en milisegundos entre la fecha actual y la fecha de inicio
+    const now = new Date();
+    const start = startDate.toDate();
     const differenceInMs = now - start;
-
-    // Convertir la diferencia a días, redondeando hacia abajo
     const differenceInDays = Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
-
-    // Calcular los días restantes
     const remainingDays = indicadorOriginal - differenceInDays;
-
-    // Asegurar que el valor del indicador nunca sea negativo
     return remainingDays > 0 ? remainingDays : 0;
-  }
+  };
 
   const handleResponderConsulta = (id) => {
     navigate(`/Respuestas/${id}`);
   };
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleSelectState = (status) => {
     setSelectedState(status);
-    setOrderBy("status");
-    setOrder("asc");
-    handleClose();
+    setAnchorElEstado(null);
   };
 
-  const open = Boolean(anchorEl);
-  const id = open ? "simple-popover" : undefined;
+  const handleSelectType = (type) => {
+    setSelectedType(type);
+    setAnchorElTipo(null);
+  };
 
   const handleToggleDetails = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -125,7 +122,6 @@ const VistaAsesorFormulario = () => {
   };
 
   const formatDateTime = (timestamp) => {
-    // Verificar si el timestamp es válido y tiene la propiedad 'seconds'
     if (!timestamp || !timestamp.seconds) {
       return "Fecha no disponible";
     }
@@ -142,42 +138,48 @@ const VistaAsesorFormulario = () => {
   };
 
   const handleSave = async () => {
-    if (currentId) {
-      // Update existing consulta
-      const consultaRef = doc(db, "Consults", currentId);
-      await updateDoc(consultaRef, {
-        type: editType,
-        indicator: resolverDays,
-        star_date: new Date(), // Guardar fecha actual
-      });
-      setConsultas(
-        consultas.map((c) =>
-          c.id === currentId
-            ? {
-              ...c,
-              type: editType,
-              indicator: resolverDays,
-              star_date: new Date(),
-            }
-            : c
-        )
-      );
-      setExpandedRow(null);
-    } else {
-      // Add new consulta
-      await addDoc(collection(db, "Consults"), {
-        type: editType || "No asignado", // Default to "No asignado"
-        indicator: resolverDays || 0, // Default to 0
-      });
-      setConsultas([
-        ...consultas,
-        {
-          type: editType || "No asignado",
+    try {
+      if (currentId) {
+        const consultaRef = doc(db, "Consults", currentId);
+        await updateDoc(consultaRef, {
+          type: editType || "No Asignado",
           indicator: resolverDays || 0,
-        },
-      ]);
-      setEditType("No asignado");
+        });
+
+        setConsultas(
+          consultas.map((c) =>
+            c.id === currentId
+              ? {
+                  ...c,
+                  type: editType || "No Asignado",
+                  indicator: resolverDays || 0,
+                }
+              : c
+          )
+        );
+      } else {
+        await addDoc(collection(db, "Consults"), {
+          type: editType || "No Asignado",
+          indicator: resolverDays || 0,
+          star_date: new Date(),
+        });
+
+        setConsultas([
+          ...consultas,
+          {
+            type: editType || "No Asignado",
+            indicator: resolverDays || 0,
+            star_date: new Date(),
+          },
+        ]);
+      }
+
+      setEditType("");
       setResolverDays(0);
+      setExpandedRow(null);
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      Swal.fire("Error", "No se pudo guardar los cambios.", "error");
     }
   };
 
@@ -200,12 +202,9 @@ const VistaAsesorFormulario = () => {
     });
 
     if (comment) {
-      // Guardar el comentario en Firebase
       const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, { comentario: comment });
-      setConsultas(
-        consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
-      );
+      setConsultas(consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c)));
     }
   };
 
@@ -234,7 +233,6 @@ const VistaAsesorFormulario = () => {
   const handleViewComment = async (id) => {
     const consulta = consultas.find((c) => c.id === id);
 
-    // Mostrar el comentario en un SweetAlert
     const { value: result } = await Swal.fire({
       title: "Comentario",
       text: consulta?.comentario || "No hay comentario disponible",
@@ -243,9 +241,7 @@ const VistaAsesorFormulario = () => {
       cancelButtonText: "Eliminar comentario",
     });
 
-    // Si el usuario selecciona eliminar el comentario
     if (result === undefined) {
-      // Cancelar en lugar de resultado false
       const { isConfirmed } = await Swal.fire({
         title: "Confirmación",
         text: "¿Estás seguro de que deseas eliminar este comentario?",
@@ -257,32 +253,40 @@ const VistaAsesorFormulario = () => {
 
       if (isConfirmed) {
         try {
-          // Eliminar el comentario del documento en Firestore
           const consultaRef = doc(db, "Consults", id);
           await updateDoc(consultaRef, { comentario: "" });
-
-          // Actualizar el estado local
-          setConsultas(
-            consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c))
-          );
-
-          // Confirmación de eliminación exitosa
+          setConsultas(consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c)));
           Swal.fire("Eliminado", "El comentario ha sido eliminado.", "success");
         } catch (error) {
-          // Manejo de errores
           Swal.fire("Error", "No se pudo eliminar el comentario.", "error");
         }
       }
     }
   };
 
-  const sortedConsultas = consultas.sort((a, b) => {
+  // Filtrar las consultas por tipo, estado y rango de fechas
+  const filteredConsultas = consultas.filter((consulta) => {
+    const matchesType = !selectedType || consulta.type === selectedType;
+    const matchesState = !selectedState || consulta.status === selectedState;
+
+    // Filtrar por rango de fechas
+    const consultaDate = consulta.star_date?.toDate();
+    const [startDate, endDate] = dateRange;
+
+    const matchesDateRange =
+      !startDate ||
+      !endDate ||
+      (consultaDate >= startDate && consultaDate <= endDate);
+
+    return matchesType && matchesState && matchesDateRange;
+  });
+
+  // Ordenar las consultas filtradas
+  const sortedConsultas = filteredConsultas.sort((a, b) => {
     if (orderBy === "status") {
       const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
-      const aPriority =
-        a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
-      const bPriority =
-        b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
+      const aPriority = a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
+      const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
       return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
     }
 
@@ -292,13 +296,8 @@ const VistaAsesorFormulario = () => {
         : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
     }
 
-
     if (orderBy === "type") {
-      const typesOrder = [
-        "Clasificación Arancelaria",
-        "Asesoría técnica",
-        "No asignado",
-      ];
+      const typesOrder = ["Clasificación Arancelaria", "Asesoría técnica", "No asignado"];
       const aIndex = typesOrder.indexOf(a.type || "No asignado");
       const bIndex = typesOrder.indexOf(b.type || "No asignado");
       return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
@@ -311,10 +310,6 @@ const VistaAsesorFormulario = () => {
     if (aValue > bValue) return order === "asc" ? 1 : -1;
     return 0;
   });
-  
-  const handleSelectType = (type) => {
-    setSelectedType(type);
-  };
 
   return (
     <TableContainer component={Paper} className="table-container">
@@ -342,28 +337,41 @@ const VistaAsesorFormulario = () => {
               </Button>
             </TableCell>
             <TableCell>
-              <Button
-                onClick={() => handleRequestSort("type")}
-                className={`sort-button ${orderBy === "type" ? "active" : ""}`}
-              >
-                Tipo de Consulta
-                <ExpandMoreIcon
-                  style={{
-                    transform:
-                      orderBy === "type"
-                        ? order === "asc"
-                          ? "rotate(0deg)"
-                          : "rotate(180deg)"
-                        : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    fontSize: 16,
-                  }}
-                />
-              </Button>
+              <Box display="flex" alignItems="center">
+                <Button
+                  onClick={(event) => setAnchorElTipo(event.currentTarget)}
+                  className={`sort-button ${orderBy === "type" ? "active" : ""}`}
+                >
+                  Tipo de Consulta
+                  <ExpandMoreIcon
+                    style={{
+                      transform:
+                        orderBy === "type"
+                          ? order === "asc"
+                            ? "rotate(0deg)"
+                            : "rotate(180deg)"
+                          : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
+                </Button>
+                <Menu
+                  id="type-menu"
+                  anchorEl={anchorElTipo}
+                  open={Boolean(anchorElTipo)}
+                  onClose={() => setAnchorElTipo(null)}
+                >
+                  <MenuItem onClick={() => handleSelectType("")}>Todos</MenuItem>
+                  <MenuItem onClick={() => handleSelectType("No asignado")}>No asignado</MenuItem>
+                  <MenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MenuItem>
+                  <MenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MenuItem>
+                </Menu>
+              </Box>
             </TableCell>
             <TableCell>
               <Button
-                onClick={() => handleRequestSort("star_date")}
+                onClick={(event) => setAnchorElFecha(event.currentTarget)} // Abre el Popover de fecha
                 className={`sort-button ${orderBy === "star_date" ? "active" : ""}`}
               >
                 Fecha de Solicitud
@@ -380,6 +388,27 @@ const VistaAsesorFormulario = () => {
                   }}
                 />
               </Button>
+              <Popover
+                id="fecha-popover"
+                open={Boolean(anchorElFecha)}
+                anchorEl={anchorElFecha}
+                onClose={() => setAnchorElFecha(null)}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "center",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "center",
+                }}
+              >
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DateRangePicker
+                    value={dateRange}
+                    onChange={(newValue) => setDateRange(newValue)}
+                  />
+                </LocalizationProvider>
+              </Popover>
             </TableCell>
             <TableCell>
               <Button
@@ -403,7 +432,7 @@ const VistaAsesorFormulario = () => {
             </TableCell>
             <TableCell>
               <Button
-                onClick={handleClick}
+                onClick={(event) => setAnchorElEstado(event.currentTarget)}
                 className={`sort-button ${orderBy === "status" ? "active" : ""}`}
               >
                 Estado
@@ -420,26 +449,17 @@ const VistaAsesorFormulario = () => {
                   }}
                 />
               </Button>
-              <Popover
-                id={id}
-                open={open}
-                anchorEl={anchorEl}
-                onClose={handleClose}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
+              <Menu
+                id="state-menu"
+                anchorEl={anchorElEstado}
+                open={Boolean(anchorElEstado)}
+                onClose={() => setAnchorElEstado(null)}
               >
-                <MenuItem onClick={() => handleSelectState("Pendiente")}>
-                  Pendiente
-                </MenuItem>
-                <MenuItem onClick={() => handleSelectState("En proceso")}>
-                  En proceso
-                </MenuItem>
-                <MenuItem onClick={() => handleSelectState("Resuelto")}>
-                  Resuelto
-                </MenuItem>
-              </Popover>
+                <MenuItem onClick={() => handleSelectState("")}>Todos</MenuItem>
+                <MenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MenuItem>
+                <MenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MenuItem>
+                <MenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MenuItem>
+              </Menu>
             </TableCell>
             <TableCell>Comentario</TableCell>
             <TableCell>Borrar</TableCell>
@@ -450,64 +470,59 @@ const VistaAsesorFormulario = () => {
             <React.Fragment key={consulta.id}>
               <TableRow
                 onClick={(e) => {
-                  if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('comment-button') && !e.target.classList.contains('view-comment-button') && !e.target.classList.contains('delete-button')) {
-                    handleToggleDetails(consulta.id)
+                  if (
+                    e.target.tagName !== "BUTTON" &&
+                    !e.target.classList.contains("comment-button") &&
+                    !e.target.classList.contains("view-comment-button") &&
+                    !e.target.classList.contains("delete-button")
+                  ) {
+                    handleToggleDetails(consulta.id);
                   }
                 }}
                 style={{ cursor: "pointer" }}
               >
                 <TableCell>{consulta.company}</TableCell>
-                <TableCell>{consulta.type || "No asignado"}</TableCell>
+                <TableCell>{consulta.type || "No Asignado"}</TableCell>
+                <TableCell>{formatDateTime(consulta.star_date)}</TableCell>
                 <TableCell>
-                  {formatDateTime(consulta.star_date)}
-                </TableCell>
-                <TableCell>
-                  {consulta.indicator !== undefined &&
-                    consulta.indicator !== null && (
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          backgroundColor:
-                            calculateRemainingDays(
-                              consulta.apply_date,
-                              consulta.indicator
-                            ) <= 1
-                              ? "red"
-                              : "green",
-                          marginRight: "8px",
-                        }}
-                      />
-                    )}
-                  {consulta.indicator === undefined ||
-                    consulta.indicator === null
+                  {consulta.indicator !== undefined && consulta.indicator !== null && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor:
+                          calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
+                            ? "red"
+                            : "green",
+                        marginRight: "8px",
+                      }}
+                    />
+                  )}
+                  {consulta.indicator === undefined || consulta.indicator === null
                     ? "No asignado"
-                    : `${calculateRemainingDays(
-                      consulta.apply_date,
-                      consulta.indicator
-                    )} Días`}
+                    : `${calculateRemainingDays(consulta.apply_date, consulta.indicator)} Días`}
                 </TableCell>
                 <TableCell>{consulta.status}</TableCell>
                 <TableCell>
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCommentClick(consulta.id)
+                      handleCommentClick(consulta.id);
                     }}
                     className="comment-button"
-                    style={{ marginRight: 8, border: 'none', padding: 0 }}
+                    style={{ marginRight: 8, border: "none", padding: 0 }}
                   >
                     <ChatIcon style={{ fontSize: 20 }} />
                   </Button>
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleViewComment(consulta.id)
+                      handleViewComment(consulta.id);
                     }}
                     className="view-comment-button"
-                    style={{ border: 'none', padding: 0 }}
+                    style={{ border: "none", padding: 0 }}
                   >
                     <VisibilityIcon style={{ fontSize: 20 }} />
                   </Button>
@@ -516,7 +531,7 @@ const VistaAsesorFormulario = () => {
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteConsulta(consulta.id)
+                      handleDeleteConsulta(consulta.id);
                     }}
                     className="delete-button"
                   >
@@ -530,22 +545,23 @@ const VistaAsesorFormulario = () => {
                     <Box className="details-box">
                       <Box className="details-info">
                         <Typography variant="h6">
-                          <strong>Nombre y Apellido:</strong>{" "}
-                          {consulta.name || "No disponible"}{" "}
+                          <strong>Nombre y Apellido:</strong> {consulta.name || "No disponible"}
                         </Typography>
                         <Typography variant="h6">
-                          <strong>Empresa:</strong>{" "}
-                          {consulta.company || "No disponible"}
+                          <strong>Empresa:</strong> {consulta.company || "No disponible"}
                         </Typography>
                         <Typography variant="h6">
-                          <strong>Correo:</strong>{" "}
-                          {consulta.email || "No disponible"}
+                          <strong>Correo:</strong> {consulta.email || "No disponible"}
                         </Typography>
                         <Typography variant="h6" marginTop={2}>
-                          <strong>Consulta:</strong>{" "}
-                          {consulta.messageContent || "No disponible"}
+                          <strong>Consulta:</strong> {consulta.messageContent || "No disponible"}
                         </Typography>
-
+                        <Typography variant="h6">
+                          <strong>Fecha de Solicitud:</strong>{" "}
+                          {consulta.timestamp?.seconds
+                            ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
+                            : "Fecha no disponible"}
+                        </Typography>
                         {consulta.attachment && (
                           <Box marginTop={2}>
                             <Typography variant="h6">
@@ -576,29 +592,27 @@ const VistaAsesorFormulario = () => {
                       <Box className="details-actions">
                         <Box className="select-group">
                           <Box className="select-container">
-                            <Typography variant="h6">
-                              Tipo de Consulta
-                            </Typography>
+                            <Typography variant="h6">Tipo de Consulta</Typography>
                             <Select
                               value={editType}
                               onChange={(e) => setEditType(e.target.value)}
                               className="select-type"
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (!selected) {
+                                  return "No Asignado";
+                                }
+                                return selected;
+                              }}
                             >
-                              <MenuItem value="No asignado">
-                                No asignado
-                              </MenuItem>
-                              <MenuItem value="Asesoría técnica">
-                                Asesoría técnica
-                              </MenuItem>
+                              <MenuItem value="Asesoría técnica">Asesoría técnica</MenuItem>
                               <MenuItem value="Clasificación arancelaria">
                                 Clasificación arancelaria
                               </MenuItem>
                             </Select>
                           </Box>
                           <Box className="select-container">
-                            <Typography variant="h6">
-                              Días para resolver consulta
-                            </Typography>
+                            <Typography variant="h6">Días para resolver consulta</Typography>
                             <Select
                               value={resolverDays}
                               onChange={(e) => setResolverDays(e.target.value)}
@@ -621,7 +635,7 @@ const VistaAsesorFormulario = () => {
                         >
                           <Button
                             variant="contained"
-                            onClick={handleSave}
+                            onClick={() => handleSave(consulta)}
                             sx={{
                               backgroundColor: "#1B5C94",
                               color: "white",

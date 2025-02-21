@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db, collection, addDoc, auth, getDocs } from '../firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { serverTimestamp } from 'firebase/firestore'; // Importar serverTimestamp
 import Swal from 'sweetalert2';
 import { Box, Button, TextField, Typography } from '@mui/material';
 
@@ -27,13 +27,14 @@ const Consulta = () => {
                     await addDoc(collection(db, "Consults"), {
                         name: name,
                         company: company,
-                        type: 'Tipo de consulta', // Debes reemplazar esto con el tipo de consulta
-                        star_date: new Date(),
+                        type: 'Tipo de consulta', // Reemplaza esto con el tipo de consulta
+                        star_date: new Date(), // Puedes mantener este campo si lo necesitas
                         indicator: 30,
                         status: 'Pendiente',
                         email: user.email,
                         messageContent: mensaje,
                         attachment: archivo ? archivo.name : '',
+                        timestamp: serverTimestamp(), // Guarda la fecha y hora exactas
                     });
                 }
             }

@@ -117,27 +117,103 @@ const VistaCliente = () => {
           <Paper sx={{ width: "48%", padding: 2 }}>
             <Typography variant="h6" fontWeight="bold">Historial de Consultas y Respuestas</Typography>
             {respuestas.length > 0 ? (
-              respuestas.map((consulta) => (
-                <Box key={consulta.id} sx={{ borderBottom: "1px solid gray", py: 1 }}>
-                  <Typography><strong>Consulta:</strong> {consulta.messageContent}</Typography>
-                  <Typography><strong>Fecha de Envío:</strong> {new Date(consulta.timestamp?.seconds * 1000).toLocaleString()}</Typography>
-                  <Typography><strong>Respuestas:</strong></Typography>
-                  {consulta.respuestas && consulta.respuestas.length > 0 ? (
-                    consulta.respuestas.map((respuesta) => (
-                      <Box key={respuesta.id} sx={{ borderBottom: "1px solid lightgray", py: 1 }}>
-                        <Typography><strong>Respuesta:</strong> {respuesta.reply}</Typography>
-                        <Typography><strong>Fecha:</strong> {new Date(respuesta.timestamp?.seconds * 1000).toLocaleString()}</Typography>
+              // Ordenar las consultas por fecha de envío (de más reciente a más antigua)
+              respuestas
+                .slice() // Crear una copia del array para no mutar el original
+                .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds) // Ordenar por timestamp
+                .map((consulta) => (
+                  <Box key={consulta.id} sx={{ borderBottom: "1px solid gray", py: 1 }}>
+                    <Typography><strong>Consulta:</strong> {consulta.messageContent}</Typography>
+                    {/* Validar el timestamp antes de formatearlo */}
+                    {consulta.timestamp?.seconds ? (
+                      <Typography><strong>Fecha de Envío:</strong> {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}</Typography>
+                    ) : (
+                      <Typography><strong>Fecha de Envío:</strong> No disponible</Typography>
+                    )}
+
+                    {/* Mostrar archivo adjunto de la consulta */}
+                    {consulta.attachment && (
+                      <Box marginTop={2}>
+                        <Typography variant="h6">
+                          <strong>Archivo Adjunto:</strong>
+                        </Typography>
+                        <Box display="flex" alignItems="center">
+                          {consulta.attachment
+                            .split(", ")
+                            .map((fileName) => (
+                              <Box key={fileName} marginRight={2}>
+                                <a
+                                  href={`path_to_your_storage/${fileName}`}
+                                  download
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src={`path_to_your_storage/${fileName}`}
+                                    alt={fileName}
+                                    className="file-thumbnail"
+                                  />
+                                </a>
+                              </Box>
+                            ))}
+                        </Box>
                       </Box>
-                    ))
-                  ) : (
-                    <Typography>No hay respuestas para esta consulta.</Typography>
-                  )}
-                </Box>
-              ))
+                    )}
+
+                    <Typography><strong>Respuestas:</strong></Typography>
+                    {consulta.respuestas && consulta.respuestas.length > 0 ? (
+                      // Ordenar las respuestas por fecha (de más reciente a más antigua)
+                      consulta.respuestas
+                        .slice() // Crear una copia del array para no mutar el original
+                        .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds) // Ordenar por timestamp
+                        .map((respuesta) => (
+                          <Box key={respuesta.id} sx={{ borderBottom: "1px solid lightgray", py: 1 }}>
+                            <Typography><strong>Respuesta:</strong> {respuesta.reply}</Typography>
+                            {/* Validar el timestamp antes de formatearlo */}
+                            {respuesta.timestamp?.seconds ? (
+                              <Typography><strong>Fecha:</strong> {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}</Typography>
+                            ) : (
+                              <Typography><strong>Fecha:</strong> No disponible</Typography>
+                            )}
+
+                            {/* Mostrar archivo adjunto de la respuesta */}
+                            {respuesta.attachment ? (
+                              <Box marginTop={2}>
+                                <Typography variant="h6">
+                                  <strong>Archivo Adjunto:</strong>
+                                </Typography>
+                                <Box display="flex" alignItems="center">
+                                  {respuesta.attachment
+                                    .split(", ")
+                                    .map((fileName) => (
+                                      <Box key={fileName} marginRight={2}>
+                                        <a
+                                          href={`path_to_your_storage/${fileName}`}
+                                          download
+                                          rel="noopener noreferrer"
+                                        >
+                                          <img
+                                            src={`path_to_your_storage/${fileName}`}
+                                            alt={fileName}
+                                            className="file-thumbnail"
+                                          />
+                                        </a>
+                                      </Box>
+                                    ))}
+                                </Box>
+                              </Box>
+                            ) : (
+                              <Typography><strong>Archivo Adjunto:</strong> No hay archivo adjunto</Typography>
+                            )}
+                          </Box>
+                        ))
+                    ) : (
+                      <Typography>No hay respuestas para esta consulta.</Typography>
+                    )}
+                  </Box>
+                ))
             ) : (
               <Typography>No hay consultas disponibles.</Typography>
             )}
-
           </Paper>
         )}
       </Box>
