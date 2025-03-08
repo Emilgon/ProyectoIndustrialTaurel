@@ -1,13 +1,27 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // Importar useNavigate
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
-import "./Respuesta.css";
-import { TextField, Box, Button } from '@mui/material';
+import { TextField, Box, Button, Card, Typography, Grid, Avatar, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
+import {
+  AttachFile as AttachFileIcon,
+  Send as SendIcon,
+  InsertDriveFile as FileIcon,
+  PictureAsPdf as PdfIcon,
+  Description as DocIcon,
+  Image as ImageIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+  Business as BusinessIcon,
+  Description as DescriptionIcon,
+  ArrowBack as ArrowBackIcon, // Importar el ícono de regresar
+  Download as DownloadIcon,
+} from "@mui/icons-material";
 
 const Respuesta = () => {
   const { consultaId } = useParams();
+  const navigate = useNavigate(); // Obtener la función de navegación
   const [consultaData, setConsultaData] = useState(null);
   const [reply, setReply] = useState('');
   const [file, setFile] = useState(null);
@@ -28,7 +42,6 @@ const Respuesta = () => {
       console.error("Error al obtener las respuestas:", error);
     }
   };
-
 
   useEffect(() => {
     const fetchConsulta = async () => {
@@ -66,6 +79,11 @@ const Respuesta = () => {
     }
   };
 
+  const handleRemoveFile = () => {
+    setFile(null);
+    setFilePreview(null);
+  };
+
   const handleSend = async () => {
     if (reply.trim() === '') {
       Swal.fire({
@@ -77,7 +95,7 @@ const Respuesta = () => {
     }
 
     try {
-      const user = auth.currentUser; // Obtén el usuario autenticado
+      const user = auth.currentUser;
       if (!user) {
         throw new Error('No se encontró al usuario autenticado');
       }
@@ -87,7 +105,7 @@ const Respuesta = () => {
         consultaId: consultaId,
         reply: reply,
         timestamp: new Date(),
-        userId: user.uid,  // Aquí agregamos el userId
+        userId: user.uid,
       });
 
       const consultaRef = doc(db, "Consults", consultaId);
@@ -106,9 +124,9 @@ const Respuesta = () => {
         cancelButtonText: 'No',
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = '/asesor';
+          navigate("/asesor"); // Redirigir a /asesor
         } else {
-          window.location.href = '/';
+          navigate("/"); // Redirigir a la página principal
         }
       });
     } catch (error) {
@@ -126,37 +144,75 @@ const Respuesta = () => {
   }
 
   return (
-    <div className="reply-container">
-      <div className="reply-content">
-        {/* Contenedor Cliente */}
-        <div className="client-container">
-          <h1>
-            Cliente: {consultaData.name} de {consultaData.company}
-          </h1>
-        </div>
+    <Box sx={{ p: 3 }}>
+      <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94" }}>
+          Respuesta a la Consulta
+        </Typography>
 
-        <p>Consulta de tipo {consultaData.type}</p>
-        <p>Mensaje:</p>
-        <div className="message-container">
-          <p>{consultaData.messageContent}</p>
-          <div className="respuestas-historial">
-            {respuestas.length > 0 ? (
-              respuestas.map((respuesta, index) => (
-                <div key={index} className="respuesta-item">
-                  <p><strong>Respuesta:</strong> {respuesta.reply}</p>
-                  {respuesta.timestamp && (
-                    <p><small>Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}</small></p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p>No hay respuestas aún.</p>
-            )}
-          </div>
+        {/* Información del cliente */}
+        <Box sx={{ mb: 3 }}>
+          <Box display="flex" alignItems="center" gap={1} mb={1}>
+            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
+              <PersonIcon fontSize="small" />
+            </Avatar>
+            <Typography variant="h6" fontWeight="bold">
+              Cliente: {consultaData.name}
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1} mb={1}>
+            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
+              <BusinessIcon fontSize="small" />
+            </Avatar>
+            <Typography variant="h6" fontWeight="bold">
+              Empresa: {consultaData.company}
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
+              <DescriptionIcon fontSize="small" />
+            </Avatar>
+            <Typography variant="h6" fontWeight="bold">
+              Tipo de consulta: {consultaData.type}
+            </Typography>
+          </Box>
+        </Box>
 
+        {/* Mensaje del cliente */}
+        <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Mensaje del Cliente
+          </Typography>
+          <Typography variant="body1">
+            {consultaData.messageContent}
+          </Typography>
+        </Card>
 
-        </div>
-        <Box mt={2}>
+        {/* Historial de respuestas */}
+        <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Historial de Respuestas
+          </Typography>
+          {respuestas.length > 0 ? (
+            respuestas.map((respuesta, index) => (
+              <Box key={index} sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+                <Typography variant="body1">
+                  <strong>Respuesta:</strong> {respuesta.reply}
+                </Typography>
+                {respuesta.timestamp && (
+                  <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+                    Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
+                  </Typography>
+                )}
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body1">No hay respuestas aún.</Typography>
+          )}
+        </Card>
+
+        {/* Campo de respuesta */}
+        <Box sx={{ mb: 3 }}>
           <TextField
             label="Escribe tu respuesta aquí..."
             multiline
@@ -167,68 +223,139 @@ const Respuesta = () => {
             onChange={(e) => setReply(e.target.value)}
             sx={{
               "& .MuiOutlinedInput-root": {
-                borderRadius: "22px",
+                borderRadius: "12px",
                 boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
               },
             }}
           />
         </Box>
-        <Box mt={2}>
-          <p>Archivo seleccionado:</p>
+
+        {/* Archivo adjunto */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Archivo Adjunto
+          </Typography>
           {file ? (
-            <div className="file-preview" style={{ display: 'flex', alignItems: 'center' }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              {/* Ícono y nombre del archivo */}
               {file.type.startsWith('image/') ? (
-                <img src={filePreview} alt={file.name} style={{ maxWidth: "200px", maxHeight: "150px", marginRight: '8px' }} />
+                <Box display="flex" alignItems="center" gap={1}>
+                  <img
+                    src={filePreview}
+                    alt={file.name}
+                    style={{ maxWidth: "50px", maxHeight: "50px", borderRadius: "4px" }}
+                  />
+                  <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                    {file.name}
+                  </Typography>
+                </Box>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <i className="fas fa-file" style={{ marginRight: '8px' }}></i>
-                  <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer">{file.name}</a>
-                </div>
+                <Box display="flex" alignItems="center" gap={1}>
+                  {getFileIcon(file.name)}
+                  <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                    {file.name}
+                  </Typography>
+                </Box>
               )}
-            </div>
+
+              {/* Enlace de descarga con ícono */}
+              <IconButton
+                component="a"
+                href={URL.createObjectURL(file)}
+                download={file.name}
+                sx={{
+                  color: "#1B5C94",
+                  "&:hover": {
+                    backgroundColor: "#e3f2fd",
+                  },
+                }}
+              >
+                <DownloadIcon />
+              </IconButton>
+
+              {/* Botón para eliminar el archivo */}
+              <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
+                <DeleteIcon />
+              </IconButton>
+            </Box>
           ) : (
-            <span>No se ha seleccionado ningún archivo.</span>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<AttachFileIcon />}
+              sx={{
+                borderRadius: "12px",
+                borderColor: "#1B5C94",
+                color: "#1B5C94",
+                "&:hover": {
+                  borderColor: "#145a8c",
+                },
+              }}
+            >
+              Adjuntar Archivo
+              <input type="file" hidden onChange={handleFileChange} />
+            </Button>
           )}
         </Box>
-        <Box display="flex" justifyContent="space-between" mt={2}>
+
+        {/* Botones de acción */}
+        <Box display="flex" justifyContent="flex-end" gap={2}>
           <Button
-            variant="contained"
-            component="label"
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/asesor")}
             sx={{
-              backgroundColor: "#d9d9d9",
-              color: "#000",
-              borderRadius: "22px",
+              backgroundColor: "#f5f5f5",
+              color: "#1B5C94",
+              borderRadius: "12px",
+              borderColor: "#1B5C94",
               "&:hover": {
-                backgroundColor: "#bfbfbf",
+                backgroundColor: "#e3f2fd",
               },
             }}
           >
-            Adjuntar Archivo
-            <input
-              type="file"
-              hidden
-              onChange={handleFileChange}
-            />
+            Regresar
           </Button>
           <Button
             variant="contained"
-            color="primary"
+            startIcon={<SendIcon />}
             onClick={handleSend}
             sx={{
               backgroundColor: "#1B5C94",
               color: "white",
-              borderRadius: "22px",
+              borderRadius: "12px",
               "&:hover": {
                 backgroundColor: "#145a8c",
               },
             }}
           >
-            Enviar
+            Enviar Respuesta
           </Button>
         </Box>
-      </div>
-    </div>
+      </Card>
+    </Box>
   );
+};
+
+// Función para obtener el ícono según el tipo de archivo
+const getFileIcon = (fileName) => {
+  const extension = fileName.split(".").pop().toLowerCase();
+  switch (extension) {
+    case "pdf":
+      return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
+    case "csv":
+      return <FileIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
+    case "doc":
+    case "docx":
+      return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+      return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
+    default:
+      return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
+  }
 };
 
 export default Respuesta;

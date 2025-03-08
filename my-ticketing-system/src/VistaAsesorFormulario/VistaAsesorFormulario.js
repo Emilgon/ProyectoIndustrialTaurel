@@ -1,29 +1,21 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Typography,
-  Box,
-  Select,
-  MenuItem,
-  Grid,
-  Card,
-  CardContent,
-  Menu,
-  Popover,
-} from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Typography, Box, Select, MenuItem, Grid, Card, CardContent, Menu, Popover, Avatar, Divider, } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Business as BusinessIcon, Email as EmailIcon, Person as PersonIcon, Description as DescriptionIcon, CalendarToday as CalendarIcon, AttachFile as AttachFileIcon } from "@mui/icons-material"; // Importa los íconos aquí
+import {
+  PictureAsPdf as PdfIcon, // Ícono para PDF
+  InsertDriveFile as FileIcon, // Ícono para archivos genéricos
+  Description as DocIcon, // Ícono para documentos (Word, etc.)
+  TableChart as CsvIcon, // Ícono para CSV
+  Image as ImageIcon, // Ícono para imágenes
+} from "@mui/icons-material";
 import Swal from "sweetalert2";
+import { motion, AnimatePresence } from "framer-motion";
 import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from "../firebaseConfig";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -43,10 +35,11 @@ const VistaAsesorFormulario = () => {
   const [resueltasCount, setResueltasCount] = useState(0);
   const [anchorElEstado, setAnchorElEstado] = useState(null);
   const [anchorElTipo, setAnchorElTipo] = useState(null);
-  const [anchorElFecha, setAnchorElFecha] = useState(null); // Estado para el Popover de fecha
+  const [anchorElFecha, setAnchorElFecha] = useState(null);
   const [selectedState, setSelectedState] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const [dateRange, setDateRange] = useState([null, null]); // Estado para el rango de fechas
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [alertShown, setAlertShown] = useState(false);
 
   const navigate = useNavigate();
 
@@ -75,10 +68,28 @@ const VistaAsesorFormulario = () => {
           indicador: calculateRemainingDays(consulta.star_date, consulta.indicator),
         }))
       );
-    }, 3600000);
+    }, 60000); // Actualiza cada minuto
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const consultasCercanas = consultas.filter(
+      (consulta) => calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
+    ).length;
+
+    if (consultasCercanas > 0 && !alertShown) {
+      Swal.fire({
+        title: "Alerta",
+        text: `Hay ${consultasCercanas} consultas que tienen muy pocos días para ser respondidas.`,
+        icon: "warning",
+        confirmButtonText: "Aceptar",
+      });
+      setAlertShown(true);
+    } else if (consultasCercanas === 0) {
+      setAlertShown(false);
+    }
+  }, [consultas, alertShown]);
 
   const calculateRemainingDays = (startDate, indicadorOriginal) => {
     if (!startDate || typeof startDate.toDate !== "function") {
@@ -150,10 +161,10 @@ const VistaAsesorFormulario = () => {
           consultas.map((c) =>
             c.id === currentId
               ? {
-                  ...c,
-                  type: editType || "No Asignado",
-                  indicator: resolverDays || 0,
-                }
+                ...c,
+                type: editType || "No Asignado",
+                indicator: resolverDays || 0,
+              }
               : c
           )
         );
@@ -264,12 +275,10 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  // Filtrar las consultas por tipo, estado y rango de fechas
   const filteredConsultas = consultas.filter((consulta) => {
     const matchesType = !selectedType || consulta.type === selectedType;
     const matchesState = !selectedState || consulta.status === selectedState;
 
-    // Filtrar por rango de fechas
     const consultaDate = consulta.star_date?.toDate();
     const [startDate, endDate] = dateRange;
 
@@ -281,7 +290,6 @@ const VistaAsesorFormulario = () => {
     return matchesType && matchesState && matchesDateRange;
   });
 
-  // Ordenar las consultas filtradas
   const sortedConsultas = filteredConsultas.sort((a, b) => {
     if (orderBy === "status") {
       const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
@@ -311,42 +319,214 @@ const VistaAsesorFormulario = () => {
     return 0;
   });
 
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split(".").pop().toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />; // Rojo para PDF
+      case "csv":
+        return <CsvIcon sx={{ color: "#4CAF50", fontSize: 30 }} />; // Verde para CSV
+      case "doc":
+      case "docx":
+        return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />; // Azul para Word
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+        return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />; // Amarillo para imágenes
+      default:
+        return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />; // Gris para archivos genéricos
+    }
+  };
+
+  const renderAttachments = (attachments) => {
+    return attachments.split(", ").map((fileName) => (
+      <Box
+        key={fileName}
+        display="flex"
+        alignItems="center"
+        gap={1}
+        mb={1}
+        sx={{
+          p: 1,
+          border: "1px solid #e0e0e0",
+          borderRadius: 1,
+          "&:hover": { backgroundColor: "#f5f5f5" },
+        }}
+      >
+        {getFileIcon(fileName)} {/* Muestra el ícono del archivo */}
+        <Typography variant="body2" sx={{ flexGrow: 1 }}>
+          {fileName} {/* Muestra el nombre del archivo */}
+        </Typography>
+        <Button
+          component="a"
+          href={`path_to_your_storage/${fileName}`}
+          download
+          rel="noopener noreferrer"
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          Descargar
+        </Button>
+      </Box>
+    ));
+  };
+  const resetFilters = () => {
+    setSelectedState(""); // Restablece el filtro de estado
+    setSelectedType(""); // Restablece el filtro de tipo
+    setDateRange([null, null]); // Restablece el rango de fechas
+  };
+
   return (
-    <TableContainer component={Paper} className="table-container">
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>
-              <Button
-                onClick={() => handleRequestSort("company")}
-                className={`sort-button ${orderBy === "company" ? "active" : ""}`}
-              >
-                Cliente
-                <ExpandMoreIcon
-                  style={{
-                    transform:
-                      orderBy === "company"
-                        ? order === "asc"
-                          ? "rotate(0deg)"
-                          : "rotate(180deg)"
-                        : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    fontSize: 16,
-                  }}
-                />
-              </Button>
-            </TableCell>
-            <TableCell>
-              <Box display="flex" alignItems="center">
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        Consultas
+      </Typography>
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          onClick={resetFilters}
+          sx={{
+            borderColor: "#1B5C94",
+            color: "#1B5C94",
+            borderRadius: "20px",
+            "&:hover": {
+              borderColor: "#145a8c",
+              backgroundColor: "#f5f5f5",
+            },
+          }}
+        >
+          Resetear Filtros
+        </Button>
+      </Box>
+      <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "#1B5C94" }}>
+              <TableCell>
                 <Button
-                  onClick={(event) => setAnchorElTipo(event.currentTarget)}
-                  className={`sort-button ${orderBy === "type" ? "active" : ""}`}
+                  onClick={() => handleRequestSort("company")}
+                  sx={{ color: "white", fontWeight: "bold" }}
                 >
-                  Tipo de Consulta
+                  Cliente
                   <ExpandMoreIcon
-                    style={{
+                    sx={{
                       transform:
-                        orderBy === "type"
+                        orderBy === "company"
+                          ? order === "asc"
+                            ? "rotate(0deg)"
+                            : "rotate(180deg)"
+                          : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
+                </Button>
+              </TableCell>
+              <TableCell>
+                <Box display="flex" alignItems="center">
+                  <Button
+                    onClick={(event) => setAnchorElTipo(event.currentTarget)}
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
+                    Tipo de Consulta
+                    <ExpandMoreIcon
+                      sx={{
+                        transform:
+                          orderBy === "type"
+                            ? order === "asc"
+                              ? "rotate(0deg)"
+                              : "rotate(180deg)"
+                            : "rotate(0deg)",
+                        transition: "transform 0.3s ease",
+                        fontSize: 16,
+                      }}
+                    />
+                  </Button>
+                  <Menu
+                    id="type-menu"
+                    anchorEl={anchorElTipo}
+                    open={Boolean(anchorElTipo)}
+                    onClose={() => setAnchorElTipo(null)}
+                  >
+                    <MenuItem onClick={() => handleSelectType("")}>Todos</MenuItem>
+                    <MenuItem onClick={() => handleSelectType("No asignado")}>No asignado</MenuItem>
+                    <MenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MenuItem>
+                    <MenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MenuItem>
+                  </Menu>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Button
+                  onClick={(event) => setAnchorElFecha(event.currentTarget)}
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
+                  Fecha de Solicitud
+                  <ExpandMoreIcon
+                    sx={{
+                      transform:
+                        orderBy === "star_date"
+                          ? order === "asc"
+                            ? "rotate(0deg)"
+                            : "rotate(180deg)"
+                          : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
+                </Button>
+                <Popover
+                  id="fecha-popover"
+                  open={Boolean(anchorElFecha)}
+                  anchorEl={anchorElFecha}
+                  onClose={() => setAnchorElFecha(null)}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "center",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "center",
+                  }}
+                >
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DateRangePicker
+                      value={dateRange}
+                      onChange={(newValue) => setDateRange(newValue)}
+                    />
+                  </LocalizationProvider>
+                </Popover>
+              </TableCell>
+              <TableCell>
+                <Button
+                  onClick={() => handleRequestSort("indicator")}
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
+                  Indicador
+                  <ExpandMoreIcon
+                    sx={{
+                      transform:
+                        orderBy === "indicator"
+                          ? order === "asc"
+                            ? "rotate(0deg)"
+                            : "rotate(180deg)"
+                          : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
+                </Button>
+              </TableCell>
+              <TableCell>
+                <Button
+                  onClick={(event) => setAnchorElEstado(event.currentTarget)}
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
+                  Estado
+                  <ExpandMoreIcon
+                    sx={{
+                      transform:
+                        orderBy === "status"
                           ? order === "asc"
                             ? "rotate(0deg)"
                             : "rotate(180deg)"
@@ -357,361 +537,348 @@ const VistaAsesorFormulario = () => {
                   />
                 </Button>
                 <Menu
-                  id="type-menu"
-                  anchorEl={anchorElTipo}
-                  open={Boolean(anchorElTipo)}
-                  onClose={() => setAnchorElTipo(null)}
+                  id="state-menu"
+                  anchorEl={anchorElEstado}
+                  open={Boolean(anchorElEstado)}
+                  onClose={() => setAnchorElEstado(null)}
                 >
-                  <MenuItem onClick={() => handleSelectType("")}>Todos</MenuItem>
-                  <MenuItem onClick={() => handleSelectType("No asignado")}>No asignado</MenuItem>
-                  <MenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MenuItem>
-                  <MenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MenuItem>
+                  <MenuItem onClick={() => handleSelectState("")}>Todos</MenuItem>
+                  <MenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MenuItem>
+                  <MenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MenuItem>
+                  <MenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MenuItem>
                 </Menu>
-              </Box>
-            </TableCell>
-            <TableCell>
-              <Button
-                onClick={(event) => setAnchorElFecha(event.currentTarget)} // Abre el Popover de fecha
-                className={`sort-button ${orderBy === "star_date" ? "active" : ""}`}
-              >
-                Fecha de Solicitud
-                <ExpandMoreIcon
-                  style={{
-                    transform:
-                      orderBy === "star_date"
-                        ? order === "asc"
-                          ? "rotate(0deg)"
-                          : "rotate(180deg)"
-                        : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    fontSize: 16,
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Comentario</TableCell>
+              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Borrar</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedConsultas.map((consulta) => (
+              <React.Fragment key={consulta.id}>
+                <TableRow
+                  onClick={(e) => {
+                    if (
+                      e.target.tagName !== "BUTTON" &&
+                      !e.target.classList.contains("comment-button") &&
+                      !e.target.classList.contains("view-comment-button") &&
+                      !e.target.classList.contains("delete-button")
+                    ) {
+                      handleToggleDetails(consulta.id);
+                    }
                   }}
-                />
-              </Button>
-              <Popover
-                id="fecha-popover"
-                open={Boolean(anchorElFecha)}
-                anchorEl={anchorElFecha}
-                onClose={() => setAnchorElFecha(null)}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "center",
-                }}
-              >
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DateRangePicker
-                    value={dateRange}
-                    onChange={(newValue) => setDateRange(newValue)}
-                  />
-                </LocalizationProvider>
-              </Popover>
-            </TableCell>
-            <TableCell>
-              <Button
-                onClick={() => handleRequestSort("indicator")}
-                className={`sort-button ${orderBy === "indicator" ? "active" : ""}`}
-              >
-                Indicador
-                <ExpandMoreIcon
-                  style={{
-                    transform:
-                      orderBy === "indicator"
-                        ? order === "asc"
-                          ? "rotate(0deg)"
-                          : "rotate(180deg)"
-                        : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    fontSize: 16,
-                  }}
-                />
-              </Button>
-            </TableCell>
-            <TableCell>
-              <Button
-                onClick={(event) => setAnchorElEstado(event.currentTarget)}
-                className={`sort-button ${orderBy === "status" ? "active" : ""}`}
-              >
-                Estado
-                <ExpandMoreIcon
-                  style={{
-                    transform:
-                      orderBy === "status"
-                        ? order === "asc"
-                          ? "rotate(0deg)"
-                          : "rotate(180deg)"
-                        : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    fontSize: 16,
-                  }}
-                />
-              </Button>
-              <Menu
-                id="state-menu"
-                anchorEl={anchorElEstado}
-                open={Boolean(anchorElEstado)}
-                onClose={() => setAnchorElEstado(null)}
-              >
-                <MenuItem onClick={() => handleSelectState("")}>Todos</MenuItem>
-                <MenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MenuItem>
-                <MenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MenuItem>
-                <MenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MenuItem>
-              </Menu>
-            </TableCell>
-            <TableCell>Comentario</TableCell>
-            <TableCell>Borrar</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {sortedConsultas.map((consulta) => (
-            <React.Fragment key={consulta.id}>
-              <TableRow
-                onClick={(e) => {
-                  if (
-                    e.target.tagName !== "BUTTON" &&
-                    !e.target.classList.contains("comment-button") &&
-                    !e.target.classList.contains("view-comment-button") &&
-                    !e.target.classList.contains("delete-button")
-                  ) {
-                    handleToggleDetails(consulta.id);
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <TableCell>{consulta.company}</TableCell>
-                <TableCell>{consulta.type || "No Asignado"}</TableCell>
-                <TableCell>{formatDateTime(consulta.star_date)}</TableCell>
-                <TableCell>
-                  {consulta.indicator !== undefined && consulta.indicator !== null && (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        backgroundColor:
-                          calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
-                            ? "red"
-                            : "green",
-                        marginRight: "8px",
-                      }}
-                    />
-                  )}
-                  {consulta.indicator === undefined || consulta.indicator === null
-                    ? "No asignado"
-                    : `${calculateRemainingDays(consulta.apply_date, consulta.indicator)} Días`}
-                </TableCell>
-                <TableCell>{consulta.status}</TableCell>
-                <TableCell>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCommentClick(consulta.id);
-                    }}
-                    className="comment-button"
-                    style={{ marginRight: 8, border: "none", padding: 0 }}
-                  >
-                    <ChatIcon style={{ fontSize: 20 }} />
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewComment(consulta.id);
-                    }}
-                    className="view-comment-button"
-                    style={{ border: "none", padding: 0 }}
-                  >
-                    <VisibilityIcon style={{ fontSize: 20 }} />
-                  </Button>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteConsulta(consulta.id);
-                    }}
-                    className="delete-button"
-                  >
-                    <i className="fas fa-trash-alt"></i>
-                  </Button>
-                </TableCell>
-              </TableRow>
-              {expandedRow === consulta.id && (
-                <TableRow>
-                  <TableCell colSpan={8} className="details-cell">
-                    <Box className="details-box">
-                      <Box className="details-info">
-                        <Typography variant="h6">
-                          <strong>Nombre y Apellido:</strong> {consulta.name || "No disponible"}
-                        </Typography>
-                        <Typography variant="h6">
-                          <strong>Empresa:</strong> {consulta.company || "No disponible"}
-                        </Typography>
-                        <Typography variant="h6">
-                          <strong>Correo:</strong> {consulta.email || "No disponible"}
-                        </Typography>
-                        <Typography variant="h6" marginTop={2}>
-                          <strong>Consulta:</strong> {consulta.messageContent || "No disponible"}
-                        </Typography>
-                        <Typography variant="h6">
-                          <strong>Fecha de Solicitud:</strong>{" "}
-                          {consulta.timestamp?.seconds
-                            ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
-                            : "Fecha no disponible"}
-                        </Typography>
-                        {consulta.attachment && (
-                          <Box marginTop={2}>
-                            <Typography variant="h6">
-                              <strong>Archivo Adjunto:</strong>
-                            </Typography>
-                            <Box display="flex" alignItems="center">
-                              {consulta.attachment
-                                .split(", ")
-                                .map((fileName) => (
-                                  <Box key={fileName} marginRight={2}>
-                                    <a
-                                      href={`path_to_your_storage/${fileName}`}
-                                      download
-                                      rel="noopener noreferrer"
-                                    >
-                                      <img
-                                        src={`path_to_your_storage/${fileName}`}
-                                        alt={fileName}
-                                        className="file-thumbnail"
-                                      />
-                                    </a>
-                                  </Box>
-                                ))}
-                            </Box>
-                          </Box>
-                        )}
-                      </Box>
-                      <Box className="details-actions">
-                        <Box className="select-group">
-                          <Box className="select-container">
-                            <Typography variant="h6">Tipo de Consulta</Typography>
-                            <Select
-                              value={editType}
-                              onChange={(e) => setEditType(e.target.value)}
-                              className="select-type"
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (!selected) {
-                                  return "No Asignado";
-                                }
-                                return selected;
-                              }}
-                            >
-                              <MenuItem value="Asesoría técnica">Asesoría técnica</MenuItem>
-                              <MenuItem value="Clasificación arancelaria">
-                                Clasificación arancelaria
-                              </MenuItem>
-                            </Select>
-                          </Box>
-                          <Box className="select-container">
-                            <Typography variant="h6">Días para resolver consulta</Typography>
-                            <Select
-                              value={resolverDays}
-                              onChange={(e) => setResolverDays(e.target.value)}
-                              className="select-type"
-                            >
-                              {[...Array(31).keys()].map((day) => (
-                                <MenuItem key={day} value={day}>
-                                  {day}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </Box>
-                        </Box>
+                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "#f5f5f5" } }}
+                >
+                  <TableCell>{consulta.company}</TableCell>
+                  <TableCell>{consulta.type || "No Asignado"}</TableCell>
+                  <TableCell>{formatDateTime(consulta.star_date)}</TableCell>
+                  <TableCell>
+                    {consulta.indicator !== undefined && consulta.indicator !== null && (
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
                         <Box
                           sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            gap: 1,
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            backgroundColor:
+                              calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
+                                ? "red"
+                                : "green",
+                            mr: 1,
                           }}
-                        >
-                          <Button
-                            variant="contained"
-                            onClick={() => handleSave(consulta)}
-                            sx={{
-                              backgroundColor: "#1B5C94",
-                              color: "white",
-                              borderRadius: "70px",
-                              "&:hover": {
-                                backgroundColor: "#145a8c",
-                              },
-                            }}
-                          >
-                            Guardar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={() => setExpandedRow(null)}
-                            sx={{
-                              backgroundColor: "#1B5C94",
-                              color: "white",
-                              borderRadius: "70px",
-                              "&:hover": {
-                                backgroundColor: "#145a8c",
-                              },
-                            }}
-                          >
-                            Cerrar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={() => handleResponderConsulta(consulta.id)}
-                            sx={{
-                              backgroundColor: "#1B5C94",
-                              color: "white",
-                              borderRadius: "70px",
-                              "&:hover": {
-                                backgroundColor: "#145a8c",
-                              },
-                            }}
-                          >
-                            Responder consulta
-                          </Button>
-                        </Box>
+                        />
+                        <Typography>
+                          {calculateRemainingDays(consulta.apply_date, consulta.indicator)} Días
+                        </Typography>
                       </Box>
-                    </Box>
+                    )}
+                  </TableCell>
+                  <TableCell>{consulta.status}</TableCell>
+                  <TableCell>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCommentClick(consulta.id);
+                      }}
+                      sx={{ minWidth: 0, p: 0 }}
+                    >
+                      <ChatIcon sx={{ color: "#1B5C94" }} />
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewComment(consulta.id);
+                      }}
+                      sx={{ minWidth: 0, p: 0, ml: 1 }}
+                    >
+                      <VisibilityIcon sx={{ color: "#1B5C94" }} />
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteConsulta(consulta.id);
+                      }}
+                      sx={{ minWidth: 0, p: 0 }}
+                    >
+                      <DeleteIcon sx={{ color: "red" }} />
+                    </Button>
                   </TableCell>
                 </TableRow>
-              )}
-            </React.Fragment>
-          ))}
-        </TableBody>
-      </Table>
+                <AnimatePresence>
+                  {expandedRow === consulta.id && (
+                    <TableRow>
+                      <TableCell colSpan={8} sx={{ p: 0 }}>
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }} // Estado inicial (invisible y sin altura)
+                          animate={{ opacity: 1, height: "auto" }} // Estado animado (visible y con altura automática)
+                          exit={{ opacity: 0, height: 0 }} // Estado al salir (invisible y sin altura)
+                          transition={{ duration: 0.3, ease: "easeInOut" }} // Duración y tipo de animación
+                        >
+                          <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
+                            <CardContent>
+                              <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94" }}>
+                                Detalles de la Consulta
+                              </Typography>
+
+                              {/* Información de la consulta */}
+                              <Grid container spacing={1} sx={{ mb: 2 }}>
+                                <Grid item xs={12} sm={6}>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                      <PersonIcon fontSize="medium" />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        Nombre y Apellido
+                                      </Typography>
+                                      <Typography variant="body1">
+                                        {consulta.name || "No disponible"}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                      <BusinessIcon fontSize="medium" />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        Empresa
+                                      </Typography>
+                                      <Typography variant="body1">
+                                        {consulta.company || "No disponible"}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                      <EmailIcon fontSize="medium" />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        Correo
+                                      </Typography>
+                                      <Typography variant="body1">
+                                        {consulta.email || "No disponible"}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                      <CalendarIcon fontSize="medium" />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        Fecha de Solicitud
+                                      </Typography>
+                                      <Typography variant="body1">
+                                        {consulta.timestamp?.seconds
+                                          ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
+                                          : "Fecha no disponible"}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                      <DescriptionIcon fontSize="medium" />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        Consulta
+                                      </Typography>
+                                      <Typography variant="body1">
+                                        {consulta.messageContent || "No disponible"}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+
+                                {consulta.attachment && (
+                                  <Grid item xs={12}>
+                                    <Box display="flex" alignItems="center">
+                                      <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
+                                        <AttachFileIcon fontSize="medium" />
+                                      </Avatar>
+                                      <Box sx={{ width: "100%" }}>
+                                        <Typography variant="h6" fontWeight="bold">
+                                          Archivo Adjunto
+                                        </Typography>
+                                        {renderAttachments(consulta.attachment)}
+                                      </Box>
+                                    </Box>
+                                  </Grid>
+                                )}
+                              </Grid>
+
+                              <Divider sx={{ my: 2 }} />
+
+                              {/* Editar tipo de consulta y días para resolver */}
+                              <Grid container spacing={1} sx={{ mb: 2 }}>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                    Tipo de Consulta
+                                  </Typography>
+                                  <Select
+                                    value={editType}
+                                    onChange={(e) => setEditType(e.target.value)}
+                                    fullWidth
+                                    displayEmpty
+                                    sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                                  >
+                                    <MenuItem value="Asesoría técnica">Asesoría técnica</MenuItem>
+                                    <MenuItem value="Clasificación arancelaria">
+                                      Clasificación arancelaria
+                                    </MenuItem>
+                                  </Select>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                    Días para resolver consulta
+                                  </Typography>
+                                  <Select
+                                    value={resolverDays}
+                                    onChange={(e) => setResolverDays(e.target.value)}
+                                    fullWidth
+                                    sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                                  >
+                                    {[...Array(31).keys()].map((day) => (
+                                      <MenuItem key={day} value={day}>
+                                        {day}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </Grid>
+                              </Grid>
+
+                              {/* Botones de acción */}
+                              <Box display="flex" justifyContent="center" gap={2} mt={2}>
+                                <Button
+                                  variant="contained"
+                                  onClick={handleSave}
+                                  sx={{
+                                    backgroundColor: "#1B5C94",
+                                    color: "white",
+                                    borderRadius: "20px",
+                                    "&:hover": {
+                                      backgroundColor: "#145a8c",
+                                    },
+                                  }}
+                                >
+                                  Guardar
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => setExpandedRow(null)}
+                                  sx={{
+                                    borderColor: "#1B5C94",
+                                    color: "#1B5C94",
+                                    borderRadius: "20px",
+                                    "&:hover": {
+                                      borderColor: "#145a8c",
+                                    },
+                                  }}
+                                >
+                                  Cerrar
+                                </Button>
+                                <Button
+                                  variant="contained"
+                                  onClick={() => handleResponderConsulta(consulta.id)}
+                                  sx={{
+                                    backgroundColor: "#1B5C94",
+                                    color: "white",
+                                    borderRadius: "20px",
+                                    "&:hover": {
+                                      backgroundColor: "#145a8c",
+                                    },
+                                  }}
+                                >
+                                  Responder consulta
+                                </Button>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </AnimatePresence>
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <Grid container spacing={2} mt={4}>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ boxShadow: 3 }}>
             <CardContent>
-              <Typography variant="h6">CONSULTAS PENDIENTES:</Typography>
-              <Typography variant="h4">{pendientesCount}</Typography>
+              <Typography variant="h6" fontWeight="bold">
+                CONSULTAS PENDIENTES:
+              </Typography>
+              <Typography variant="h4" color="error">
+                {pendientesCount}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ boxShadow: 3 }}>
             <CardContent>
-              <Typography variant="h6">CONSULTAS EN PROCESO:</Typography>
-              <Typography variant="h4">{enProcesoCount}</Typography>
+              <Typography variant="h6" fontWeight="bold">
+                CONSULTAS EN PROCESO:
+              </Typography>
+              <Typography variant="h4" color="warning.main">
+                {enProcesoCount}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ boxShadow: 3 }}>
             <CardContent>
-              <Typography variant="h6">CONSULTAS RESUELTAS:</Typography>
-              <Typography variant="h4">{resueltasCount}</Typography>
+              <Typography variant="h6" fontWeight="bold">
+                CONSULTAS RESUELTAS:
+              </Typography>
+              <Typography variant="h4" color="success.main">
+                {resueltasCount}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
-    </TableContainer>
+    </Box>
   );
 };
 
