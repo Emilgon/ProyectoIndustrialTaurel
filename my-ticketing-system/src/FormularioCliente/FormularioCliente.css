@@ -27,3 +27,16 @@
 .file-preview span {
   font-size: 14px;
 }
+.phone-input {
+  width: 100%;
+  padding: 16.5px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.23);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Roboto, sans-serif';
+  outline: none;
+}
+
+.phone-input--error {
+  border-color: #d32f2f;
+}

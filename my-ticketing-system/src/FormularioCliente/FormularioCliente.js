@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, collection, addDoc } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField } from '@mui/material';
+import { Box, Button, TextField, Typography, Card, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
+import { ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon, Business as BusinessIcon, Work as WorkIcon, Home as HomeIcon } from '@mui/icons-material';
+import MuiPhoneInput from 'mui-phone-input'; // Importar el componente de teléfono
 import './FormularioCliente.css';
 
 const FormularioCliente = () => {
@@ -16,49 +18,41 @@ const FormularioCliente = () => {
     phone: '',            // Número de teléfono
     password: '',         // Contraseña del cliente
   });
-  const [addressError, setAddressError] = useState('');
-  const [companyError, setCompanyError] = useState('');
-  const [companyRoleError, setCompanyRoleError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [errors, setErrors] = useState({
+    address: '',
+    company: '',
+    company_role: '',
+    email: '',
+    name: '',
+    phone: '',
+    password: '',
+  });
   const navigate = useNavigate();
-
   const auth = getAuth();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({ ...prevState, [name]: value }));
+    setErrors(prevState => ({ ...prevState, [name]: '' })); // Limpiar el error al escribir
+  };
+
+  const handlePhoneChange = (value) => {
+    setFormData(prevState => ({ ...prevState, phone: value })); // Actualizar el teléfono
+    setErrors(prevState => ({ ...prevState, phone: '' })); // Limpiar el error del teléfono
   };
 
   const handleSubmit = async () => {
-    if (formData.name.trim() === '') {
-      setNameError('El campo nombre no puede estar vacío.');
-      return;
-    }
-    if (formData.email.trim() === '') {
-      setEmailError('El campo correo electrónico no puede estar vacío.');
-      return;
-    }
-    if (formData.password.trim() === '') {
-      setPasswordError('El campo contraseña no puede estar vacío.');
-      return;
-    }
-    if (formData.phone.trim() === '') {
-      setPhoneError('El campo teléfono no puede estar vacío.');
-      return;
-    }
-    if (formData.address.trim() === '') {
-      setAddressError('El campo dirección no puede estar vacío.');
-      return;
-    }
-    if (formData.company.trim() === '') {
-      setCompanyError('El campo empresa/compañía no puede estar vacío.');
-      return;
-    }
-    if (formData.company_role.trim() === '') {
-      setCompanyRoleError('El campo rol en la compañía no puede estar vacío.');
+    const newErrors = {};
+    if (formData.name.trim() === '') newErrors.name = 'El campo nombre no puede estar vacío.';
+    if (formData.email.trim() === '') newErrors.email = 'El campo correo electrónico no puede estar vacío.';
+    if (formData.password.trim() === '') newErrors.password = 'El campo contraseña no puede estar vacío.';
+    if (formData.phone.trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.';
+    if (formData.address.trim() === '') newErrors.address = 'El campo dirección no puede estar vacío.';
+    if (formData.company.trim() === '') newErrors.company = 'El campo empresa/compañía no puede estar vacío.';
+    if (formData.company_role.trim() === '') newErrors.company_role = 'El campo rol en la compañía no puede estar vacío.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -71,7 +65,7 @@ const FormularioCliente = () => {
         company_role: formData.company_role,
         email: formData.email,
         name: formData.name,
-        phone: formData.phone,
+        phone: formData.phone, // Guardar el teléfono con el formato internacional
       });
       Swal.fire({
         icon: 'success',
@@ -81,17 +75,32 @@ const FormularioCliente = () => {
       navigate('/vista-cliente');
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
-        setEmailError('El correo electrónico ya está en uso.');
+        setErrors({ ...errors, email: 'El correo electrónico ya está en uso.' });
       } else {
         console.error('Error al registrar usuario:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Ocurrió un error al registrar. El correo electrónico ya está en uso.',
+        });
       }
     }
   };
 
   return (
-    <Box className="form-box">
-      <Box display="flex" flexDirection="column" gap={2}>
-        <Box display="flex" gap={2}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: '100%', maxWidth: 600 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <IconButton onClick={() => navigate('/login')}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" fontWeight="bold">
+            Registro de Cliente
+          </Typography>
+          <Box sx={{ width: 40 }} /> {/* Espacio para alinear el título */}
+        </Box>
+
+        <Box display="flex" flexDirection="column" gap={2}>
           <TextField
             label="Nombre y apellido"
             name="name"
@@ -99,20 +108,21 @@ const FormularioCliente = () => {
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={nameError !== ''}
-            helperText={nameError}
+            error={errors.name !== ''}
+            helperText={errors.name}
+            InputProps={{
+              startAdornment: <PersonIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
           />
-        </Box>
-        <Box display="flex" gap={2}>
-          <TextField
+          <MuiPhoneInput
+            defaultCountry="ve" // País por defecto (Venezuela)
             label="Teléfono"
-            name="phone"
             value={formData.phone}
-            onChange={handleInputChange}
+            onChange={handlePhoneChange}
             variant="outlined"
             fullWidth
-            error={phoneError !== ''}
-            helperText={phoneError}
+            error={errors.phone !== ''}
+            helperText={errors.phone}
           />
           <TextField
             label="Correo electrónico"
@@ -121,55 +131,82 @@ const FormularioCliente = () => {
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={emailError !== ''}
-            helperText={emailError}
+            error={errors.email !== ''}
+            helperText={errors.email}
+            InputProps={{
+              startAdornment: <EmailIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
           />
+          <TextField
+            label="Empresa/Compañía"
+            name="company"
+            value={formData.company}
+            onChange={handleInputChange}
+            variant="outlined"
+            fullWidth
+            error={errors.company !== ''}
+            helperText={errors.company}
+            InputProps={{
+              startAdornment: <BusinessIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
+          />
+          <TextField
+            label="Rol en la compañía"
+            name="company_role"
+            value={formData.company_role}
+            onChange={handleInputChange}
+            variant="outlined"
+            fullWidth
+            error={errors.company_role !== ''}
+            helperText={errors.company_role}
+            InputProps={{
+              startAdornment: <WorkIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
+          />
+          <TextField
+            label="Dirección"
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            variant="outlined"
+            fullWidth
+            error={errors.address !== ''}
+            helperText={errors.address}
+            InputProps={{
+              startAdornment: <HomeIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
+          />
+          <TextField
+            label="Contraseña"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            variant="outlined"
+            fullWidth
+            type="password"
+            error={errors.password !== ''}
+            helperText={errors.password}
+            InputProps={{
+              startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
+          />
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            fullWidth
+            sx={{
+              backgroundColor: '#1B5C94',
+              color: 'white',
+              borderRadius: '12px',
+              '&:hover': {
+                backgroundColor: '#145a8c',
+              },
+            }}
+          >
+            Registrarse
+          </Button>
         </Box>
-        <TextField
-          label="Empresa/Compañía"
-          name="company"
-          value={formData.company}
-          onChange={handleInputChange}
-          variant="outlined"
-          fullWidth
-          error={companyError !== ''}
-          helperText={companyError}
-        />
-        <TextField
-          label="Rol en la compañía"
-          name="company_role"
-          value={formData.company_role}
-          onChange={handleInputChange}
-          variant="outlined"
-          fullWidth
-          error={companyRoleError !== ''}
-          helperText={companyRoleError}
-        />
-        <TextField
-          label="Dirección"
-          name="address"
-          value={formData.address}
-          onChange={handleInputChange}
-          variant="outlined"
-          fullWidth
-          error={addressError !== ''}
-          helperText={addressError}
-        />
-        <TextField
-          label="Contraseña"
-          name="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          variant="outlined"
-          fullWidth
-          type="password"
-          error={passwordError !== ''}
-          helperText={passwordError}
-        />
-        <Button variant="contained" onClick={handleSubmit}>
-          Registrarse
-        </Button>
-      </Box>
+      </Card>
     </Box>
   );
 };

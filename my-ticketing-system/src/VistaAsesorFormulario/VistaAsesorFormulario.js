@@ -6,7 +6,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Business as BusinessIcon, Email as EmailIcon, Person as PersonIcon, Description as DescriptionIcon, CalendarToday as CalendarIcon, AttachFile as AttachFileIcon } from "@mui/icons-material"; // Importa los íconos aquí
+import { ArrowBack as ArrowBackIcon, Business as BusinessIcon, Email as EmailIcon, Person as PersonIcon, Description as DescriptionIcon, CalendarToday as CalendarIcon, AttachFile as AttachFileIcon } from "@mui/icons-material"; // Importa los íconos aquí
 import {
   PictureAsPdf as PdfIcon, // Ícono para PDF
   InsertDriveFile as FileIcon, // Ícono para archivos genéricos
@@ -383,6 +383,38 @@ const VistaAsesorFormulario = () => {
         Consultas
       </Typography>
       <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => {
+            Swal.fire({
+              title: "¿Estás seguro?",
+              text: "¿Quieres regresar al menú? Los cambios no guardados se perderán.",
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonText: "Sí, salir",
+              cancelButtonText: "Cancelar",
+              confirmButtonColor: "#1B5C94",
+              cancelButtonColor: "#d33",
+            }).then((result) => {
+              if (result.isConfirmed) {
+                navigate("/menu"); // Redirigir a /menu si el usuario confirma
+              }
+            });
+          }}
+          sx={{
+            marginRight: 2,
+            borderColor: "red",
+            color: "red",
+            borderRadius: "20px",
+            "&:hover": {
+              borderColor: "#145a8c",
+              backgroundColor: "#f5f5f5",
+            },
+          }}
+        >
+          Salir
+        </Button>
         <Button
           variant="outlined"
           onClick={resetFilters}

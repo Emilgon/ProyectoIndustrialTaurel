@@ -4,20 +4,21 @@ import { auth, db } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   Box,
   Typography,
   Button,
   Paper,
-  Toolbar,
   Card,
   CardContent,
   Divider,
   Avatar,
-  ListItemAvatar,
+  AppBar,
+  Toolbar,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -27,63 +28,70 @@ import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import WorkIcon from "@mui/icons-material/Work";
-
-const drawerWidth = 240;
+import HistoryIcon from "@mui/icons-material/History";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf"; // Ícono para PDF
+import ImageIcon from "@mui/icons-material/Image"; // Ícono para imágenes
+import DescriptionIcon from "@mui/icons-material/Description"; // Ícono para documentos
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile"; // Ícono para archivos genéricos
+import GetAppIcon from "@mui/icons-material/GetApp"; // Ícono de descarga
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
-  const [showHistorial, setShowHistorial] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          const userRef = collection(db, "Clients");
-          const querySnapshot = await getDocs(userRef);
-          querySnapshot.forEach((doc) => {
-            if (doc.data().email.toLowerCase() === user.email.toLowerCase()) {
-              setUserData({ ...doc.data(), uid: user.uid });
-            }
-          });
-        }
-      });
-    };
-
-    const fetchRespuestas = async () => {
-      const user = auth.currentUser;
+  // Función para obtener los datos del usuario
+  const fetchUserData = async () => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Obtener todas las consultas del cliente
-        const consultsRef = query(
-          collection(db, "Consults"),
-          where("email", "==", user.email)
+        const userRef = collection(db, "Clients");
+        const querySnapshot = await getDocs(userRef);
+        querySnapshot.forEach((doc) => {
+          if (doc.data().email.toLowerCase() === user.email.toLowerCase()) {
+            setUserData({ ...doc.data(), uid: user.uid });
+          }
+        });
+      }
+    });
+  };
+
+  // Función para obtener las respuestas
+  const fetchRespuestas = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      // Obtener todas las consultas del cliente
+      const consultsRef = query(
+        collection(db, "Consults"),
+        where("email", "==", user.email)
+      );
+      const consultsSnapshot = await getDocs(consultsRef);
+      const consultasArray = consultsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Obtener las respuestas para cada consulta
+      for (let consulta of consultasArray) {
+        const respuestasRef = query(
+          collection(db, "Responses"),
+          where("consultaId", "==", consulta.id)
         );
-        const consultsSnapshot = await getDocs(consultsRef);
-        const consultasArray = consultsSnapshot.docs.map((doc) => ({
+        const respuestasSnapshot = await getDocs(respuestasRef);
+        const respuestasArray = respuestasSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-
-        // Obtener las respuestas para cada consulta
-        for (let consulta of consultasArray) {
-          const respuestasRef = query(
-            collection(db, "Responses"),
-            where("consultaId", "==", consulta.id)
-          );
-          const respuestasSnapshot = await getDocs(respuestasRef);
-          const respuestasArray = respuestasSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          consulta.respuestas = respuestasArray; // Añadir las respuestas a la consulta
-        }
-
-        // Guardar todas las consultas con sus respuestas
-        setRespuestas(consultasArray);
+        consulta.respuestas = respuestasArray; // Añadir las respuestas a la consulta
       }
-    };
 
+      // Guardar todas las consultas con sus respuestas
+      setRespuestas(consultasArray);
+    }
+  };
+
+  // Ejecutar fetchUserData y fetchRespuestas al cargar el componente
+  useEffect(() => {
     fetchUserData();
     fetchRespuestas();
   }, []);
@@ -92,41 +100,46 @@ const VistaCliente = () => {
     navigate("/login");
   };
 
-  const toggleHistorial = () => {
-    setShowHistorial(!showHistorial);
+  // Función para obtener el ícono según el tipo de archivo
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split(".").pop().toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return <PictureAsPdfIcon />;
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+        return <ImageIcon />;
+      case "doc":
+      case "docx":
+        return <DescriptionIcon />;
+      default:
+        return <InsertDriveFileIcon />;
+    }
   };
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
-            width: drawerWidth,
-            backgroundColor: "#1B5C94",
-            color: "white",
-          },
-        }}
-      >
-        <Toolbar />
-        <List>
-          <ListItem button onClick={toggleHistorial}>
-            <ListItemText primary="Historial" />
-          </ListItem>
-          <ListItem button onClick={handleSalir}>
-            <ListItemText primary="Salir" />
-          </ListItem>
-        </List>
-      </Drawer>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      {/* Barra superior */}
+      <AppBar position="static" sx={{ backgroundColor: "#1B5C94" }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Vista del Cliente
+          </Typography>
+          <IconButton color="inherit" onClick={fetchRespuestas}>
+            <HistoryIcon />
+          </IconButton>
+          <IconButton color="inherit" onClick={handleSalir}>
+            <ExitToAppIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
 
-      <Box
-        component="main"
-        sx={{ flexGrow: 1, p: 3, display: "flex", justifyContent: "space-between" }}
-      >
+      {/* Contenido principal */}
+      <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 2 }}>
         {/* Sección de Datos del Cliente */}
-        <Card sx={{ width: "48%", boxShadow: 3 }}>
+        <Card sx={{ height: "fit-content", boxShadow: 3, flex:1 }}>
           <CardContent>
             <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
               <Avatar sx={{ bgcolor: "#1B5C94", mr: 2 }}>
@@ -187,140 +200,128 @@ const VistaCliente = () => {
         </Card>
 
         {/* Sección de Historial */}
-        {showHistorial && (
-          <Paper sx={{ width: "48%", padding: 2 }}>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Historial de Consultas y Respuestas
-            </Typography>
-            {respuestas.length > 0 ? (
-              respuestas
-                .slice()
-                .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
-                .map((consulta) => (
-                  <Card key={consulta.id} sx={{ mb: 3, boxShadow: 3 }}>
-                    <CardContent>
-                      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                        <Avatar sx={{ bgcolor: "#1B5C94", mr: 2 }}>
-                          <ChatIcon />
-                        </Avatar>
-                        <Typography variant="h6" fontWeight="bold">
-                          Consulta
-                        </Typography>
-                      </Box>
+        <Paper sx={{ flex: 2, padding: 2, overflowY: "auto" }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Historial de Consultas y Respuestas
+          </Typography>
+          {respuestas.length > 0 ? (
+            respuestas
+              .slice()
+              .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
+              .map((consulta) => (
+                <Card key={consulta.id} sx={{ mb: 3, boxShadow: 3 }}>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                      <Avatar sx={{ bgcolor: "#1B5C94", mr: 2 }}>
+                        <ChatIcon />
+                      </Avatar>
+                      <Typography variant="h6" fontWeight="bold">
+                        Consulta
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ mb: 2 }}>
+                      <strong>Mensaje:</strong> {consulta.messageContent}
+                    </Typography>
+                    {consulta.timestamp?.seconds ? (
                       <Typography sx={{ mb: 2 }}>
-                        <strong>Mensaje:</strong> {consulta.messageContent}
+                        <strong>Fecha de Envío:</strong>{" "}
+                        {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}
                       </Typography>
-                      {consulta.timestamp?.seconds ? (
-                        <Typography sx={{ mb: 2 }}>
-                          <strong>Fecha de Envío:</strong>{" "}
-                          {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}
-                        </Typography>
-                      ) : (
-                        <Typography sx={{ mb: 2 }}>
-                          <strong>Fecha de Envío:</strong> No disponible
-                        </Typography>
-                      )}
-                      {consulta.attachment && (
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="h6">
-                            <strong>Archivo Adjunto:</strong>
-                          </Typography>
-                          <Box display="flex" alignItems="center">
-                            {consulta.attachment
-                              .split(", ")
-                              .map((fileName) => (
-                                <Box key={fileName} marginRight={2}>
-                                  <a
-                                    href={`path_to_your_storage/${fileName}`}
-                                    download
-                                    rel="noopener noreferrer"
-                                  >
-                                    <img
-                                      src={`path_to_your_storage/${fileName}`}
-                                      alt={fileName}
-                                      className="file-thumbnail"
-                                    />
-                                  </a>
-                                </Box>
-                              ))}
-                          </Box>
-                        </Box>
-                      )}
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                        Respuestas
+                    ) : (
+                      <Typography sx={{ mb: 2 }}>
+                        <strong>Fecha de Envío:</strong> No disponible
                       </Typography>
-                      {consulta.respuestas && consulta.respuestas.length > 0 ? (
-                        consulta.respuestas
-                          .slice()
-                          .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
-                          .map((respuesta) => (
-                            <Box key={respuesta.id} sx={{ mb: 2 }}>
-                              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                                <Avatar sx={{ bgcolor: "#4CAF50", mr: 2 }}>
-                                  <ReplyIcon />
-                                </Avatar>
-                                <Typography variant="subtitle1" fontWeight="bold">
-                                  Respuesta
-                                </Typography>
-                              </Box>
-                              <Typography sx={{ mb: 1 }}>
-                                <strong>Mensaje:</strong> {respuesta.reply}
+                    )}
+                    {consulta.attachment && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="h6">
+                          <strong>Archivo Adjunto:</strong>
+                        </Typography>
+                        <List>
+                          {consulta.attachment.split(", ").map((fileName) => (
+                            <ListItem key={fileName}>
+                              <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
+                              <ListItemText primary={fileName} />
+                              <IconButton
+                                component="a"
+                                href={`path_to_your_storage/${fileName}`}
+                                download
+                                rel="noopener noreferrer"
+                              >
+                                <GetAppIcon />
+                              </IconButton>
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    )}
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                      Respuestas
+                    </Typography>
+                    {consulta.respuestas && consulta.respuestas.length > 0 ? (
+                      consulta.respuestas
+                        .slice()
+                        .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
+                        .map((respuesta) => (
+                          <Box key={respuesta.id} sx={{ mb: 2 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                              <Avatar sx={{ bgcolor: "#4CAF50", mr: 2 }}>
+                                <ReplyIcon />
+                              </Avatar>
+                              <Typography variant="subtitle1" fontWeight="bold">
+                                Respuesta
                               </Typography>
-                              {respuesta.timestamp?.seconds ? (
-                                <Typography sx={{ mb: 1 }}>
-                                  <strong>Fecha:</strong>{" "}
-                                  {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
-                                </Typography>
-                              ) : (
-                                <Typography sx={{ mb: 1 }}>
-                                  <strong>Fecha:</strong> No disponible
-                                </Typography>
-                              )}
-                              {respuesta.attachment ? (
-                                <Box sx={{ mb: 2 }}>
-                                  <Typography variant="h6">
-                                    <strong>Archivo Adjunto:</strong>
-                                  </Typography>
-                                  <Box display="flex" alignItems="center">
-                                    {respuesta.attachment
-                                      .split(", ")
-                                      .map((fileName) => (
-                                        <Box key={fileName} marginRight={2}>
-                                          <a
-                                            href={`path_to_your_storage/${fileName}`}
-                                            download
-                                            rel="noopener noreferrer"
-                                          >
-                                            <img
-                                              src={`path_to_your_storage/${fileName}`}
-                                              alt={fileName}
-                                              className="file-thumbnail"
-                                            />
-                                          </a>
-                                        </Box>
-                                      ))}
-                                  </Box>
-                                </Box>
-                              ) : (
-                                <Typography sx={{ mb: 2 }}>
-                                  <strong>Archivo Adjunto:</strong> No hay archivo adjunto
-                                </Typography>
-                              )}
-                              <Divider sx={{ my: 2 }} />
                             </Box>
-                          ))
-                      ) : (
-                        <Typography>No hay respuestas para esta consulta.</Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-            ) : (
-              <Typography>No hay consultas disponibles.</Typography>
-            )}
-          </Paper>
-        )}
+                            <Typography sx={{ mb: 1 }}>
+                              <strong>Mensaje:</strong> {respuesta.reply}
+                            </Typography>
+                            {respuesta.timestamp?.seconds ? (
+                              <Typography sx={{ mb: 1 }}>
+                                <strong>Fecha:</strong>{" "}
+                                {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
+                              </Typography>
+                            ) : (
+                              <Typography sx={{ mb: 1 }}>
+                                <strong>Fecha:</strong> No disponible
+                              </Typography>
+                            )}
+                            {respuesta.attachment && (
+                              <Box sx={{ mb: 2 }}>
+                                <Typography variant="h6">
+                                  <strong>Archivo Adjunto:</strong>
+                                </Typography>
+                                <List>
+                                  {respuesta.attachment.split(", ").map((fileName) => (
+                                    <ListItem key={fileName}>
+                                      <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
+                                      <ListItemText primary={fileName} />
+                                      <IconButton
+                                        component="a"
+                                        href={`path_to_your_storage/${fileName}`}
+                                        download
+                                        rel="noopener noreferrer"
+                                      >
+                                        <GetAppIcon />
+                                      </IconButton>
+                                    </ListItem>
+                                  ))}
+                                </List>
+                              </Box>
+                            )}
+                            <Divider sx={{ my: 2 }} />
+                          </Box>
+                        ))
+                    ) : (
+                      <Typography>No hay respuestas para esta consulta.</Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+          ) : (
+            <Typography>No hay consultas disponibles.</Typography>
+          )}
+        </Paper>
       </Box>
     </Box>
   );
