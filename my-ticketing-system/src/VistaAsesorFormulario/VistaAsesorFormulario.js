@@ -20,6 +20,7 @@ import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from "../f
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Importa Firebase Storage
 import "./VistaAsesorFormulario.css";
 
 const VistaAsesorFormulario = () => {
@@ -40,8 +41,10 @@ const VistaAsesorFormulario = () => {
   const [selectedType, setSelectedType] = useState("");
   const [dateRange, setDateRange] = useState([null, null]);
   const [alertShown, setAlertShown] = useState(false);
+  const [fileDownloadUrls, setFileDownloadUrls] = useState({}); // Estado para almacenar las URLs de descarga
 
   const navigate = useNavigate();
+  const storage = getStorage(); // Inicializa Firebase Storage
 
   useEffect(() => {
     const fetchConsultas = async () => {
@@ -118,7 +121,7 @@ const VistaAsesorFormulario = () => {
     setAnchorElTipo(null);
   };
 
-  const handleToggleDetails = (id) => {
+  const handleToggleDetails = async (id) => {
     setExpandedRow(expandedRow === id ? null : id);
     if (expandedRow === id) {
       setEditType("");
@@ -129,7 +132,27 @@ const VistaAsesorFormulario = () => {
       setEditType(consulta.type || "");
       setCurrentId(id);
       setResolverDays(consulta.indicator || 30);
+
+      // Obtener las URLs de descarga para los archivos adjuntos
+      if (consulta.attachment) {
+        const urls = await fetchDownloadUrls(consulta.attachment);
+        setFileDownloadUrls((prevUrls) => ({ ...prevUrls, ...urls }));
+      }
     }
+  };
+
+  const fetchDownloadUrls = async (attachments) => {
+    const urls = {};
+    for (const fileName of attachments.split(", ")) {
+      try {
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Cambia la ruta según tu estructura
+        const url = await getDownloadURL(storageRef);
+        urls[fileName] = url;
+      } catch (error) {
+        console.error("Error al obtener la URL de descarga:", error);
+      }
+    }
+    return urls;
   };
 
   const formatDateTime = (timestamp) => {
@@ -358,19 +381,22 @@ const VistaAsesorFormulario = () => {
         <Typography variant="body2" sx={{ flexGrow: 1 }}>
           {fileName} {/* Muestra el nombre del archivo */}
         </Typography>
-        <Button
-          component="a"
-          href={`path_to_your_storage/${fileName}`}
-          download
-          rel="noopener noreferrer"
-          size="small"
-          sx={{ textTransform: "none" }}
-        >
-          Descargar
-        </Button>
+        {fileDownloadUrls[fileName] && ( // Verifica si la URL de descarga está disponible
+          <Button
+            component="a"
+            href={fileDownloadUrls[fileName]} // Usa la URL de descarga
+            download
+            rel="noopener noreferrer"
+            size="small"
+            sx={{ textTransform: "none" }}
+          >
+            Descargar
+          </Button>
+        )}
       </Box>
     ));
   };
+
   const resetFilters = () => {
     setSelectedState(""); // Restablece el filtro de estado
     setSelectedType(""); // Restablece el filtro de tipo

@@ -1,8 +1,9 @@
-import { useParams, useNavigate } from "react-router-dom"; // Importar useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
-import { db, auth } from "../firebaseConfig";
-import { TextField, Box, Button, Card, Typography, Grid, Avatar, IconButton } from '@mui/material';
+import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
+import { ref, getDownloadURL } from "firebase/storage"; // Importa las funciones de Firebase Storage
+import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
 import {
   AttachFile as AttachFileIcon,
@@ -15,18 +16,20 @@ import {
   Person as PersonIcon,
   Business as BusinessIcon,
   Description as DescriptionIcon,
-  ArrowBack as ArrowBackIcon, // Importar el ícono de regresar
+  ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
+  TableChart as ExcelIcon, // Ícono para archivos de Excel
 } from "@mui/icons-material";
 
 const Respuesta = () => {
   const { consultaId } = useParams();
-  const navigate = useNavigate(); // Obtener la función de navegación
+  const navigate = useNavigate();
   const [consultaData, setConsultaData] = useState(null);
   const [reply, setReply] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
+  const [fileDownloadUrls, setFileDownloadUrls] = useState({}); // Estado para almacenar las URLs de descarga
 
   // Función para obtener las respuestas
   const obtenerRespuestas = async () => {
@@ -43,6 +46,21 @@ const Respuesta = () => {
     }
   };
 
+  // Función para obtener las URLs de descarga
+  const fetchDownloadUrls = async (attachments) => {
+    const urls = {};
+    for (const fileName of attachments.split(", ")) {
+      try {
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Cambia la ruta según tu estructura
+        const url = await getDownloadURL(storageRef);
+        urls[fileName] = url;
+      } catch (error) {
+        console.error("Error al obtener la URL de descarga:", error);
+      }
+    }
+    return urls;
+  };
+
   useEffect(() => {
     const fetchConsulta = async () => {
       try {
@@ -51,6 +69,12 @@ const Respuesta = () => {
 
         if (consultaDoc.exists()) {
           setConsultaData(consultaDoc.data());
+
+          // Obtener las URLs de descarga para los archivos adjuntos
+          if (consultaDoc.data().attachment) {
+            const urls = await fetchDownloadUrls(consultaDoc.data().attachment);
+            setFileDownloadUrls(urls);
+          }
         } else {
           console.error("No se encontró la consulta con ID:", consultaId);
         }
@@ -72,9 +96,9 @@ const Respuesta = () => {
     if (selectedFile) {
       const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
       if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
-        setFilePreview(URL.createObjectURL(selectedFile));
+        setFilePreview(URL.createObjectURL(selectedFile)); // Vista previa para imágenes
       } else {
-        setFilePreview(null);
+        setFilePreview(null); // No hay vista previa para otros tipos de archivos
       }
     }
   };
@@ -124,9 +148,9 @@ const Respuesta = () => {
         cancelButtonText: 'No',
       }).then((result) => {
         if (result.isConfirmed) {
-          navigate("/asesor"); // Redirigir a /asesor
+          navigate("/asesor");
         } else {
-          navigate("/"); // Redirigir a la página principal
+          navigate("/");
         }
       });
     } catch (error) {
@@ -186,6 +210,51 @@ const Respuesta = () => {
           <Typography variant="body1">
             {consultaData.messageContent}
           </Typography>
+
+          {/* Archivo adjunto del cliente */}
+          {consultaData.attachment && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Archivo Adjunto
+              </Typography>
+              {consultaData.attachment.split(", ").map((fileName, index) => (
+                <Box
+                  key={index}
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={1}
+                  sx={{
+                    p: 1,
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 1,
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
+                >
+                  {getFileIcon(fileName)} {/* Muestra el ícono del archivo */}
+                  <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                    {fileName} {/* Muestra el nombre del archivo */}
+                  </Typography>
+                  {fileDownloadUrls[fileName] && ( // Verifica si la URL de descarga está disponible
+                    <IconButton
+                      component="a"
+                      href={fileDownloadUrls[fileName]} // Usa la URL de descarga
+                      download
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: "#1B5C94",
+                        "&:hover": {
+                          backgroundColor: "#e3f2fd",
+                        },
+                      }}
+                    >
+                      <DownloadIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
         </Card>
 
         {/* Historial de respuestas */}
@@ -259,7 +328,7 @@ const Respuesta = () => {
               )}
 
               {/* Enlace de descarga con ícono */}
-              <IconButton
+              <Button
                 component="a"
                 href={URL.createObjectURL(file)}
                 download={file.name}
@@ -271,7 +340,7 @@ const Respuesta = () => {
                 }}
               >
                 <DownloadIcon />
-              </IconButton>
+              </Button>
 
               {/* Botón para eliminar el archivo */}
               <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
@@ -343,8 +412,9 @@ const getFileIcon = (fileName) => {
   switch (extension) {
     case "pdf":
       return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
-    case "csv":
-      return <FileIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
+    case "xls":
+    case "xlsx":
+      return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />; // Ícono para archivos de Excel
     case "doc":
     case "docx":
       return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;

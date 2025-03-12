@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import {
   Box,
   Typography,
   Button,
-  Paper,
   Card,
   CardContent,
   Divider,
@@ -19,6 +19,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Paper,
 } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -35,11 +36,14 @@ import ImageIcon from "@mui/icons-material/Image"; // Ícono para imágenes
 import DescriptionIcon from "@mui/icons-material/Description"; // Ícono para documentos
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile"; // Ícono para archivos genéricos
 import GetAppIcon from "@mui/icons-material/GetApp"; // Ícono de descarga
+import TableChartIcon from "@mui/icons-material/TableChart"; // Ícono para archivos Excel
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
+  const [fileUrls, setFileUrls] = useState({}); // Estado para almacenar las URLs de descarga
   const navigate = useNavigate();
+  const storage = getStorage(); // Inicializar Firebase Storage
 
   // Función para obtener los datos del usuario
   const fetchUserData = async () => {
@@ -90,16 +94,6 @@ const VistaCliente = () => {
     }
   };
 
-  // Ejecutar fetchUserData y fetchRespuestas al cargar el componente
-  useEffect(() => {
-    fetchUserData();
-    fetchRespuestas();
-  }, []);
-
-  const handleSalir = () => {
-    navigate("/login");
-  };
-
   // Función para obtener el ícono según el tipo de archivo
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -114,9 +108,72 @@ const VistaCliente = () => {
       case "doc":
       case "docx":
         return <DescriptionIcon />;
+      case "xls":
+      case "xlsx":
+        return <TableChartIcon />;
       default:
         return <InsertDriveFileIcon />;
     }
+  };
+
+  // Función para obtener la URL de descarga de un archivo
+  const fetchDownloadUrl = async (fileName) => {
+    try {
+      const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Cambia la ruta según tu estructura
+      const url = await getDownloadURL(storageRef);
+      return url;
+    } catch (error) {
+      console.error("Error al obtener la URL de descarga:", error);
+      return null;
+    }
+  };
+
+  // Obtener las URLs de descarga para todos los archivos adjuntos
+  useEffect(() => {
+    const fetchAllUrls = async () => {
+      const urls = {};
+      for (const consulta of respuestas) {
+        if (consulta.attachment) {
+          for (const fileName of consulta.attachment.split(", ")) {
+            if (!fileUrls[fileName]) {
+              const url = await fetchDownloadUrl(fileName);
+              if (url) {
+                urls[fileName] = url;
+              }
+            }
+          }
+        }
+        if (consulta.respuestas) {
+          for (const respuesta of consulta.respuestas) {
+            if (respuesta.attachment) {
+              for (const fileName of respuesta.attachment.split(", ")) {
+                if (!fileUrls[fileName]) {
+                  const url = await fetchDownloadUrl(fileName);
+                  if (url) {
+                    urls[fileName] = url;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      setFileUrls((prevUrls) => ({ ...prevUrls, ...urls }));
+    };
+
+    if (respuestas.length > 0) {
+      fetchAllUrls();
+    }
+  }, [respuestas]);
+
+  // Ejecutar fetchUserData y fetchRespuestas al cargar el componente
+  useEffect(() => {
+    fetchUserData();
+    fetchRespuestas();
+  }, []);
+
+  const handleSalir = () => {
+    navigate("/login");
   };
 
   return (
@@ -139,7 +196,7 @@ const VistaCliente = () => {
       {/* Contenido principal */}
       <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 2 }}>
         {/* Sección de Datos del Cliente */}
-        <Card sx={{ height: "fit-content", boxShadow: 3, flex:1 }}>
+        <Card sx={{ height: "fit-content", boxShadow: 3, flex: 1 }}>
           <CardContent>
             <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
               <Avatar sx={{ bgcolor: "#1B5C94", mr: 2 }}>
@@ -184,7 +241,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PhoneIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Teléfono:</strong> {userData.phone || "No disponible"}
+                  <strong>Teléfono:</strong> {String(userData.phone) || "No disponible"}
                 </Typography>
               </Box>
             </Box>
@@ -242,14 +299,16 @@ const VistaCliente = () => {
                             <ListItem key={fileName}>
                               <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
                               <ListItemText primary={fileName} />
-                              <IconButton
-                                component="a"
-                                href={`path_to_your_storage/${fileName}`}
-                                download
-                                rel="noopener noreferrer"
-                              >
-                                <GetAppIcon />
-                              </IconButton>
+                              {fileUrls[fileName] && (
+                                <IconButton
+                                  component="a"
+                                  href={fileUrls[fileName]}
+                                  download
+                                  rel="noopener noreferrer"
+                                >
+                                  <GetAppIcon />
+                                </IconButton>
+                              )}
                             </ListItem>
                           ))}
                         </List>
@@ -296,14 +355,16 @@ const VistaCliente = () => {
                                     <ListItem key={fileName}>
                                       <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
                                       <ListItemText primary={fileName} />
-                                      <IconButton
-                                        component="a"
-                                        href={`path_to_your_storage/${fileName}`}
-                                        download
-                                        rel="noopener noreferrer"
-                                      >
-                                        <GetAppIcon />
-                                      </IconButton>
+                                      {fileUrls[fileName] && (
+                                        <IconButton
+                                          component="a"
+                                          href={fileUrls[fileName]}
+                                          download
+                                          rel="noopener noreferrer"
+                                        >
+                                          <GetAppIcon />
+                                        </IconButton>
+                                      )}
                                     </ListItem>
                                   ))}
                                 </List>

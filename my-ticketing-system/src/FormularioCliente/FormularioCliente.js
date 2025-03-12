@@ -37,7 +37,7 @@ const FormularioCliente = () => {
   };
 
   const handlePhoneChange = (value) => {
-    setFormData(prevState => ({ ...prevState, phone: value })); // Actualizar el teléfono
+    setFormData(prevState => ({ ...prevState, phone: String(value) })); // Convertir a cadena
     setErrors(prevState => ({ ...prevState, phone: '' })); // Limpiar el error del teléfono
   };
 
@@ -46,7 +46,7 @@ const FormularioCliente = () => {
     if (formData.name.trim() === '') newErrors.name = 'El campo nombre no puede estar vacío.';
     if (formData.email.trim() === '') newErrors.email = 'El campo correo electrónico no puede estar vacío.';
     if (formData.password.trim() === '') newErrors.password = 'El campo contraseña no puede estar vacío.';
-    if (formData.phone.trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.';
+    if (String(formData.phone).trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
     if (formData.address.trim() === '') newErrors.address = 'El campo dirección no puede estar vacío.';
     if (formData.company.trim() === '') newErrors.company = 'El campo empresa/compañía no puede estar vacío.';
     if (formData.company_role.trim() === '') newErrors.company_role = 'El campo rol en la compañía no puede estar vacío.';
@@ -65,7 +65,7 @@ const FormularioCliente = () => {
         company_role: formData.company_role,
         email: formData.email,
         name: formData.name,
-        phone: formData.phone, // Guardar el teléfono con el formato internacional
+        phone: String(formData.phone), // Convertir a cadena antes de guardar
       });
       Swal.fire({
         icon: 'success',
