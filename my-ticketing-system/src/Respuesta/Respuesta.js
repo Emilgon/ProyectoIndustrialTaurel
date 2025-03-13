@@ -51,7 +51,7 @@ const Respuesta = () => {
     const urls = {};
     for (const fileName of attachments.split(", ")) {
       try {
-        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Cambia la ruta según tu estructura
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Asegúrate de que esta ruta sea correcta
         const url = await getDownloadURL(storageRef);
         urls[fileName] = url;
       } catch (error) {
@@ -73,6 +73,7 @@ const Respuesta = () => {
           // Obtener las URLs de descarga para los archivos adjuntos
           if (consultaDoc.data().attachment) {
             const urls = await fetchDownloadUrls(consultaDoc.data().attachment);
+            console.log("URLs de descarga:", urls); // Verifica las URLs obtenidas
             setFileDownloadUrls(urls);
           }
         } else {
@@ -253,42 +254,41 @@ const Respuesta = () => {
                       "&:hover": { backgroundColor: "#f5f5f5" },
                     }}
                   >
-                    {/* Previsualización de la imagen */}
-                    {isImage && fileUrl && (
-                      <img
-                        src={fileUrl}
-                        alt={fileName}
-                        style={{
-                          maxWidth: "50px",
-                          maxHeight: "50px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    )}
-
-                    {/* Ícono y nombre del archivo */}
-                    {!isImage && getFileIcon(fileName)}
-                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                      {fileName}
-                    </Typography>
-
-                    {/* Botón de descarga */}
+                    {/* Previsualización de la imagen o ícono del archivo */}
                     {fileUrl && (
                       <IconButton
                         component="a"
                         href={fileUrl}
                         download
                         rel="noopener noreferrer"
+                        aria-label={`Descargar archivo ${fileName}`} // Mejora la accesibilidad
                         sx={{
-                          color: "#1B5C94",
+                          padding: 0,
                           "&:hover": {
-                            backgroundColor: "#e3f2fd",
+                            opacity: 0.8,
                           },
                         }}
                       >
-                        <DownloadIcon />
+                        {isImage ? (
+                          <img
+                            src={fileUrl}
+                            alt={fileName}
+                            style={{
+                              maxWidth: "50px",
+                              maxHeight: "50px",
+                              borderRadius: "4px",
+                            }}
+                          />
+                        ) : (
+                          getFileIcon(fileName)
+                        )}
                       </IconButton>
                     )}
+
+                    {/* Nombre del archivo */}
+                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                      {fileName}
+                    </Typography>
                   </Box>
                 );
               })}
