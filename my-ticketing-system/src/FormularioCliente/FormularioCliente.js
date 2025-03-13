@@ -4,8 +4,7 @@ import { db, collection, addDoc } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, TextField, Typography, Card, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
-import { ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon, Business as BusinessIcon, Work as WorkIcon, Home as HomeIcon } from '@mui/icons-material';
-import MuiPhoneInput from 'mui-phone-input'; // Importar el componente de teléfono
+import { Phone as PhoneIcon, ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon, Business as BusinessIcon, Work as WorkIcon, Home as HomeIcon } from '@mui/icons-material';
 import './FormularioCliente.css';
 
 const FormularioCliente = () => {
@@ -36,11 +35,6 @@ const FormularioCliente = () => {
     setErrors(prevState => ({ ...prevState, [name]: '' })); // Limpiar el error al escribir
   };
 
-  const handlePhoneChange = (value) => {
-    setFormData(prevState => ({ ...prevState, phone: String(value) })); // Convertir a cadena
-    setErrors(prevState => ({ ...prevState, phone: '' })); // Limpiar el error del teléfono
-  };
-
   const handleSubmit = async () => {
     const newErrors = {};
     if (formData.name.trim() === '') newErrors.name = 'El campo nombre no puede estar vacío.';
@@ -65,7 +59,7 @@ const FormularioCliente = () => {
         company_role: formData.company_role,
         email: formData.email,
         name: formData.name,
-        phone: String(formData.phone), // Convertir a cadena antes de guardar
+        phone: formData.phone, // Asegúrate de que sea una cadena
       });
       Swal.fire({
         icon: 'success',
@@ -114,15 +108,19 @@ const FormularioCliente = () => {
               startAdornment: <PersonIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
           />
-          <MuiPhoneInput
-            defaultCountry="ve" // País por defecto (Venezuela)
+          <TextField
             label="Teléfono"
+            name="phone"
             value={formData.phone}
-            onChange={handlePhoneChange}
+            onChange={handleInputChange}
             variant="outlined"
             fullWidth
+            placeholder="+58 04XX-XXX-XXXX" // Placeholder con el formato deseado
             error={errors.phone !== ''}
             helperText={errors.phone}
+            InputProps={{
+              startAdornment: <PhoneIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+            }}
           />
           <TextField
             label="Correo electrónico"

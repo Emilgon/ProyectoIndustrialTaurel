@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { db, collection, addDoc, auth, getDocs } from "../firebaseConfig";
+import { db, collection, addDoc, auth, getDocs, storage } from "../firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Importa las funciones de Firebase Storage
 import Swal from "sweetalert2";
 import {
   Box,
@@ -33,9 +34,16 @@ const Consulta = () => {
 
   const handleEnviarConsulta = async () => {
     try {
-      const mensajeRef = await addDoc(collection(db, "Messages"), {
-        content: mensaje,
-      });
+      let attachmentURL = "";
+
+      // Subir el archivo a Firebase Storage si existe
+      if (archivo) {
+        const storageRef = ref(storage, `archivos/${archivo.name}`); // Usa storage desde firebaseConfig
+        await uploadBytes(storageRef, archivo); // Sube el archivo
+        attachmentURL = await getDownloadURL(storageRef); // Obtén la URL de descarga
+      }
+
+      // Guardar la consulta en Firestore
       const user = auth.currentUser;
       if (user) {
         const userRef = collection(db, "Clients");
@@ -55,14 +63,18 @@ const Consulta = () => {
             status: "Pendiente",
             email: user.email,
             messageContent: mensaje,
-            attachment: archivo ? archivo.name : "",
+            attachment: attachmentURL, // Guarda la URL del archivo
             timestamp: serverTimestamp(), // Guarda la fecha y hora exactas
           });
         }
       }
+
+      // Limpiar el formulario
       setMensaje("");
       setArchivo(null);
       setPreview(null);
+
+      // Mostrar mensaje de éxito
       Swal.fire({
         icon: "success",
         title: "Consulta enviada",
@@ -114,7 +126,7 @@ const Consulta = () => {
         backgroundColor: "#f5f5f5",
       }}
     >
-      <Card sx={{ width: "80%", height:"80%", boxShadow: 3 }}>
+      <Card sx={{ width: "80%", height: "80%", boxShadow: 3 }}>
         <CardContent>
           <Typography variant="h5" fontWeight="bold" gutterBottom>
             Enviar Consulta

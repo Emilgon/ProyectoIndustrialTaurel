@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
-import { ref, getDownloadURL } from "firebase/storage"; // Importa las funciones de Firebase Storage
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
 import {
@@ -124,12 +124,22 @@ const Respuesta = () => {
         throw new Error('No se encontró al usuario autenticado');
       }
 
+      let attachmentReplyUrl = null;
+
+      // Si hay un archivo adjunto, súbelo a Firebase Storage
+      if (file) {
+        const fileRef = ref(storage, `responses/${consultaId}/${file.name}`); // Ruta en Storage
+        await uploadBytes(fileRef, file); // Sube el archivo
+        attachmentReplyUrl = await getDownloadURL(fileRef); // Obtiene la URL de descarga
+      }
+
       const respuestaRef = collection(db, "Responses");
       await addDoc(respuestaRef, {
         consultaId: consultaId,
         reply: reply,
         timestamp: new Date(),
         userId: user.uid,
+        attachmentReply: attachmentReplyUrl, // Guarda la URL del archivo adjunto
       });
 
       const consultaRef = doc(db, "Consults", consultaId);
@@ -153,6 +163,11 @@ const Respuesta = () => {
           navigate("/");
         }
       });
+
+      // Limpiar el estado del archivo adjunto
+      setFile(null);
+      setFilePreview(null);
+      setReply('');
     } catch (error) {
       console.error("Error al enviar la respuesta:", error);
       Swal.fire({
@@ -162,6 +177,7 @@ const Respuesta = () => {
       });
     }
   };
+
 
   if (!consultaData) {
     return <div>Loading...</div>;
@@ -217,42 +233,65 @@ const Respuesta = () => {
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment.split(", ").map((fileName, index) => (
-                <Box
-                  key={index}
-                  display="flex"
-                  alignItems="center"
-                  gap={1}
-                  mb={1}
-                  sx={{
-                    p: 1,
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
-                    "&:hover": { backgroundColor: "#f5f5f5" },
-                  }}
-                >
-                  {getFileIcon(fileName)} {/* Muestra el ícono del archivo */}
-                  <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                    {fileName} {/* Muestra el nombre del archivo */}
-                  </Typography>
-                  {fileDownloadUrls[fileName] && ( // Verifica si la URL de descarga está disponible
-                    <IconButton
-                      component="a"
-                      href={fileDownloadUrls[fileName]} // Usa la URL de descarga
-                      download
-                      rel="noopener noreferrer"
-                      sx={{
-                        color: "#1B5C94",
-                        "&:hover": {
-                          backgroundColor: "#e3f2fd",
-                        },
-                      }}
-                    >
-                      <DownloadIcon />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
+              {consultaData.attachment.split(", ").map((fileName, index) => {
+                const fileUrl = fileDownloadUrls[fileName]; // URL de descarga del archivo
+                const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                  fileName.split(".").pop().toLowerCase()
+                );
+
+                return (
+                  <Box
+                    key={index}
+                    display="flex"
+                    alignItems="center"
+                    gap={1}
+                    mb={1}
+                    sx={{
+                      p: 1,
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      "&:hover": { backgroundColor: "#f5f5f5" },
+                    }}
+                  >
+                    {/* Previsualización de la imagen */}
+                    {isImage && fileUrl && (
+                      <img
+                        src={fileUrl}
+                        alt={fileName}
+                        style={{
+                          maxWidth: "50px",
+                          maxHeight: "50px",
+                          borderRadius: "4px",
+                        }}
+                      />
+                    )}
+
+                    {/* Ícono y nombre del archivo */}
+                    {!isImage && getFileIcon(fileName)}
+                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                      {fileName}
+                    </Typography>
+
+                    {/* Botón de descarga */}
+                    {fileUrl && (
+                      <IconButton
+                        component="a"
+                        href={fileUrl}
+                        download
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
+                  </Box>
+                );
+              })}
             </Box>
           )}
         </Card>
@@ -264,7 +303,10 @@ const Respuesta = () => {
           </Typography>
           {respuestas.length > 0 ? (
             respuestas.map((respuesta, index) => (
-              <Box key={index} sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+              <Box
+                key={index}
+                sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
+              >
                 <Typography variant="body1">
                   <strong>Respuesta:</strong> {respuesta.reply}
                 </Typography>
@@ -272,6 +314,61 @@ const Respuesta = () => {
                   <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
                     Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
                   </Typography>
+                )}
+
+                {/* Mostrar el archivo adjunto de la respuesta */}
+                {respuesta.attachmentReply && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body1" fontWeight="bold" gutterBottom>
+                      Archivo Adjunto
+                    </Typography>
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={1}
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
+                    >
+                      {/* Previsualización de la imagen */}
+                      {respuesta.attachmentReply.startsWith("http") && (
+                        <img
+                          src={respuesta.attachmentReply}
+                          alt="Previsualización"
+                          style={{
+                            maxWidth: "50px",
+                            maxHeight: "50px",
+                            borderRadius: "4px",
+                          }}
+                        />
+                      )}
+
+                      {/* Ícono y nombre del archivo */}
+                      {getFileIcon(respuesta.attachmentReply.split("/").pop())}
+                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                        {respuesta.attachmentReply.split("/").pop()}
+                      </Typography>
+
+                      {/* Botón de descarga */}
+                      <IconButton
+                        component="a"
+                        href={respuesta.attachmentReply}
+                        download
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
                 )}
               </Box>
             ))

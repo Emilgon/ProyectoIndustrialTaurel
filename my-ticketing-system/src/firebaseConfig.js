@@ -21,10 +21,10 @@ const firebaseConfig = {
   apiKey: "AIzaSyD3SntYBXMfTyomUvfIeunYA9341F081Ok",
   authDomain: "proyectoindustrialtaurel.firebaseapp.com",
   projectId: "proyectoindustrialtaurel",
-  storageBucket: "proyectoindustrialtaurel.appspot.com",
+  storageBucket: "proyectoindustrialtaurel.firebasestorage.app",
   messagingSenderId: "797021083723",
   appId: "1:797021083723:web:60766602838b30773855ce",
-  measurementId: "G-H843JF99Z1",
+  measurementId: "G-H843JF99Z1"
 };
 
 // Inicializa Firebase

@@ -241,7 +241,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PhoneIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Teléfono:</strong> {String(userData.phone) || "No disponible"}
+                  <strong>Teléfono:</strong> {userData.phone || "No disponible"}
                 </Typography>
               </Box>
             </Box>
@@ -345,31 +345,32 @@ const VistaCliente = () => {
                                 <strong>Fecha:</strong> No disponible
                               </Typography>
                             )}
-                            {respuesta.attachment && (
+
+                            {/* Mostrar el archivo adjunto de la respuesta (attachmentReply) */}
+                            {respuesta.attachmentReply && (
                               <Box sx={{ mb: 2 }}>
                                 <Typography variant="h6">
                                   <strong>Archivo Adjunto:</strong>
                                 </Typography>
                                 <List>
-                                  {respuesta.attachment.split(", ").map((fileName) => (
-                                    <ListItem key={fileName}>
-                                      <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
-                                      <ListItemText primary={fileName} />
-                                      {fileUrls[fileName] && (
-                                        <IconButton
-                                          component="a"
-                                          href={fileUrls[fileName]}
-                                          download
-                                          rel="noopener noreferrer"
-                                        >
-                                          <GetAppIcon />
-                                        </IconButton>
-                                      )}
-                                    </ListItem>
-                                  ))}
+                                  <ListItem>
+                                    <ListItemIcon>
+                                      {getFileIcon(respuesta.attachmentReply)}
+                                    </ListItemIcon>
+                                    <ListItemText primary={respuesta.attachmentReply.split("/").pop()} />
+                                    <IconButton
+                                      component="a"
+                                      href={respuesta.attachmentReply}
+                                      download
+                                      rel="noopener noreferrer"
+                                    >
+                                      <GetAppIcon />
+                                    </IconButton>
+                                  </ListItem>
                                 </List>
                               </Box>
                             )}
+
                             <Divider sx={{ my: 2 }} />
                           </Box>
                         ))
