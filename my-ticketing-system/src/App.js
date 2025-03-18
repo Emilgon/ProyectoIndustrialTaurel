@@ -4,13 +4,14 @@ import './App.css';
 import FormularioCliente from './FormularioCliente/FormularioCliente';
 import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario';
 import Reports from './Reportes/Reportes';
-import Respuestas from './Respuesta/Respuesta'; // Importa el componente de Respuestas
+import Respuestas from './Respuesta/Respuesta';
 import { initializeFirestore } from './initializeFirestore';
 import LoginRegisterClient from './LoginRegisterClient/LoginRegisterClient';
 import VistaCliente from './VistaCliente/VistaCliente';
 import Consulta from './Consulta/Consulta';
 import Menu from './Menu/Menu';
 import LoginRegisterAdvisor from './LoginRegisterAdvisor/LoginRegisterAdvisor';
+import ClientsInfo from './ClientsInfo/ClientsInfo'; // Ruta corregida
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
               <VistaAsesorFormulario />
               <footer className="App-footer">
                 <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
+                <Link to="/clientes" className="footer-link">CLIENTES</Link>
                 <Link to="/reportes" className="footer-link">REPORTES</Link>
               </footer>
             </>
@@ -43,11 +45,21 @@ function App() {
               <Reports />
               <footer className="App-footer">
                 <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
+                <Link to="/clientes" className="footer-link">CLIENTES</Link>
                 <Link to="/reportes" className="footer-link">REPORTES</Link>
               </footer>
             </>
           } />
-          {/* Nueva ruta para manejar las respuestas específicas de las consultas */}
+          <Route path="/clientes" element={
+            <>
+              <ClientsInfo />
+              <footer className="App-footer">
+                <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
+                <Link to="/clientes" className="footer-link">CLIENTES</Link>
+                <Link to="/reportes" className="footer-link">REPORTES</Link>
+              </footer>
+            </>
+          } />
           <Route path="/Respuestas/:consultaId" element={<Respuestas />} />
           <Route path="/login" element={<LoginRegisterClient />} />
           <Route path="/formulario-cliente" element={<FormularioCliente />} />
