@@ -2,6 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
+import { Client } from '@microsoft/microsoft-graph-client'; // Importar el cliente de Microsoft Graph
+import 'isomorphic-fetch'; // Importar fetch para el cliente de Microsoft Graph
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
@@ -134,6 +136,42 @@ const Respuesta = () => {
         attachmentReplyUrl = await getDownloadURL(fileRef); // Obtiene la URL de descarga
       }
 
+      // Crear el correo electrónico
+      const email = {
+        message: {
+          subject: "Respuesta a tu consulta",
+          body: {
+            contentType: "Text",
+            content: reply, // El contenido de la respuesta
+          },
+          toRecipients: [
+            {
+              emailAddress: {
+                address: consultaData.email, // El correo electrónico del cliente
+              },
+            },
+          ],
+          attachments: file ? [
+            {
+              "@odata.type": "#microsoft.graph.fileAttachment",
+              name: file.name,
+              contentBytes: await file.arrayBuffer(), // Convierte el archivo a bytes
+            }
+          ] : [],
+        },
+      };
+
+      // Enviar el correo electrónico
+      const client = Client.init({
+        authProvider: (done) => {
+          done(null, user.accessToken); // Proporcionar el token de acceso del usuario
+        }
+      });
+
+      const response = await client.api('/me/sendMail').post(email);
+      console.log("Email sent response:", response);
+
+      // Guardar la respuesta en Firestore
       const respuestaRef = collection(db, "Responses");
       await addDoc(respuestaRef, {
         consultaId: consultaId,
@@ -143,13 +181,16 @@ const Respuesta = () => {
         attachmentReply: attachmentReplyUrl, // Guarda la URL del archivo adjunto
       });
 
+      // Actualizar el estado de la consulta
       const consultaRef = doc(db, "Consults", consultaId);
       await updateDoc(consultaRef, {
         status: "En proceso",
       });
 
+      // Obtener las respuestas actualizadas
       await obtenerRespuestas();
 
+      // Mostrar mensaje de éxito
       Swal.fire({
         icon: 'success',
         title: 'Tu respuesta ha sido enviada exitosamente',
@@ -178,7 +219,6 @@ const Respuesta = () => {
       });
     }
   };
-
 
   if (!consultaData) {
     return <div>Loading...</div>;

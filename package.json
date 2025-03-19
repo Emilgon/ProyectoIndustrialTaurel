@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "daisyui": "^4.12.23",
+    "isomorphic-fetch": "^3.0.0",
     "tailwindcss": "^4.0.3"
   }
 }
