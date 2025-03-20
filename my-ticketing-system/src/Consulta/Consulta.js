@@ -54,6 +54,8 @@ const Consulta = () => {
         if (userData) {
           const company = userData.data().company;
           const name = userData.data().name;
+          const clientId = userData.id; // Obtén el ID del cliente
+
           await addDoc(collection(db, "Consults"), {
             name: name,
             company: company,
@@ -65,6 +67,7 @@ const Consulta = () => {
             messageContent: mensaje,
             attachment: attachmentURL, // Guarda la URL del archivo
             timestamp: serverTimestamp(), // Guarda la fecha y hora exactas
+            clientId: clientId, // <-- Añade el campo clientId
           });
         }
       }
