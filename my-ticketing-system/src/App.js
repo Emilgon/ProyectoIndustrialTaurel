@@ -1,72 +1,35 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom';
-import './App.css';
-import FormularioCliente from './FormularioCliente/FormularioCliente';
-import VistaAsesorFormulario from './VistaAsesorFormulario/VistaAsesorFormulario';
-import Reports from './Reportes/Reportes';
-import Respuestas from './Respuesta/Respuesta';
-import { initializeFirestore } from './initializeFirestore';
-import LoginRegisterClient from './LoginRegisterClient/LoginRegisterClient';
-import VistaCliente from './VistaCliente/VistaCliente';
-import Consulta from './Consulta/Consulta';
-import Menu from './Menu/Menu';
-import LoginRegisterAdvisor from './LoginRegisterAdvisor/LoginRegisterAdvisor';
-import ClientsInfo from './ClientsInfo/ClientsInfo'; // Ruta corregida
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import React from "react";
+import { BrowserRouter as Router, Route, Routes, Navigate, Link } from "react-router-dom";
+import "./App.css";
+import Menu from "./Menu/Menu";
+import LoginRegisterClient from "./LoginRegisterClient/LoginRegisterClient";
+import LoginRegisterAdvisor from "./LoginRegisterAdvisor/LoginRegisterAdvisor";
+import AsesorControl from "./AsesorControl"; // Ruta para el panel de asesor
+import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario"; // Ruta para consultas
+import ClientsInfo from "./ClientsInfo/ClientsInfo"; // Ruta para clientes
+import Reportes from "./Reportes/Reportes"; // Ruta para reportes
 
 function App() {
-  useEffect(() => {
-    initializeFirestore();
-  }, []);
-
   return (
     <Router>
       <div className="App">
+        {/* Header con el logo de Taurel */}
         <header className="App-header">
           <Link to="/menu">
             <img src="/images/taurel-logo-completo.png" alt="Logo Taurel" className="App-logo" />
           </Link>
         </header>
+
+        {/* Rutas de la aplicación */}
         <Routes>
           <Route path="/" element={<Navigate to="/menu" replace />} />
-
-          <Route path="/asesor" element={
-            <>
-              <VistaAsesorFormulario />
-              <footer className="App-footer">
-                <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
-                <Link to="/clientes" className="footer-link">CLIENTES</Link>
-                <Link to="/reportes" className="footer-link">REPORTES</Link>
-              </footer>
-            </>
-          } />
-          <Route path="/reportes" element={
-            <>
-              <Reports />
-              <footer className="App-footer">
-                <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
-                <Link to="/clientes" className="footer-link">CLIENTES</Link>
-                <Link to="/reportes" className="footer-link">REPORTES</Link>
-              </footer>
-            </>
-          } />
-          <Route path="/clientes" element={
-            <>
-              <ClientsInfo />
-              <footer className="App-footer">
-                <Link to="/asesor" className="footer-link">VISTA ASESOR</Link>
-                <Link to="/clientes" className="footer-link">CLIENTES</Link>
-                <Link to="/reportes" className="footer-link">REPORTES</Link>
-              </footer>
-            </>
-          } />
-          <Route path="/Respuestas/:consultaId" element={<Respuestas />} />
-          <Route path="/login" element={<LoginRegisterClient />} />
-          <Route path="/formulario-cliente" element={<FormularioCliente />} />
-          <Route path="/vista-cliente" element={<VistaCliente />} />
-          <Route path="/consulta" element={<Consulta />} />
-          <Route path="/login-asesor" element={<LoginRegisterAdvisor />} />
           <Route path="/menu" element={<Menu />} />
+          <Route path="/login" element={<LoginRegisterClient />} />
+          <Route path="/login-asesor" element={<LoginRegisterAdvisor />} />
+          <Route path="/asesor-control" element={<AsesorControl />} />
+          <Route path="/vista-asesor-formulario" element={<VistaAsesorFormulario />} />
+          <Route path="/clients-info" element={<ClientsInfo />} />
+          <Route path="/reportes" element={<Reportes />} />
         </Routes>
       </div>
     </Router>

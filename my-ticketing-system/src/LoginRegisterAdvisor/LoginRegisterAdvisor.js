@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, collection, addDoc, getDocs, updateDoc, onSnapshot, query, where } from '../firebaseConfig';
-import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Card, IconButton } from '@mui/material';
-import Swal from 'sweetalert2';
-import { ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
-import './LoginRegisterAdvisor.css';
+import React, { useState } from "react";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { db, collection, addDoc, getDocs, updateDoc, onSnapshot, query, where } from "../firebaseConfig";
+import { useNavigate } from "react-router-dom";
+import { Box, Button, TextField, Typography, Card, IconButton } from "@mui/material";
+import Swal from "sweetalert2";
+import { ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon } from "@mui/icons-material";
+import "./LoginRegisterAdvisor.css";
 
 const LoginRegisterAdvisor = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState("");
+  const [nameError, setNameError] = useState("");
 
   const navigate = useNavigate();
   const auth = getAuth();
@@ -22,41 +22,41 @@ const LoginRegisterAdvisor = () => {
     try {
       // Iniciar sesión con Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Asesor logueado con éxito:', userCredential.user);
+      console.log("Asesor logueado con éxito:", userCredential.user);
 
       // Verificar si el asesor está registrado en Firestore
-      const advisorsRef = collection(db, 'Advisors');
-      const q = query(advisorsRef, where('email', '==', email));
+      const advisorsRef = collection(db, "Advisors");
+      const q = query(advisorsRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         // Si no hay resultados, el asesor no está registrado
         Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'El correo electrónico no está registrado o la contraseña es incorrecta.',
+          icon: "error",
+          title: "Error",
+          text: "El correo electrónico no está registrado o la contraseña es incorrecta.",
         });
         return; // Detener la ejecución
       }
 
-      // Si el asesor está registrado, redirigir a la página de inicio
-      navigate('/asesor');
+      // Si el asesor está registrado, redirigir a /asesor-control
+      navigate("/asesor-control");
     } catch (error) {
-      console.error('Error al iniciar sesión:', error);
+      console.error("Error al iniciar sesión:", error);
 
       // Manejo de errores específicos
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
         Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'El correo electrónico no está registrado o la contraseña es incorrecta.',
+          icon: "error",
+          title: "Error",
+          text: "El correo electrónico no está registrado o la contraseña es incorrecta.",
         });
       } else {
         // Manejo de otros errores
         Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Ocurrió un error al intentar iniciar sesión. Por favor, inténtalo de nuevo.',
+          icon: "error",
+          title: "Error",
+          text: "Ocurrió un error al intentar iniciar sesión. Por favor, inténtalo de nuevo.",
         });
       }
     }
@@ -68,31 +68,31 @@ const LoginRegisterAdvisor = () => {
 
   // Función para crear un nuevo asesor
   const handleCreateUser = async () => {
-    if (name.trim() === '') {
-      setNameError('El campo nombre no puede estar vacío.');
+    if (name.trim() === "") {
+      setNameError("El campo nombre no puede estar vacío.");
       return;
     }
-    if (email.trim() === '') {
-      setEmailError('El campo correo electrónico no puede estar vacío.');
+    if (email.trim() === "") {
+      setEmailError("El campo correo electrónico no puede estar vacío.");
       return;
     }
-    if (password.trim() === '') {
-      setEmailError('El campo contraseña no puede estar vacío.');
+    if (password.trim() === "") {
+      setEmailError("El campo contraseña no puede estar vacío.");
       return;
     }
 
     try {
       // Crear el usuario en Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Asesor registrado con éxito:', userCredential.user);
+      console.log("Asesor registrado con éxito:", userCredential.user);
 
       // Obtener el número de consultas en Firestore
-      const consultasRef = collection(db, 'Consults');
+      const consultasRef = collection(db, "Consults");
       const consultasSnapshot = await getDocs(consultasRef);
       const numConsultas = consultasSnapshot.docs.length;
 
       // Agregar el asesor a Firestore con el número de consultas
-      const advisorRef = await addDoc(collection(db, 'Advisors'), {
+      const advisorRef = await addDoc(collection(db, "Advisors"), {
         name: name,
         email: email,
         request: numConsultas, // Asignar el número de consultas al atributo request
@@ -106,27 +106,27 @@ const LoginRegisterAdvisor = () => {
 
       // Mostrar mensaje de éxito
       Swal.fire({
-        icon: 'success',
-        title: 'Asesor registrado con éxito',
-        text: 'Bienvenido a nuestra plataforma',
+        icon: "success",
+        title: "Asesor registrado con éxito",
+        text: "Bienvenido a nuestra plataforma",
       });
 
-      // Redirigir al asesor a la página de inicio
-      navigate('/asesor');
+      // Redirigir al asesor a /asesor-control
+      navigate("/asesor-control");
     } catch (error) {
-      if (error.code === 'auth/email-already-in-use') {
-        setEmailError('El correo electrónico ya está en uso.');
+      if (error.code === "auth/email-already-in-use") {
+        setEmailError("El correo electrónico ya está en uso.");
       } else {
-        console.error('Error al registrar asesor:', error);
+        console.error("Error al registrar asesor:", error);
       }
     }
   };
 
   if (showForm) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
-        <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: '100%', maxWidth: 400 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
+        <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: "100%", maxWidth: 400 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
             <IconButton onClick={() => setShowForm(false)}>
               <ArrowBackIcon />
             </IconButton>
@@ -143,15 +143,15 @@ const LoginRegisterAdvisor = () => {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                setNameError('');
+                setNameError("");
               }}
               variant="outlined"
               fullWidth
               margin="normal"
-              error={nameError !== ''}
+              error={nameError !== ""}
               helperText={nameError}
               InputProps={{
-                startAdornment: <PersonIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+                startAdornment: <PersonIcon sx={{ color: "#1B5C94", mr: 1 }} />,
               }}
             />
             <TextField
@@ -160,15 +160,15 @@ const LoginRegisterAdvisor = () => {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                setEmailError('');
+                setEmailError("");
               }}
               variant="outlined"
               fullWidth
               margin="normal"
-              error={emailError !== ''}
+              error={emailError !== ""}
               helperText={emailError}
               InputProps={{
-                startAdornment: <EmailIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+                startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1 }} />,
               }}
             />
             <TextField
@@ -181,7 +181,7 @@ const LoginRegisterAdvisor = () => {
               margin="normal"
               type="password"
               InputProps={{
-                startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+                startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1 }} />,
               }}
             />
           </Box>
@@ -191,11 +191,11 @@ const LoginRegisterAdvisor = () => {
             onClick={handleCreateUser}
             fullWidth
             sx={{
-              backgroundColor: '#1B5C94',
-              color: 'white',
-              borderRadius: '12px',
-              '&:hover': {
-                backgroundColor: '#145a8c',
+              backgroundColor: "#1B5C94",
+              color: "white",
+              borderRadius: "12px",
+              "&:hover": {
+                backgroundColor: "#145a8c",
               },
             }}
           >
@@ -206,10 +206,10 @@ const LoginRegisterAdvisor = () => {
     );
   } else {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
-        <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: '100%', maxWidth: 400 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <IconButton onClick={() => navigate('/menu')}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
+        <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: "100%", maxWidth: 400 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <IconButton onClick={() => navigate("/menu")}>
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h5" fontWeight="bold">
@@ -227,10 +227,10 @@ const LoginRegisterAdvisor = () => {
               variant="outlined"
               fullWidth
               margin="normal"
-              error={emailError !== ''}
+              error={emailError !== ""}
               helperText={emailError}
               InputProps={{
-                startAdornment: <EmailIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+                startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1 }} />,
               }}
             />
             <TextField
@@ -243,7 +243,7 @@ const LoginRegisterAdvisor = () => {
               margin="normal"
               type="password"
               InputProps={{
-                startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1 }} />,
+                startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1 }} />,
               }}
             />
           </Box>
@@ -253,22 +253,22 @@ const LoginRegisterAdvisor = () => {
             onClick={handleLogin}
             fullWidth
             sx={{
-              backgroundColor: '#1B5C94',
-              color: 'white',
-              borderRadius: '12px',
-              '&:hover': {
-                backgroundColor: '#145a8c',
+              backgroundColor: "#1B5C94",
+              color: "white",
+              borderRadius: "12px",
+              "&:hover": {
+                backgroundColor: "#145a8c",
               },
             }}
           >
             Iniciar Sesión
           </Button>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Box sx={{ mt: 2, textAlign: "center" }}>
             <Button
               variant="text"
               onClick={handleRegister}
-              sx={{ color: '#1B5C94' }}
+              sx={{ color: "#1B5C94" }}
             >
               ¿No tienes cuenta? Regístrate
             </Button>
