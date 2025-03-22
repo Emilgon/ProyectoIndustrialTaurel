@@ -8,6 +8,7 @@ import AsesorControl from "./AsesorControl"; // Ruta para el panel de asesor
 import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario"; // Ruta para consultas
 import ClientsInfo from "./ClientsInfo/ClientsInfo"; // Ruta para clientes
 import Reportes from "./Reportes/Reportes"; // Ruta para reportes
+import Respuesta from "./Respuesta/Respuesta"; // Importa el componente Respuesta
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/vista-asesor-formulario" element={<VistaAsesorFormulario />} />
           <Route path="/clients-info" element={<ClientsInfo />} />
           <Route path="/reportes" element={<Reportes />} />
+          {/* Agrega la ruta para Respuesta */}
         </Routes>
       </div>
     </Router>

@@ -1,7 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Button, Typography } from "@mui/material";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"; // Icono de administrador
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer"; // Icono de consultas
+import PeopleIcon from "@mui/icons-material/People"; // Icono de clientes
+import AssessmentIcon from "@mui/icons-material/Assessment"; // Icono de reportes
 
 const AsesorControl = () => {
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ const AsesorControl = () => {
           }}
           onClick={() => navigate("/vista-asesor-formulario")} // Redirige a VistaAsesorFormulario
         >
-          <AdminPanelSettingsIcon sx={{ fontSize: 80, color: "white" }} />
+          <QuestionAnswerIcon sx={{ fontSize: 80, color: "white" }} />
           <Typography variant="h4" component="h2" sx={{ mt: 2, color: "white" }}>
             Consultas
           </Typography>
@@ -66,7 +68,7 @@ const AsesorControl = () => {
           }}
           onClick={() => navigate("/clients-info")} // Redirige a ClientsInfo
         >
-          <AdminPanelSettingsIcon sx={{ fontSize: 80, color: "white" }} />
+          <PeopleIcon sx={{ fontSize: 80, color: "white" }} />
           <Typography variant="h4" component="h2" sx={{ mt: 2, color: "white" }}>
             Clientes
           </Typography>
@@ -91,7 +93,7 @@ const AsesorControl = () => {
           }}
           onClick={() => navigate("/reportes")} // Redirige a Reportes
         >
-          <AdminPanelSettingsIcon sx={{ fontSize: 80, color: "white" }} />
+          <AssessmentIcon sx={{ fontSize: 80, color: "white" }} />
           <Typography variant="h4" component="h2" sx={{ mt: 2, color: "white" }}>
             Reportes
           </Typography>

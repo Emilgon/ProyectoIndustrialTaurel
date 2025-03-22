@@ -245,10 +245,10 @@ const VistaAsesorFormulario = () => {
           consultas.map((c) =>
             c.id === currentId
               ? {
-                  ...c,
-                  type: editType || "No Asignado",
-                  indicator: resolverDays === null ? null : resolverDays,
-                }
+                ...c,
+                type: editType || "No Asignado",
+                indicator: resolverDays === null ? null : resolverDays,
+              }
               : c
           )
         );

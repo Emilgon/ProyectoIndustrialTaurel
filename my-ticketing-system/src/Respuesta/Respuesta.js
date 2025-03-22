@@ -1,9 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc } from "firebase/firestore";
 import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
-import { Client } from '@microsoft/microsoft-graph-client'; // Importar el cliente de Microsoft Graph
-import 'isomorphic-fetch'; // Importar fetch para el cliente de Microsoft Graph
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
 import Swal from 'sweetalert2';
@@ -66,10 +64,16 @@ const Respuesta = () => {
   useEffect(() => {
     const fetchConsulta = async () => {
       try {
+        if (!consultaId) {
+          console.error("No se proporcionó un ID de consulta.");
+          return;
+        }
+
         const consultaRef = doc(db, "Consults", consultaId);
         const consultaDoc = await getDoc(consultaRef);
 
         if (consultaDoc.exists()) {
+          console.log("Consulta encontrada:", consultaDoc.data()); // Verifica en la consola
           setConsultaData(consultaDoc.data());
 
           // Obtener las URLs de descarga para los archivos adjuntos
@@ -86,10 +90,8 @@ const Respuesta = () => {
       }
     };
 
-    if (consultaId) {
-      fetchConsulta();
-      obtenerRespuestas();
-    }
+    fetchConsulta();
+    obtenerRespuestas();
   }, [consultaId]);
 
   const handleFileChange = (e) => {
@@ -135,41 +137,6 @@ const Respuesta = () => {
         await uploadBytes(fileRef, file); // Sube el archivo
         attachmentReplyUrl = await getDownloadURL(fileRef); // Obtiene la URL de descarga
       }
-
-      // Crear el correo electrónico
-      const email = {
-        message: {
-          subject: "Respuesta a tu consulta",
-          body: {
-            contentType: "Text",
-            content: reply, // El contenido de la respuesta
-          },
-          toRecipients: [
-            {
-              emailAddress: {
-                address: consultaData.email, // El correo electrónico del cliente
-              },
-            },
-          ],
-          attachments: file ? [
-            {
-              "@odata.type": "#microsoft.graph.fileAttachment",
-              name: file.name,
-              contentBytes: await file.arrayBuffer(), // Convierte el archivo a bytes
-            }
-          ] : [],
-        },
-      };
-
-      // Enviar el correo electrónico
-      const client = Client.init({
-        authProvider: (done) => {
-          done(null, user.accessToken); // Proporcionar el token de acceso del usuario
-        }
-      });
-
-      const response = await client.api('/me/sendMail').post(email);
-      console.log("Email sent response:", response);
 
       // Guardar la respuesta en Firestore
       const respuestaRef = collection(db, "Responses");
@@ -220,8 +187,37 @@ const Respuesta = () => {
     }
   };
 
+  // Función para obtener el ícono según el tipo de archivo
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split(".").pop().toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
+      case "xls":
+      case "xlsx":
+        return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />; // Ícono para archivos de Excel
+      case "doc":
+      case "docx":
+        return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+        return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
+      default:
+        return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
+    }
+  };
+
+  // Si no hay consultaData, muestra un mensaje de carga o error
   if (!consultaData) {
-    return <div>Loading...</div>;
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h6" color="error">
+          No se pudo cargar la consulta. Verifica la conexión o el ID.
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -541,28 +537,6 @@ const Respuesta = () => {
       </Card>
     </Box>
   );
-};
-
-// Función para obtener el ícono según el tipo de archivo
-const getFileIcon = (fileName) => {
-  const extension = fileName.split(".").pop().toLowerCase();
-  switch (extension) {
-    case "pdf":
-      return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
-    case "xls":
-    case "xlsx":
-      return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />; // Ícono para archivos de Excel
-    case "doc":
-    case "docx":
-      return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-      return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
-    default:
-      return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
-  }
 };
 
 export default Respuesta;
