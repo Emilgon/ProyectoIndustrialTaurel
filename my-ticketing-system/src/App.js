@@ -9,6 +9,8 @@ import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario
 import ClientsInfo from "./ClientsInfo/ClientsInfo"; // Ruta para clientes
 import Reportes from "./Reportes/Reportes"; // Ruta para reportes
 import Respuesta from "./Respuesta/Respuesta"; // Importa el componente Respuesta
+import VistaCliente from "./VistaCliente/VistaCliente"; // Importa el componente VistaCliente
+import Consulta from "./Consulta/Consulta"; // Importa el componente Consulta
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
           <Route path="/clients-info" element={<ClientsInfo />} />
           <Route path="/reportes" element={<Reportes />} />
           <Route path="/Respuestas/:consultaId" element={<Respuesta />} />
+          <Route path="/vista-cliente" element={<VistaCliente />} />
+          <Route path="/consulta" element={<Consulta />} />
         </Routes>
       </div>
     </Router>

@@ -59,15 +59,16 @@ const Consulta = () => {
           await addDoc(collection(db, "Consults"), {
             name: name,
             company: company,
-            type: "Tipo de consulta", // Reemplaza esto con el tipo de consulta
-            star_date: new Date(), // Puedes mantener este campo si lo necesitas
-            indicator: 30,
+            type: null, // Cambiado para que muestre "No Asignado"
+            star_date: new Date(),
+            indicator: null,
             status: "Pendiente",
             email: user.email,
             messageContent: mensaje,
-            attachment: attachmentURL, // Guarda la URL del archivo
-            timestamp: serverTimestamp(), // Guarda la fecha y hora exactas
-            clientId: clientId, // <-- Añade el campo clientId
+            attachment: attachmentURL,
+            timestamp: serverTimestamp(),
+            clientId: clientId,
+            alertShown: false
           });
         }
       }

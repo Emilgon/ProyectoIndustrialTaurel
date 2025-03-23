@@ -47,17 +47,16 @@ const VistaCliente = () => {
 
   // Función para obtener los datos del usuario
   const fetchUserData = async () => {
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userRef = collection(db, "Clients");
-        const querySnapshot = await getDocs(userRef);
-        querySnapshot.forEach((doc) => {
-          if (doc.data().email.toLowerCase() === user.email.toLowerCase()) {
-            setUserData({ ...doc.data(), uid: user.uid });
-          }
-        });
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = collection(db, "Clients");
+      const q = query(userRef, where("email", "==", user.email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        setUserData({ ...doc.data(), uid: user.uid });
       }
-    });
+    }
   };
 
   // Función para obtener las respuestas
@@ -168,9 +167,17 @@ const VistaCliente = () => {
 
   // Ejecutar fetchUserData y fetchRespuestas al cargar el componente
   useEffect(() => {
-    fetchUserData();
-    fetchRespuestas();
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchUserData();
+        fetchRespuestas();
+      } else {
+        navigate("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleSalir = () => {
     navigate("/login");

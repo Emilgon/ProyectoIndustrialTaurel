@@ -113,76 +113,48 @@ const Respuesta = () => {
     setFilePreview(null);
   };
 
-  const handleSend = async () => {
-    if (reply.trim() === '') {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campo vacío',
-        text: 'No puedes enviar una respuesta vacía.',
-      });
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!reply.trim()) return;
 
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No se encontró al usuario autenticado');
-      }
-
-      let attachmentReplyUrl = null;
-
-      // Si hay un archivo adjunto, súbelo a Firebase Storage
-      if (file) {
-        const fileRef = ref(storage, `responses/${consultaId}/${file.name}`); // Ruta en Storage
-        await uploadBytes(fileRef, file); // Sube el archivo
-        attachmentReplyUrl = await getDownloadURL(fileRef); // Obtiene la URL de descarga
-      }
-
-      // Guardar la respuesta en Firestore
-      const respuestaRef = collection(db, "Responses");
-      await addDoc(respuestaRef, {
-        consultaId: consultaId,
-        reply: reply,
+      // Create the response document
+      const responseData = {
+        consultaId,
+        content: reply,
         timestamp: new Date(),
-        userId: user.uid,
-        attachmentReply: attachmentReplyUrl, // Guarda la URL del archivo adjunto
-      });
+        userId: auth.currentUser.uid,
+        attachment: file ? file.name : null
+      };
 
-      // Actualizar el estado de la consulta
-      const consultaRef = doc(db, "Consults", consultaId);
-      await updateDoc(consultaRef, {
-        status: "En proceso",
-      });
+      const responseRef = await addDoc(collection(db, "Responses"), responseData);
 
-      // Obtener las respuestas actualizadas
-      await obtenerRespuestas();
+      // Upload file if exists
+      if (file) {
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${file.name}`);
+        await uploadBytes(storageRef, file);
+      }
 
-      // Mostrar mensaje de éxito
-      Swal.fire({
-        icon: 'success',
-        title: 'Tu respuesta ha sido enviada exitosamente',
-        text: '¿Quieres seguir respondiendo consultas?',
-        showCancelButton: true,
-        confirmButtonText: 'Sí',
-        cancelButtonText: 'No',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate("/asesor");
-        } else {
-          navigate("/");
-        }
-      });
-
-      // Limpiar el estado del archivo adjunto
+      // Clear form
+      setReply('');
       setFile(null);
       setFilePreview(null);
-      setReply('');
+
+      // Refresh responses
+      obtenerRespuestas();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Respuesta enviada correctamente',
+        showConfirmButton: false,
+        timer: 1500
+      });
     } catch (error) {
       console.error("Error al enviar la respuesta:", error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Hubo un error al enviar tu respuesta. Por favor, inténtalo de nuevo.',
+        text: 'Hubo un error al enviar la respuesta'
       });
     }
   };
@@ -344,7 +316,7 @@ const Respuesta = () => {
                 sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
               >
                 <Typography variant="body1">
-                  <strong>Respuesta:</strong> {respuesta.reply}
+                  <strong>Respuesta:</strong> {respuesta.content}
                 </Typography>
                 {respuesta.timestamp && (
                   <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
@@ -353,7 +325,7 @@ const Respuesta = () => {
                 )}
 
                 {/* Mostrar el archivo adjunto de la respuesta */}
-                {respuesta.attachmentReply && (
+                {respuesta.attachment && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
@@ -370,9 +342,9 @@ const Respuesta = () => {
                       }}
                     >
                       {/* Previsualización de la imagen */}
-                      {respuesta.attachmentReply.startsWith("http") && (
+                      {respuesta.attachment.startsWith("http") && (
                         <img
-                          src={respuesta.attachmentReply}
+                          src={respuesta.attachment}
                           alt="Previsualización"
                           style={{
                             maxWidth: "50px",
@@ -383,15 +355,15 @@ const Respuesta = () => {
                       )}
 
                       {/* Ícono y nombre del archivo */}
-                      {getFileIcon(respuesta.attachmentReply.split("/").pop())}
+                      {getFileIcon(respuesta.attachment.split("/").pop())}
                       <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                        {respuesta.attachmentReply.split("/").pop()}
+                        {respuesta.attachment.split("/").pop()}
                       </Typography>
 
                       {/* Botón de descarga */}
                       <IconButton
                         component="a"
-                        href={respuesta.attachmentReply}
+                        href={respuesta.attachment}
                         download
                         rel="noopener noreferrer"
                         sx={{
@@ -521,7 +493,7 @@ const Respuesta = () => {
           <Button
             variant="contained"
             startIcon={<SendIcon />}
-            onClick={handleSend}
+            onClick={handleSubmit}
             sx={{
               backgroundColor: "#1B5C94",
               color: "white",

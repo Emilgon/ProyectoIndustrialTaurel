@@ -22,6 +22,7 @@ import {
   Menu,
   Popover,
   Avatar,
+  Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -29,30 +30,41 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import DownloadIcon from "@mui/icons-material/Download";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CloseIcon from '@mui/icons-material/Close';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
+import LogoutIcon from '@mui/icons-material/Logout';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import {
   ArrowBack as ArrowBackIcon,
   Business as BusinessIcon,
   Email as EmailIcon,
   Person as PersonIcon,
-  Description as DescriptionIcon,
   CalendarToday as CalendarIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
-import {
-  PictureAsPdf as PdfIcon,
-  InsertDriveFile as FileIcon,
-  Description as DocIcon,
-  TableChart as CsvIcon,
-  Image as ImageIcon,
-} from "@mui/icons-material";
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import ImageIcon from '@mui/icons-material/Image';
+import DescriptionIcon from '@mui/icons-material/Description';
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc, query, where } from "../firebaseConfig";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from 'dayjs';
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "./VistaAsesorFormulario.css";
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import CategoryIcon from '@mui/icons-material/Category';
+import TimerIcon from '@mui/icons-material/Timer';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 const VistaAsesorFormulario = () => {
   const [consultas, setConsultas] = useState([]);
@@ -62,8 +74,8 @@ const VistaAsesorFormulario = () => {
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("company");
   const [editType, setEditType] = useState("No Asignado");
-  const [currentId, setCurrentId] = useState(null);
-  const [resolverDays, setResolverDays] = useState(null); // Cambiado a null para "No Asignado"
+  const [selectedConsultId, setSelectedConsultId] = useState(null);
+  const [resolverDays, setResolverDays] = useState(null); 
   const [pendientesCount, setPendientesCount] = useState(0);
   const [enProcesoCount, setEnProcesoCount] = useState(0);
   const [resueltasCount, setResueltasCount] = useState(0);
@@ -75,6 +87,10 @@ const VistaAsesorFormulario = () => {
   const [dateRange, setDateRange] = useState([null, null]);
   const [alertShown, setAlertShown] = useState(false);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
+  const [anchorElIndicador, setAnchorElIndicador] = useState(null);
+  const [indicadorFilter, setIndicadorFilter] = useState("todos");
+  const [searchCompany, setSearchCompany] = useState("");
+  const [anchorElSearch, setAnchorElSearch] = useState(null);
 
   const navigate = useNavigate();
   const storage = getStorage();
@@ -161,12 +177,12 @@ const VistaAsesorFormulario = () => {
     setExpandedRow(expandedRow === id ? null : id);
     if (expandedRow === id) {
       setEditType("No Asignado");
-      setCurrentId(null);
+      setSelectedConsultId(null);
       setResolverDays(null);
     } else {
       const consulta = consultas.find((c) => c.id === id);
       setEditType(consulta.type || "No Asignado");
-      setCurrentId(id);
+      setSelectedConsultId(id);
       setResolverDays(consulta.indicator || null);
 
       if (consulta.attachment) {
@@ -234,48 +250,127 @@ const VistaAsesorFormulario = () => {
 
   const handleSave = async () => {
     try {
-      if (currentId) {
-        const consultaRef = doc(db, "Consults", currentId);
-        await updateDoc(consultaRef, {
-          type: editType || "No Asignado",
-          indicator: resolverDays === null ? null : resolverDays,
-        });
+      const consultaRef = doc(db, "Consults", selectedConsultId);
+      
+      let updateData = {
+        type: editType,
+      };
 
-        setConsultas(
-          consultas.map((c) =>
-            c.id === currentId
-              ? {
-                ...c,
-                type: editType || "No Asignado",
-                indicator: resolverDays === null ? null : resolverDays,
-              }
-              : c
-          )
-        );
-      } else {
-        await addDoc(collection(db, "Consults"), {
-          type: editType || "No Asignado",
-          indicator: resolverDays === null ? null : resolverDays,
-          star_date: new Date(),
-        });
-
-        setConsultas([
-          ...consultas,
-          {
-            type: editType || "No Asignado",
-            indicator: resolverDays === null ? null : resolverDays,
-            star_date: new Date(),
-          },
-        ]);
+      if (resolverDays !== null) {
+        const now = new Date();
+        const endDate = new Date(now.getTime() + resolverDays * 24 * 60 * 60 * 1000);
+        
+        updateData = {
+          ...updateData,
+          indicator: resolverDays,
+          start_date: now,
+          end_date: endDate,
+          remaining_days: resolverDays
+        };
       }
 
-      setEditType("No Asignado");
-      setResolverDays(null);
+      await updateDoc(consultaRef, updateData);
+      
+      // Actualizar la consulta en el estado local
+      setConsultas((prevConsultas) =>
+        prevConsultas.map((consulta) =>
+          consulta.id === selectedConsultId
+            ? { ...consulta, ...updateData }
+            : consulta
+        )
+      );
+
       setExpandedRow(null);
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "La consulta ha sido actualizada correctamente",
+        icon: "success",
+        confirmButtonColor: "#1B5C94",
+      });
     } catch (error) {
-      console.error("Error al guardar:", error);
-      Swal.fire("Error", "No se pudo guardar los cambios.", "error");
+      console.error("Error al actualizar la consulta:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Hubo un error al actualizar la consulta",
+        icon: "error",
+        confirmButtonColor: "#1B5C94",
+      });
     }
+  };
+
+  // Función para actualizar los días restantes
+  const updateRemainingDays = async (consulta) => {
+    if (!consulta.end_date || !consulta.indicator) return;
+
+    const now = new Date();
+    const endDate = consulta.end_date.toDate();
+    const remainingTime = endDate.getTime() - now.getTime();
+    const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
+
+    if (remainingDays !== consulta.remaining_days) {
+      const consultaRef = doc(db, "Consults", consulta.id);
+      await updateDoc(consultaRef, {
+        remaining_days: remainingDays
+      });
+
+      // Actualizar el estado local
+      setConsultas((prevConsultas) =>
+        prevConsultas.map((c) =>
+          c.id === consulta.id
+            ? { ...c, remaining_days: remainingDays }
+            : c
+        )
+      );
+
+      // Mostrar alerta solo cuando quede 1 día o menos
+      if (remainingDays <= 1 && !consulta.alertShown) {
+        await updateDoc(consultaRef, {
+          alertShown: true
+        });
+        
+        Swal.fire({
+          title: "¡Atención!",
+          text: `La consulta de ${consulta.company} tiene ${remainingDays === 0 ? "menos de un día" : "1 día"} restante`,
+          icon: "warning",
+          confirmButtonColor: "#1B5C94",
+        });
+      }
+    }
+  };
+
+  // Efecto para actualizar los días restantes cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      consultas.forEach(updateRemainingDays);
+    }, 60000); // Actualizar cada minuto
+
+    return () => clearInterval(interval);
+  }, [consultas]);
+
+  // Función para mostrar los días restantes
+  const renderRemainingDays = (consulta) => {
+    if (!consulta.indicator && consulta.indicator !== 0) {
+      return <Typography>No Asignado</Typography>;
+    }
+
+    const remainingDays = consulta.remaining_days || consulta.indicator;
+    
+    return (
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            backgroundColor: remainingDays <= 1 ? "red" : remainingDays <= 3 ? "orange" : "green",
+            mr: 1,
+          }}
+        />
+        <Typography>
+          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}
+        </Typography>
+      </Box>
+    );
   };
 
   const handleCommentClick = async (id) => {
@@ -359,67 +454,96 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const filteredConsultas = consultas.filter((consulta) => {
-    const matchesType = !selectedType || consulta.type === selectedType;
-    const matchesState = !selectedState || consulta.status === selectedState;
+  const handleIndicadorFilter = (value) => {
+    setIndicadorFilter(value);
+    setAnchorElIndicador(null);
+  };
 
-    const consultaDate = consulta.star_date?.toDate();
-    const [startDate, endDate] = dateRange;
+  const filteredConsultas = consultas
+    .filter((consulta) => {
+      const matchesType = !selectedType || consulta.type === selectedType;
+      const matchesState = !selectedState || consulta.status === selectedState;
 
-    const matchesDateRange =
-      !startDate ||
-      !endDate ||
-      (consultaDate >= startDate && consultaDate <= endDate);
+      const consultaDate = consulta.star_date?.toDate();
+      const [startDate, endDate] = dateRange;
 
-    return matchesType && matchesState && matchesDateRange;
-  });
+      const matchesDateRange =
+        !startDate ||
+        !endDate ||
+        (consultaDate >= startDate && consultaDate <= endDate);
+      
+      // Agregar filtro por indicador
+      let matchesIndicador = true;
+      if (indicadorFilter !== "todos") {
+        const remainingDays = consulta.remaining_days || consulta.indicator;
+        switch (indicadorFilter) {
+          case "urgente":
+            matchesIndicador = remainingDays <= 1;
+            break;
+          case "proximo":
+            matchesIndicador = remainingDays > 1 && remainingDays <= 3;
+            break;
+          case "normal":
+            matchesIndicador = remainingDays > 3;
+            break;
+          case "no_asignado":
+            matchesIndicador = !remainingDays && remainingDays !== 0;
+            break;
+        }
+      }
 
-  const sortedConsultas = filteredConsultas.sort((a, b) => {
-    if (orderBy === "status") {
-      const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
-      const aPriority = a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
-      const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
-      return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
-    }
+      // Agregar filtro por empresa
+      const matchesCompany = !searchCompany || 
+        consulta.company.toLowerCase().includes(searchCompany.toLowerCase());
 
-    if (orderBy === "apply_date") {
-      return order === "asc"
-        ? (a.apply_date?.seconds || 0) - (b.apply_date?.seconds || 0)
-        : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
-    }
+      return matchesType && matchesState && matchesDateRange && matchesIndicador && matchesCompany;
+    })
+    .sort((a, b) => {
+      if (orderBy === "status") {
+        const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
+        const aPriority = a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
+        const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
+        return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
+      }
 
-    if (orderBy === "type") {
-      const typesOrder = ["Clasificación Arancelaria", "Asesoría técnica", "No Asignado"];
-      const aIndex = typesOrder.indexOf(a.type || "No Asignado");
-      const bIndex = typesOrder.indexOf(b.type || "No Asignado");
-      return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
-    }
+      if (orderBy === "apply_date") {
+        return order === "asc"
+          ? (a.apply_date?.seconds || 0) - (b.apply_date?.seconds || 0)
+          : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
+      }
 
-    const aValue = a[orderBy] || "";
-    const bValue = b[orderBy] || "";
+      if (orderBy === "type") {
+        const typesOrder = ["Clasificación Arancelaria", "Asesoría técnica", "No Asignado"];
+        const aIndex = typesOrder.indexOf(a.type || "No Asignado");
+        const bIndex = typesOrder.indexOf(b.type || "No Asignado");
+        return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
+      }
 
-    if (aValue < bValue) return order === "asc" ? -1 : 1;
-    if (aValue > bValue) return order === "asc" ? 1 : -1;
-    return 0;
-  });
+      const aValue = a[orderBy] || "";
+      const bValue = b[orderBy] || "";
+
+      if (aValue < bValue) return order === "asc" ? -1 : 1;
+      if (aValue > bValue) return order === "asc" ? 1 : -1;
+      return 0;
+    });
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
     switch (extension) {
       case "pdf":
-        return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
+        return <PictureAsPdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
       case "csv":
-        return <CsvIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
+        return <TableChartIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
       case "doc":
       case "docx":
-        return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
+        return <InsertDriveFileIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
       case "jpg":
       case "jpeg":
       case "png":
       case "gif":
         return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
       default:
-        return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
+        return <InsertDriveFileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
     }
   };
 
@@ -486,6 +610,8 @@ const VistaAsesorFormulario = () => {
     setSelectedState("");
     setSelectedType("");
     setDateRange([null, null]);
+    setIndicadorFilter("todos");
+    setSearchCompany("");
   };
 
   return (
@@ -494,53 +620,50 @@ const VistaAsesorFormulario = () => {
         Consultas
       </Typography>
       <Box sx={{ mb: 2 }}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => {
-            Swal.fire({
-              title: "¿Estás seguro?",
-              text: "¿Quieres regresar al menú? Los cambios no guardados se perderán.",
-              icon: "warning",
-              showCancelButton: true,
-              confirmButtonText: "Sí, salir",
-              cancelButtonText: "Cancelar",
-              confirmButtonColor: "#1B5C94",
-              cancelButtonColor: "#d33",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                navigate("/menu");
-              }
-            });
-          }}
-          sx={{
-            marginRight: 2,
-            borderColor: "red",
-            color: "red",
-            borderRadius: "20px",
-            "&:hover": {
-              borderColor: "#145a8c",
-              backgroundColor: "#f5f5f5",
-            },
-          }}
-        >
-          Salir
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={resetFilters}
-          sx={{
-            borderColor: "#1B5C94",
-            color: "#1B5C94",
-            borderRadius: "20px",
-            "&:hover": {
-              borderColor: "#145a8c",
-              backgroundColor: "#f5f5f5",
-            },
-          }}
-        >
-          Resetear Filtros
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+          <Tooltip title="Resetear filtros" arrow>
+            <IconButton
+              onClick={resetFilters}
+              sx={{ 
+                color: "#666",
+                mr: 1,
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.04)"
+                }
+              }}
+            >
+              <RestartAltIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Salir al menú" arrow>
+            <IconButton
+              onClick={() => {
+                Swal.fire({
+                  title: "¿Estás seguro?",
+                  text: "¿Quieres regresar al menú? Los cambios no guardados se perderán.",
+                  icon: "warning",
+                  showCancelButton: true,
+                  confirmButtonText: "Sí, salir",
+                  cancelButtonText: "Cancelar",
+                  confirmButtonColor: "#1B5C94",
+                  cancelButtonColor: "#d33",
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    navigate("/menu");
+                  }
+                });
+              }}
+              sx={{ 
+                color: "#1B5C94",
+                "&:hover": {
+                  backgroundColor: "rgba(27, 92, 148, 0.04)"
+                }
+              }}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table>
@@ -548,30 +671,73 @@ const VistaAsesorFormulario = () => {
             <TableRow sx={{ backgroundColor: "#1B5C94" }}>
               <TableCell>
                 <Button
-                  onClick={() => handleRequestSort("company")}
-                  sx={{ color: "white", fontWeight: "bold" }}
+                  onClick={(event) => setAnchorElSearch(event.currentTarget)}
+                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
                 >
+                  <BusinessIcon sx={{ fontSize: 20 }} />
                   Cliente
-                  <ExpandMoreIcon
-                    sx={{
-                      transform:
-                        orderBy === "company"
-                          ? order === "asc"
-                            ? "rotate(0deg)"
-                            : "rotate(180deg)"
-                          : "rotate(0deg)",
-                      transition: "transform 0.3s ease",
-                      fontSize: 16,
-                    }}
-                  />
+                  {searchCompany && (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: "#4CAF50",
+                        display: "block"
+                      }}
+                    />
+                  )}
                 </Button>
+                <Popover
+                  open={Boolean(anchorElSearch)}
+                  anchorEl={anchorElSearch}
+                  onClose={() => setAnchorElSearch(null)}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "left",
+                  }}
+                >
+                  <Box sx={{ p: 2, width: 250 }}>
+                    <TextField
+                      autoFocus
+                      fullWidth
+                      size="small"
+                      variant="outlined"
+                      placeholder="Buscar empresa..."
+                      value={searchCompany}
+                      onChange={(e) => setSearchCompany(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        ),
+                        endAdornment: searchCompany && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setSearchCompany("")}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                </Popover>
               </TableCell>
               <TableCell>
                 <Box display="flex" alignItems="center">
                   <Button
                     onClick={(event) => setAnchorElTipo(event.currentTarget)}
-                    sx={{ color: "white", fontWeight: "bold" }}
+                    sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
                   >
+                    <CategoryIcon sx={{ fontSize: 20 }} />
                     Tipo de Consulta
                     <ExpandMoreIcon
                       sx={{
@@ -602,21 +768,21 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElFecha(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold" }}
+                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
                 >
+                  <CalendarTodayIcon sx={{ fontSize: 20 }} />
                   Fecha de Solicitud
-                  <ExpandMoreIcon
-                    sx={{
-                      transform:
-                        orderBy === "star_date"
-                          ? order === "asc"
-                            ? "rotate(0deg)"
-                            : "rotate(180deg)"
-                          : "rotate(0deg)",
-                      transition: "transform 0.3s ease",
-                      fontSize: 16,
-                    }}
-                  />
+                  {dateRange[0] && dateRange[1] && (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: "#4CAF50",
+                        display: "block"
+                      }}
+                    />
+                  )}
                 </Button>
                 <Popover
                   id="fecha-popover"
@@ -631,40 +797,157 @@ const VistaAsesorFormulario = () => {
                     vertical: "top",
                     horizontal: "center",
                   }}
+                  PaperProps={{
+                    sx: {
+                      p: 2,
+                      borderRadius: 2,
+                      boxShadow: 3,
+                      minWidth: '400px'
+                    }
+                  }}
                 >
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DateRangePicker
+                      calendars={2}
                       value={dateRange}
-                      onChange={(newValue) => setDateRange(newValue)}
+                      onChange={(newValue) => {
+                        setDateRange(newValue);
+                        if (newValue[0] && newValue[1]) {
+                          setTimeout(() => setAnchorElFecha(null), 300);
+                        }
+                      }}
+                      slotProps={{
+                        textField: {
+                          size: "small",
+                          sx: { width: '180px' }
+                        },
+                        fieldSeparator: {
+                          children: 'hasta'
+                        }
+                      }}
+                      localeText={{ start: 'Fecha inicial', end: 'Fecha final' }}
                     />
                   </LocalizationProvider>
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setDateRange([null, null]);
+                        setAnchorElFecha(null);
+                      }}
+                      sx={{ color: '#666' }}
+                    >
+                      <FilterAltOffIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => setAnchorElFecha(null)}
+                      sx={{ color: '#1B5C94' }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
                 </Popover>
               </TableCell>
               <TableCell>
                 <Button
-                  onClick={() => handleRequestSort("indicator")}
-                  sx={{ color: "white", fontWeight: "bold" }}
+                  onClick={(event) => setAnchorElIndicador(event.currentTarget)}
+                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
                 >
+                  <TimerIcon sx={{ fontSize: 20 }} />
                   Indicador
-                  <ExpandMoreIcon
+                  <Box
                     sx={{
-                      transform:
-                        orderBy === "indicator"
-                          ? order === "asc"
-                            ? "rotate(0deg)"
-                            : "rotate(180deg)"
-                          : "rotate(0deg)",
-                      transition: "transform 0.3s ease",
-                      fontSize: 16,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: indicadorFilter === "todos" ? "transparent" : 
+                                     indicadorFilter === "urgente" ? "red" :
+                                     indicadorFilter === "proximo" ? "orange" : "green",
+                      display: indicadorFilter === "todos" ? "none" : "block"
                     }}
                   />
                 </Button>
+                <Popover
+                  open={Boolean(anchorElIndicador)}
+                  anchorEl={anchorElIndicador}
+                  onClose={() => setAnchorElIndicador(null)}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "center",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "center",
+                  }}
+                >
+                  <Box sx={{ p: 1 }}>
+                    <MenuItem onClick={() => handleIndicadorFilter("todos")}>
+                      Todos
+                    </MenuItem>
+                    <MenuItem onClick={() => handleIndicadorFilter("urgente")}
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "red"
+                        }}
+                      />
+                      Urgente (1 día o menos)
+                    </MenuItem>
+                    <MenuItem onClick={() => handleIndicadorFilter("proximo")}
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "orange"
+                        }}
+                      />
+                      Próximo (2-3 días)
+                    </MenuItem>
+                    <MenuItem onClick={() => handleIndicadorFilter("normal")}
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "green"
+                        }}
+                      />
+                      Normal (> 3 días)
+                    </MenuItem>
+                    <MenuItem onClick={() => handleIndicadorFilter("no_asignado")}>
+                      No Asignado
+                    </MenuItem>
+                  </Box>
+                </Popover>
               </TableCell>
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElEstado(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold" }}
+                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
                 >
+                  <AssignmentIcon sx={{ fontSize: 20 }} />
                   Estado
                   <ExpandMoreIcon
                     sx={{
@@ -697,7 +980,7 @@ const VistaAsesorFormulario = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedConsultas.map((consulta) => (
+            {filteredConsultas.map((consulta) => (
               <React.Fragment key={consulta.id}>
                 <TableRow
                   onClick={(e) => {
@@ -717,27 +1000,7 @@ const VistaAsesorFormulario = () => {
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
                   <TableCell>{formatDateTime(consulta.star_date)}</TableCell>
                   <TableCell>
-                    {consulta.indicator !== undefined && consulta.indicator !== null ? (
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: "50%",
-                            backgroundColor:
-                              calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
-                                ? "red"
-                                : "green",
-                            mr: 1,
-                          }}
-                        />
-                        <Typography>
-                          {calculateRemainingDays(consulta.apply_date, consulta.indicator)} Días
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <Typography>No Asignado</Typography>
-                    )}
+                    {renderRemainingDays(consulta)}
                   </TableCell>
                   <TableCell>{consulta.status}</TableCell>
                   <TableCell>
@@ -906,7 +1169,6 @@ const VistaAsesorFormulario = () => {
                                     displayEmpty
                                     sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
                                   >
-                                    <MenuItem value="No Asignado">No Asignado</MenuItem>
                                     <MenuItem value="Asesoría técnica">Asesoría técnica</MenuItem>
                                     <MenuItem value="Clasificación arancelaria">
                                       Clasificación arancelaria
@@ -943,7 +1205,9 @@ const VistaAsesorFormulario = () => {
                                   sx={{
                                     backgroundColor: "#1B5C94",
                                     color: "white",
-                                    borderRadius: "20px",
+                                    borderRadius: "8px",
+                                    padding: "8px 24px",
+                                    textTransform: "none",
                                     "&:hover": {
                                       backgroundColor: "#145a8c",
                                     },
@@ -957,9 +1221,12 @@ const VistaAsesorFormulario = () => {
                                   sx={{
                                     borderColor: "#1B5C94",
                                     color: "#1B5C94",
-                                    borderRadius: "20px",
+                                    borderRadius: "8px",
+                                    padding: "8px 24px",
+                                    textTransform: "none",
                                     "&:hover": {
                                       borderColor: "#145a8c",
+                                      backgroundColor: "rgba(27, 92, 148, 0.04)",
                                     },
                                   }}
                                 >
@@ -971,7 +1238,9 @@ const VistaAsesorFormulario = () => {
                                   sx={{
                                     backgroundColor: "#1B5C94",
                                     color: "white",
-                                    borderRadius: "20px",
+                                    borderRadius: "8px",
+                                    padding: "8px 24px",
+                                    textTransform: "none",
                                     "&:hover": {
                                       backgroundColor: "#145a8c",
                                     },
