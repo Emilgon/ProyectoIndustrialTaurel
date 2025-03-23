@@ -186,7 +186,7 @@ const Respuesta = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h6" color="error">
-          No se pudo cargar la consulta. Verifica la conexión o el ID.
+          Cargando...
         </Typography>
       </Box>
     );
