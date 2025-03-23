@@ -31,7 +31,7 @@ function App() {
           <Route path="/vista-asesor-formulario" element={<VistaAsesorFormulario />} />
           <Route path="/clients-info" element={<ClientsInfo />} />
           <Route path="/reportes" element={<Reportes />} />
-          {/* Agrega la ruta para Respuesta */}
+          <Route path="/Respuestas/:consultaId" element={<Respuesta />} />
         </Routes>
       </div>
     </Router>
