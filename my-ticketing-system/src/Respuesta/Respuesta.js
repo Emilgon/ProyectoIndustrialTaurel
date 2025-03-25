@@ -4,6 +4,7 @@ import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc } fro
 import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
+import sendResponseMail from '../utils/sendResponseMail';
 import Swal from 'sweetalert2';
 import {
   AttachFile as AttachFileIcon,
@@ -73,13 +74,22 @@ const Respuesta = () => {
         const consultaDoc = await getDoc(consultaRef);
 
         if (consultaDoc.exists()) {
-          console.log("Consulta encontrada:", consultaDoc.data()); // Verifica en la consola
-          setConsultaData(consultaDoc.data());
+          const data = consultaDoc.data();
+          // Asegúrate de que estos campos existan en tu colección Consults
+          console.log("Datos de consulta:", {
+            name: data.name,
+            company: data.company,
+            email: data.email, // Asegúrate de que este campo existe
+            type: data.type,
+            messageContent: data.messageContent,
+            attachment: data.attachment,
+            timestamp: data.timestamp
+          });
 
-          // Obtener las URLs de descarga para los archivos adjuntos
-          if (consultaDoc.data().attachment) {
-            const urls = await fetchDownloadUrls(consultaDoc.data().attachment);
-            console.log("URLs de descarga:", urls); // Verifica las URLs obtenidas
+          setConsultaData(data);
+
+          if (data.attachment) {
+            const urls = await fetchDownloadUrls(data.attachment);
             setFileDownloadUrls(urls);
           }
         } else {
@@ -127,25 +137,42 @@ const Respuesta = () => {
         attachment: file ? file.name : null
       };
 
+      // Guardar la respuesta en Firestore
       const responseRef = await addDoc(collection(db, "Responses"), responseData);
 
-      // Upload file if exists
+      // Subir archivo si existe
       if (file) {
         const storageRef = ref(storage, `ruta_de_tus_archivos/${file.name}`);
         await uploadBytes(storageRef, file);
       }
 
-      // Clear form
+      // Enviar correo al cliente
+      try {
+        // Obtener datos del cliente (asumiendo que consultaData tiene email y nombre)
+        const userData = {
+          name: consultaData.name,
+          companyName: consultaData.company,
+          email: consultaData.email // Asegúrate de que esto está en tus datos
+        };
+
+        await sendResponseMail(consultaId, userData, responseData, consultaData);
+      } catch (emailError) {
+        console.error("Error al enviar el correo:", emailError);
+        // Puedes decidir si quieres mostrar un error al usuario o no
+      }
+
+      // Limpiar formulario
       setReply('');
       setFile(null);
       setFilePreview(null);
 
-      // Refresh responses
+      // Refrescar respuestas
       obtenerRespuestas();
 
       Swal.fire({
         icon: 'success',
         title: 'Respuesta enviada correctamente',
+        text: 'El cliente ha sido notificado por correo electrónico',
         showConfirmButton: false,
         timer: 1500
       });

@@ -86,6 +86,7 @@ const VistaAsesorFormulario = () => {
   const [selectedType, setSelectedType] = useState("");
   const [dateRange, setDateRange] = useState([null, null]);
   const [alertShown, setAlertShown] = useState(false);
+  const [unassignedAlertShown, setUnassignedAlertShown] = useState(false);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
   const [anchorElIndicador, setAnchorElIndicador] = useState(null);
   const [indicadorFilter, setIndicadorFilter] = useState("todos");
@@ -126,6 +127,7 @@ const VistaAsesorFormulario = () => {
   }, []);
 
   useEffect(() => {
+    // Alerta para consultas con tiempo cercano
     const consultasCercanas = consultas.filter(
       (consulta) => calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
     ).length;
@@ -141,7 +143,26 @@ const VistaAsesorFormulario = () => {
     } else if (consultasCercanas === 0) {
       setAlertShown(false);
     }
-  }, [consultas, alertShown]);
+
+    // Alerta para consultas no asignadas
+    const consultasNoAsignadas = consultas.filter(
+      (consulta) => 
+        (consulta.type === "No Asignado" || !consulta.type) && 
+        (consulta.indicator === "No Asignado" || !consulta.indicator)
+    ).length;
+
+    if (consultasNoAsignadas > 0 && !unassignedAlertShown) {
+      Swal.fire({
+        title: "Alerta",
+        text: `Hay ${consultasNoAsignadas} consultas que no se les ha asignado su tipo ni el número de días.`,
+        icon: "warning",
+        confirmButtonText: "Aceptar",
+      });
+      setUnassignedAlertShown(true);
+    } else if (consultasNoAsignadas === 0) {
+      setUnassignedAlertShown(false);
+    }
+  }, [consultas, alertShown, unassignedAlertShown]);
 
   const calculateRemainingDays = (startDate, indicadorOriginal) => {
     if (!startDate || typeof startDate.toDate !== "function") {
@@ -271,7 +292,6 @@ const VistaAsesorFormulario = () => {
 
       await updateDoc(consultaRef, updateData);
       
-      // Actualizar la consulta en el estado local
       setConsultas((prevConsultas) =>
         prevConsultas.map((consulta) =>
           consulta.id === selectedConsultId
@@ -298,7 +318,6 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  // Función para actualizar los días restantes
   const updateRemainingDays = async (consulta) => {
     if (!consulta.end_date || !consulta.indicator) return;
 
@@ -313,7 +332,6 @@ const VistaAsesorFormulario = () => {
         remaining_days: remainingDays
       });
 
-      // Actualizar el estado local
       setConsultas((prevConsultas) =>
         prevConsultas.map((c) =>
           c.id === consulta.id
@@ -322,7 +340,6 @@ const VistaAsesorFormulario = () => {
         )
       );
 
-      // Mostrar alerta solo cuando quede 1 día o menos
       if (remainingDays <= 1 && !consulta.alertShown) {
         await updateDoc(consultaRef, {
           alertShown: true
@@ -338,16 +355,14 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  // Efecto para actualizar los días restantes cada minuto
   useEffect(() => {
     const interval = setInterval(() => {
       consultas.forEach(updateRemainingDays);
-    }, 60000); // Actualizar cada minuto
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [consultas]);
 
-  // Función para mostrar los días restantes
   const renderRemainingDays = (consulta) => {
     if (!consulta.indicator && consulta.indicator !== 0) {
       return <Typography>No Asignado</Typography>;
@@ -472,7 +487,6 @@ const VistaAsesorFormulario = () => {
         !endDate ||
         (consultaDate >= startDate && consultaDate <= endDate);
       
-      // Agregar filtro por indicador
       let matchesIndicador = true;
       if (indicadorFilter !== "todos") {
         const remainingDays = consulta.remaining_days || consulta.indicator;
@@ -492,7 +506,6 @@ const VistaAsesorFormulario = () => {
         }
       }
 
-      // Agregar filtro por empresa
       const matchesCompany = !searchCompany || 
         consulta.company.toLowerCase().includes(searchCompany.toLowerCase());
 
@@ -649,7 +662,7 @@ const VistaAsesorFormulario = () => {
                   cancelButtonColor: "#d33",
                 }).then((result) => {
                   if (result.isConfirmed) {
-                    navigate("/menu");
+                    navigate("/asesor-control");
                   }
                 });
               }}
