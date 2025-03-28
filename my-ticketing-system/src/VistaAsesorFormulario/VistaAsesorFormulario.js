@@ -13,7 +13,7 @@ import {
   Typography,
   Box,
   Select,
-  MenuItem,
+  MenuItem as MuiMenuItem,
   Divider,
   Grid,
   IconButton,
@@ -771,10 +771,10 @@ const VistaAsesorFormulario = () => {
                     open={Boolean(anchorElTipo)}
                     onClose={() => setAnchorElTipo(null)}
                   >
-                    <MenuItem onClick={() => handleSelectType("")}>Todos</MenuItem>
-                    <MenuItem onClick={() => handleSelectType("No Asignado")}>No Asignado</MenuItem>
-                    <MenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MenuItem>
-                    <MenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MenuItem>
+                    <MuiMenuItem onClick={() => handleSelectType("")}>Todos</MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleSelectType("No Asignado")}>No Asignado</MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MuiMenuItem>
                   </Menu>
                 </Box>
               </TableCell>
@@ -895,10 +895,10 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <Box sx={{ p: 1 }}>
-                    <MenuItem onClick={() => handleIndicadorFilter("todos")}>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
                       Todos
-                    </MenuItem>
-                    <MenuItem onClick={() => handleIndicadorFilter("urgente")}
+                    </MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("urgente")}
                       sx={{ 
                         display: 'flex',
                         alignItems: 'center',
@@ -914,8 +914,8 @@ const VistaAsesorFormulario = () => {
                         }}
                       />
                       Urgente (1 día o menos)
-                    </MenuItem>
-                    <MenuItem onClick={() => handleIndicadorFilter("proximo")}
+                    </MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("proximo")}
                       sx={{ 
                         display: 'flex',
                         alignItems: 'center',
@@ -931,8 +931,8 @@ const VistaAsesorFormulario = () => {
                         }}
                       />
                       Próximo (2-3 días)
-                    </MenuItem>
-                    <MenuItem onClick={() => handleIndicadorFilter("normal")}
+                    </MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("normal")}
                       sx={{ 
                         display: 'flex',
                         alignItems: 'center',
@@ -947,11 +947,11 @@ const VistaAsesorFormulario = () => {
                           backgroundColor: "green"
                         }}
                       />
-                      Normal (> 3 días)
-                    </MenuItem>
-                    <MenuItem onClick={() => handleIndicadorFilter("no_asignado")}>
+                      Normal ( mayor a 3 días)
+                    </MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("no_asignado")}>
                       No Asignado
-                    </MenuItem>
+                    </MuiMenuItem>
                   </Box>
                 </Popover>
               </TableCell>
@@ -981,10 +981,10 @@ const VistaAsesorFormulario = () => {
                   open={Boolean(anchorElEstado)}
                   onClose={() => setAnchorElEstado(null)}
                 >
-                  <MenuItem onClick={() => handleSelectState("")}>Todos</MenuItem>
-                  <MenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MenuItem>
-                  <MenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MenuItem>
-                  <MenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("")}>Todos</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MuiMenuItem>
                 </Menu>
               </TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Historial</TableCell>
@@ -1182,10 +1182,10 @@ const VistaAsesorFormulario = () => {
                                     displayEmpty
                                     sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
                                   >
-                                    <MenuItem value="Asesoría técnica">Asesoría técnica</MenuItem>
-                                    <MenuItem value="Clasificación arancelaria">
+                                    <MuiMenuItem value="Asesoría técnica">Asesoría técnica</MuiMenuItem>
+                                    <MuiMenuItem value="Clasificación arancelaria">
                                       Clasificación arancelaria
-                                    </MenuItem>
+                                    </MuiMenuItem>
                                   </Select>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -1202,11 +1202,11 @@ const VistaAsesorFormulario = () => {
                                     displayEmpty
                                     sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
                                   >
-                                    <MenuItem value="No Asignado">No Asignado</MenuItem>
+                                    <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
                                     {[...Array(31).keys()].map((day) => (
-                                      <MenuItem key={day} value={day}>
+                                      <MuiMenuItem key={day} value={day}>
                                         {day}
-                                      </MenuItem>
+                                      </MuiMenuItem>
                                     ))}
                                   </Select>
                                 </Grid>

@@ -504,7 +504,7 @@ const Respuesta = () => {
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/asesor")}
+            onClick={() => navigate("/vista-asesor-formulario")}
             sx={{
               backgroundColor: "#f5f5f5",
               color: "#1B5C94",
