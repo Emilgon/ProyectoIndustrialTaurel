@@ -172,7 +172,7 @@ const VistaCliente = () => {
         fetchUserData();
         fetchRespuestas();
       } else {
-        navigate("/login");
+        navigate("/menu");
       }
     });
 
@@ -180,7 +180,7 @@ const VistaCliente = () => {
   }, [navigate]);
 
   const handleSalir = () => {
-    navigate("/login");
+    navigate("/menu");
   };
 
   return (

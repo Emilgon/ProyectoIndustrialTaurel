@@ -4,30 +4,30 @@ import "./App.css";
 import Menu from "./Menu/Menu";
 import LoginRegisterClient from "./LoginRegisterClient/LoginRegisterClient";
 import LoginRegisterAdvisor from "./LoginRegisterAdvisor/LoginRegisterAdvisor";
-import AsesorControl from "./AsesorControl"; // Ruta para el panel de asesor
-import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario"; // Ruta para consultas
-import ClientsInfo from "./ClientsInfo/ClientsInfo"; // Ruta para clientes
-import Reportes from "./Reportes/Reportes"; // Ruta para reportes
-import Respuesta from "./Respuesta/Respuesta"; // Importa el componente Respuesta
-import VistaCliente from "./VistaCliente/VistaCliente"; // Importa el componente VistaCliente
-import Consulta from "./Consulta/Consulta"; // Importa el componente Consulta
+import AsesorControl from "./AsesorControl";
+import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario";
+import ClientsInfo from "./ClientsInfo/ClientsInfo";
+import Reportes from "./Reportes/Reportes";
+import Respuesta from "./Respuesta/Respuesta";
+import VistaCliente from "./VistaCliente/VistaCliente";
+import Consulta from "./Consulta/Consulta";
+import FormularioCliente from "./FormularioCliente/FormularioCliente";
 
 function App() {
   return (
     <Router>
       <div className="App">
-        {/* Header con el logo de Taurel */}
+        {/* Header que muestra "Consultas" en /menu y solo logo en otras páginas */}
         <header className="App-header">
-          <Link to="/menu">
+          <Link to="/menu" className="logo-container">
             <img src="/images/taurel-logo-completo.png" alt="Logo Taurel" className="App-logo" />
           </Link>
         </header>
-
-        {/* Rutas de la aplicación */}
         <Routes>
           <Route path="/" element={<Navigate to="/menu" replace />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/login" element={<LoginRegisterClient />} />
+          <Route path="/formulario-cliente" element={<FormularioCliente />} />
           <Route path="/login-asesor" element={<LoginRegisterAdvisor />} />
           <Route path="/asesor-control" element={<AsesorControl />} />
           <Route path="/vista-asesor-formulario" element={<VistaAsesorFormulario />} />

@@ -1,78 +1,62 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Typography } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person"; // Icono de persona
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"; // Icono de administrador
+import LoginRegisterClient from "../LoginRegisterClient/LoginRegisterClient";
+import { Box, Typography } from "@mui/material";
 import "./Menu.css";
 
 const Menu = () => {
   const navigate = useNavigate();
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        background: "white",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          gap: 4,
-        }}
-      >
-        {/* Botón para Cliente */}
-        <Button
+    <Box sx={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh",
+      backgroundColor: "white"
+    }}>
+      <Box sx={{ 
+        display: "flex", 
+        flexGrow: 1,
+        backgroundColor: "white"
+      }}>
+        {/* Panel izquierdo con imagen de fondo */}
+        <Box
           sx={{
-            width: 300,
-            height: 300,
-            borderRadius: 4,
-            boxShadow: 3,
-            backgroundColor: "#1B5C94",
-            "&:hover": {
-              backgroundColor: "#f0f0f0",
-              boxShadow: 6,
-            },
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
+            width: "40%",
+            position: "relative",
+            overflow: "hidden",
           }}
-          onClick={() => navigate("/login")} // Redirige al login de cliente
         >
-          <PersonIcon sx={{ fontSize: 80, color: "white" }} />
-          <Typography variant="h4" component="h2" sx={{ mt: 2, color: "white" }}>
-            Cliente
-          </Typography>
-        </Button>
+          <img
+            src="/images/imagenlogin.png"
+            alt="Imagen de login"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        </Box>
 
-        {/* Botón para Asesor */}
-        <Button
+        {/* Panel derecho con el formulario de login */}
+        <Box
           sx={{
-            width: 300,
-            height: 300,
-            borderRadius: 4,
-            boxShadow: 3,
-            backgroundColor: "#1B5C94",
-            "&:hover": {
-              backgroundColor: "#f0f0f0",
-              boxShadow: 6,
-            },
+            width: "60%",
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
             justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#FEFEFE",
           }}
-          onClick={() => navigate("/login-asesor")} // Redirige al login de asesor
         >
-          <AdminPanelSettingsIcon sx={{ fontSize: 80, color: "white" }} />
-          <Typography variant="h4" component="h2" sx={{ mt: 2, color: "white" }}>
-            Asesor
-          </Typography>
-        </Button>
+          <LoginRegisterClient
+            showAdvisorOption={true}
+            onAdvisorClick={() => navigate("/login-asesor")}
+            hideBackButton={true}
+          />
+        </Box>
       </Box>
     </Box>
   );

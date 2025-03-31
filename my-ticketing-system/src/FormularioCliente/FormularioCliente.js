@@ -85,11 +85,11 @@ const FormularioCliente = () => {
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
       <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: '100%', maxWidth: 600 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={() => navigate('/login')}>
+          <IconButton onClick={() => navigate('/menu')}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h5" fontWeight="bold">
-            Registro de Cliente
+            Registro de cliente
           </Typography>
           <Box sx={{ width: 40 }} /> {/* Espacio para alinear el título */}
         </Box>

@@ -131,7 +131,7 @@ const LoginRegisterAdvisor = () => {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h5" fontWeight="bold">
-              Registro de Asesor
+              Registro de asesor
             </Typography>
             <Box sx={{ width: 40 }} /> {/* Espacio para alinear el título */}
           </Box>
@@ -213,7 +213,7 @@ const LoginRegisterAdvisor = () => {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h5" fontWeight="bold">
-              Login de Asesor
+              Inicio de sesión Asesor
             </Typography>
             <Box sx={{ width: 40 }} /> {/* Espacio para alinear el título */}
           </Box>
