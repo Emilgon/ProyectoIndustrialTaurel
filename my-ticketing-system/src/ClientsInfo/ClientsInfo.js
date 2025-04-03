@@ -181,7 +181,7 @@ const ClientsInfo = () => {
             <TableRow sx={{ backgroundColor: "#1B5C94" }}>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Cliente</TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Email</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Consultas</TableCell>
+              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Consultas activas</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
