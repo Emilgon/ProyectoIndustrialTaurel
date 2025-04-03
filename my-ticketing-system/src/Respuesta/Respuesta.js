@@ -1,10 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc } from "firebase/firestore";
-import { db, auth, storage } from "../firebaseConfig"; // Asegúrate de importar storage
+import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { db, auth, storage } from "../firebaseConfig";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
-import sendResponseMail from '../utils/sendResponseMail';
 import Swal from 'sweetalert2';
 import {
   AttachFile as AttachFileIcon,
@@ -19,7 +18,7 @@ import {
   Description as DescriptionIcon,
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
-  TableChart as ExcelIcon, // Ícono para archivos de Excel
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
 
 const Respuesta = () => {
@@ -30,9 +29,8 @@ const Respuesta = () => {
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
-  const [fileDownloadUrls, setFileDownloadUrls] = useState({}); // Estado para almacenar las URLs de descarga
+  const [fileDownloadUrls, setFileDownloadUrls] = useState({});
 
-  // Función para obtener las respuestas
   const obtenerRespuestas = async () => {
     try {
       const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
@@ -47,12 +45,11 @@ const Respuesta = () => {
     }
   };
 
-  // Función para obtener las URLs de descarga
   const fetchDownloadUrls = async (attachments) => {
     const urls = {};
     for (const fileName of attachments.split(", ")) {
       try {
-        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Asegúrate de que esta ruta sea correcta
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`);
         const url = await getDownloadURL(storageRef);
         urls[fileName] = url;
       } catch (error) {
@@ -75,17 +72,6 @@ const Respuesta = () => {
 
         if (consultaDoc.exists()) {
           const data = consultaDoc.data();
-          // Asegúrate de que estos campos existan en tu colección Consults
-          console.log("Datos de consulta:", {
-            name: data.name,
-            company: data.company,
-            email: data.email, // Asegúrate de que este campo existe
-            type: data.type,
-            messageContent: data.messageContent,
-            attachment: data.attachment,
-            timestamp: data.timestamp
-          });
-
           setConsultaData(data);
 
           if (data.attachment) {
@@ -111,9 +97,9 @@ const Respuesta = () => {
     if (selectedFile) {
       const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
       if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
-        setFilePreview(URL.createObjectURL(selectedFile)); // Vista previa para imágenes
+        setFilePreview(URL.createObjectURL(selectedFile));
       } else {
-        setFilePreview(null); // No hay vista previa para otros tipos de archivos
+        setFilePreview(null);
       }
     }
   };
@@ -128,7 +114,7 @@ const Respuesta = () => {
     if (!reply.trim()) return;
 
     try {
-      // Create the response document
+      // Crear el documento de respuesta
       const responseData = {
         consultaId,
         content: reply,
@@ -138,27 +124,12 @@ const Respuesta = () => {
       };
 
       // Guardar la respuesta en Firestore
-      const responseRef = await addDoc(collection(db, "Responses"), responseData);
+      await addDoc(collection(db, "Responses"), responseData);
 
       // Subir archivo si existe
       if (file) {
-        const storageRef = ref(storage, `ruta_de_tus_archivos/${file.name}`);
+        const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
         await uploadBytes(storageRef, file);
-      }
-
-      // Enviar correo al cliente
-      try {
-        // Obtener datos del cliente (asumiendo que consultaData tiene email y nombre)
-        const userData = {
-          name: consultaData.name,
-          companyName: consultaData.company,
-          email: consultaData.email // Asegúrate de que esto está en tus datos
-        };
-
-        await sendResponseMail(consultaId, userData, responseData, consultaData);
-      } catch (emailError) {
-        console.error("Error al enviar el correo:", emailError);
-        // Puedes decidir si quieres mostrar un error al usuario o no
       }
 
       // Limpiar formulario
@@ -171,22 +142,20 @@ const Respuesta = () => {
 
       Swal.fire({
         icon: 'success',
-        title: 'Respuesta enviada correctamente',
-        text: 'El cliente ha sido notificado por correo electrónico',
+        title: 'Respuesta guardada correctamente',
         showConfirmButton: false,
         timer: 1500
       });
     } catch (error) {
-      console.error("Error al enviar la respuesta:", error);
+      console.error("Error al guardar la respuesta:", error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Hubo un error al enviar la respuesta'
+        text: 'Hubo un error al guardar la respuesta'
       });
     }
   };
 
-  // Función para obtener el ícono según el tipo de archivo
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
     switch (extension) {
@@ -194,7 +163,7 @@ const Respuesta = () => {
         return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
       case "xls":
       case "xlsx":
-        return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />; // Ícono para archivos de Excel
+        return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
       case "doc":
       case "docx":
         return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
@@ -208,7 +177,6 @@ const Respuesta = () => {
     }
   };
 
-  // Si no hay consultaData, muestra un mensaje de carga o error
   if (!consultaData) {
     return (
       <Box sx={{ p: 3 }}>
@@ -270,7 +238,7 @@ const Respuesta = () => {
                 Archivo Adjunto
               </Typography>
               {consultaData.attachment.split(", ").map((fileName, index) => {
-                const fileUrl = fileDownloadUrls[fileName]; // URL de descarga del archivo
+                const fileUrl = fileDownloadUrls[fileName];
                 const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                   fileName.split(".").pop().toLowerCase()
                 );
@@ -289,14 +257,13 @@ const Respuesta = () => {
                       "&:hover": { backgroundColor: "#f5f5f5" },
                     }}
                   >
-                    {/* Previsualización de la imagen o ícono del archivo */}
                     {fileUrl && (
                       <IconButton
                         component="a"
                         href={fileUrl}
                         download
                         rel="noopener noreferrer"
-                        aria-label={`Descargar archivo ${fileName}`} // Mejora la accesibilidad
+                        aria-label={`Descargar archivo ${fileName}`}
                         sx={{
                           padding: 0,
                           "&:hover": {
@@ -320,7 +287,6 @@ const Respuesta = () => {
                       </IconButton>
                     )}
 
-                    {/* Nombre del archivo */}
                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
                       {fileName}
                     </Typography>
@@ -351,7 +317,6 @@ const Respuesta = () => {
                   </Typography>
                 )}
 
-                {/* Mostrar el archivo adjunto de la respuesta */}
                 {respuesta.attachment && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
@@ -368,7 +333,6 @@ const Respuesta = () => {
                         "&:hover": { backgroundColor: "#f5f5f5" },
                       }}
                     >
-                      {/* Previsualización de la imagen */}
                       {respuesta.attachment.startsWith("http") && (
                         <img
                           src={respuesta.attachment}
@@ -381,13 +345,11 @@ const Respuesta = () => {
                         />
                       )}
 
-                      {/* Ícono y nombre del archivo */}
                       {getFileIcon(respuesta.attachment.split("/").pop())}
                       <Typography variant="body2" sx={{ flexGrow: 1 }}>
                         {respuesta.attachment.split("/").pop()}
                       </Typography>
 
-                      {/* Botón de descarga */}
                       <IconButton
                         component="a"
                         href={respuesta.attachment}
@@ -438,7 +400,6 @@ const Respuesta = () => {
           </Typography>
           {file ? (
             <Box display="flex" alignItems="center" gap={1}>
-              {/* Ícono y nombre del archivo */}
               {file.type.startsWith('image/') ? (
                 <Box display="flex" alignItems="center" gap={1}>
                   <img
@@ -459,7 +420,6 @@ const Respuesta = () => {
                 </Box>
               )}
 
-              {/* Enlace de descarga con ícono */}
               <Button
                 component="a"
                 href={URL.createObjectURL(file)}
@@ -474,7 +434,6 @@ const Respuesta = () => {
                 <DownloadIcon />
               </Button>
 
-              {/* Botón para eliminar el archivo */}
               <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
                 <DeleteIcon />
               </IconButton>
@@ -530,7 +489,7 @@ const Respuesta = () => {
               },
             }}
           >
-            Enviar Respuesta
+            Guardar Respuesta
           </Button>
         </Box>
       </Card>

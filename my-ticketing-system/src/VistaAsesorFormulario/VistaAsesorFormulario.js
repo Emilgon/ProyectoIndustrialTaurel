@@ -30,7 +30,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import DownloadIcon from "@mui/icons-material/Download";
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CloseIcon from '@mui/icons-material/Close';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -51,7 +50,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import DescriptionIcon from '@mui/icons-material/Description';
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
-import { db, collection, getDocs, updateDoc, doc, addDoc, deleteDoc, query, where } from "../firebaseConfig";
+import { db, collection, getDocs, updateDoc, doc, deleteDoc, query, where } from "../firebaseConfig";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -96,13 +95,32 @@ const VistaAsesorFormulario = () => {
   const navigate = useNavigate();
   const storage = getStorage();
 
+  const calculateRemainingDays = (startDate, indicadorOriginal) => {
+    if (!startDate || typeof startDate.toDate !== "function") {
+      return indicadorOriginal;
+    }
+
+    const now = new Date();
+    const start = startDate.toDate();
+    const differenceInMs = now - start;
+    const differenceInDays = Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
+    const remainingDays = indicadorOriginal - differenceInDays;
+    return remainingDays > 0 ? remainingDays : 0;
+  };
+
   useEffect(() => {
     const fetchConsultas = async () => {
       const querySnapshot = await getDocs(collection(db, "Consults"));
-      const consultasData = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
+      const consultasData = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          remaining_days: data.start_date ? 
+            calculateRemainingDays(data.start_date, data.indicator) : 
+            data.indicator
+        };
+      });
       setConsultas(consultasData);
 
       const pendientes = consultasData.filter((c) => c.status === "Pendiente").length;
@@ -115,11 +133,17 @@ const VistaAsesorFormulario = () => {
     fetchConsultas();
 
     const interval = setInterval(() => {
-      setConsultas((prevConsultas) =>
-        prevConsultas.map((consulta) => ({
-          ...consulta,
-          indicador: calculateRemainingDays(consulta.star_date, consulta.indicator),
-        }))
+      setConsultas(prevConsultas => 
+        prevConsultas.map(consulta => {
+          if (consulta.start_date && consulta.indicator) {
+            const remainingDays = calculateRemainingDays(
+              consulta.start_date, 
+              consulta.indicator
+            );
+            return {...consulta, remaining_days: remainingDays};
+          }
+          return consulta;
+        })
       );
     }, 60000);
 
@@ -129,7 +153,7 @@ const VistaAsesorFormulario = () => {
   useEffect(() => {
     // Alerta para consultas con tiempo cercano
     const consultasCercanas = consultas.filter(
-      (consulta) => calculateRemainingDays(consulta.apply_date, consulta.indicator) <= 1
+      (consulta) => (consulta.remaining_days || consulta.indicator) <= 1
     ).length;
 
     if (consultasCercanas > 0 && !alertShown) {
@@ -164,21 +188,25 @@ const VistaAsesorFormulario = () => {
     }
   }, [consultas, alertShown, unassignedAlertShown]);
 
-  const calculateRemainingDays = (startDate, indicadorOriginal) => {
-    if (!startDate || typeof startDate.toDate !== "function") {
-      return indicadorOriginal;
+  const handleResponderConsulta = async (id) => {
+    try {
+      // Actualizar el estado de la consulta a "En proceso"
+      const consultaRef = doc(db, "Consults", id);
+      await updateDoc(consultaRef, {
+        status: "En proceso"
+      });
+      
+      // Actualizar el estado local
+      setConsultas(consultas.map(c => 
+        c.id === id ? {...c, status: "En proceso"} : c
+      ));
+      
+      // Navegar a la página de respuestas
+      navigate(`/Respuestas/${id}`);
+    } catch (error) {
+      console.error("Error al actualizar el estado:", error);
+      Swal.fire("Error", "No se pudo actualizar el estado de la consulta", "error");
     }
-
-    const now = new Date();
-    const start = startDate.toDate();
-    const differenceInMs = now - start;
-    const differenceInDays = Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
-    const remainingDays = indicadorOriginal - differenceInDays;
-    return remainingDays > 0 ? remainingDays : 0;
-  };
-
-  const handleResponderConsulta = (id) => {
-    navigate(`/Respuestas/${id}`);
   };
 
   const handleSelectState = (status) => {
@@ -273,27 +301,19 @@ const VistaAsesorFormulario = () => {
     try {
       const consultaRef = doc(db, "Consults", selectedConsultId);
       
-      let updateData = {
+      const now = new Date();
+      const updateData = {
         type: editType,
+        indicator: resolverDays,
+        start_date: now,
+        end_date: new Date(now.getTime() + resolverDays * 24 * 60 * 60 * 1000),
+        remaining_days: resolverDays
       };
-
-      if (resolverDays !== null) {
-        const now = new Date();
-        const endDate = new Date(now.getTime() + resolverDays * 24 * 60 * 60 * 1000);
-        
-        updateData = {
-          ...updateData,
-          indicator: resolverDays,
-          start_date: now,
-          end_date: endDate,
-          remaining_days: resolverDays
-        };
-      }
 
       await updateDoc(consultaRef, updateData);
       
-      setConsultas((prevConsultas) =>
-        prevConsultas.map((consulta) =>
+      setConsultas(prevConsultas =>
+        prevConsultas.map(consulta =>
           consulta.id === selectedConsultId
             ? { ...consulta, ...updateData }
             : consulta
@@ -318,57 +338,14 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const updateRemainingDays = async (consulta) => {
-    if (!consulta.end_date || !consulta.indicator) return;
-
-    const now = new Date();
-    const endDate = consulta.end_date.toDate();
-    const remainingTime = endDate.getTime() - now.getTime();
-    const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
-
-    if (remainingDays !== consulta.remaining_days) {
-      const consultaRef = doc(db, "Consults", consulta.id);
-      await updateDoc(consultaRef, {
-        remaining_days: remainingDays
-      });
-
-      setConsultas((prevConsultas) =>
-        prevConsultas.map((c) =>
-          c.id === consulta.id
-            ? { ...c, remaining_days: remainingDays }
-            : c
-        )
-      );
-
-      if (remainingDays <= 1 && !consulta.alertShown) {
-        await updateDoc(consultaRef, {
-          alertShown: true
-        });
-        
-        Swal.fire({
-          title: "¡Atención!",
-          text: `La consulta de ${consulta.company} tiene ${remainingDays === 0 ? "menos de un día" : "1 día"} restante`,
-          icon: "warning",
-          confirmButtonColor: "#1B5C94",
-        });
-      }
-    }
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      consultas.forEach(updateRemainingDays);
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [consultas]);
-
   const renderRemainingDays = (consulta) => {
     if (!consulta.indicator && consulta.indicator !== 0) {
       return <Typography>No Asignado</Typography>;
     }
 
-    const remainingDays = consulta.remaining_days || consulta.indicator;
+    const remainingDays = consulta.remaining_days !== undefined ? 
+                         consulta.remaining_days : 
+                         consulta.indicator;
     
     return (
       <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -377,7 +354,8 @@ const VistaAsesorFormulario = () => {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            backgroundColor: remainingDays <= 1 ? "red" : remainingDays <= 3 ? "orange" : "green",
+            backgroundColor: remainingDays <= 1 ? "red" : 
+                           remainingDays <= 3 ? "orange" : "green",
             mr: 1,
           }}
         />
@@ -413,28 +391,6 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const handleDeleteConsulta = async (id) => {
-    const { isConfirmed } = await Swal.fire({
-      title: "Confirmación",
-      text: "¿Estás seguro de que deseas eliminar esta consulta?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
-    });
-
-    if (isConfirmed) {
-      try {
-        const consultaRef = doc(db, "Consults", id);
-        await deleteDoc(consultaRef);
-        setConsultas(consultas.filter((c) => c.id !== id));
-        Swal.fire("Eliminado", "La consulta ha sido eliminada.", "success");
-      } catch (error) {
-        Swal.fire("Error", "No se pudo eliminar la consulta.", "error");
-      }
-    }
-  };
-
   const handleViewComment = async (id) => {
     const consulta = consultas.find((c) => c.id === id);
 
@@ -465,6 +421,28 @@ const VistaAsesorFormulario = () => {
         } catch (error) {
           Swal.fire("Error", "No se pudo eliminar el comentario.", "error");
         }
+      }
+    }
+  };
+
+  const handleDeleteConsulta = async (id) => {
+    const { isConfirmed } = await Swal.fire({
+      title: "Confirmación",
+      text: "¿Estás seguro de que deseas eliminar esta consulta?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (isConfirmed) {
+      try {
+        const consultaRef = doc(db, "Consults", id);
+        await deleteDoc(consultaRef);
+        setConsultas(consultas.filter((c) => c.id !== id));
+        Swal.fire("Eliminado", "La consulta ha sido eliminada.", "success");
+      } catch (error) {
+        Swal.fire("Error", "No se pudo eliminar la consulta.", "error");
       }
     }
   };
@@ -1289,14 +1267,14 @@ const VistaAsesorFormulario = () => {
                                     sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
                                   >
                                     <Typography variant="body1">
-                                      <strong>Respuesta:</strong> {respuesta.reply}
+                                      <strong>Respuesta:</strong> {respuesta.content}
                                     </Typography>
                                     {respuesta.timestamp && (
                                       <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
                                         Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
                                       </Typography>
                                     )}
-                                    {respuesta.attachmentReply && (
+                                    {respuesta.attachment && (
                                       <Box sx={{ mt: 2 }}>
                                         <Typography variant="body1" fontWeight="bold" gutterBottom>
                                           Archivo Adjunto
@@ -1312,13 +1290,13 @@ const VistaAsesorFormulario = () => {
                                             "&:hover": { backgroundColor: "#f5f5f5" },
                                           }}
                                         >
-                                          {getFileIcon(respuesta.attachmentReply.split("/").pop())}
+                                          {getFileIcon(respuesta.attachment.split("/").pop())}
                                           <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                                            {respuesta.attachmentReply.split("/").pop()}
+                                            {respuesta.attachment.split("/").pop()}
                                           </Typography>
                                           <IconButton
                                             component="a"
-                                            href={respuesta.attachmentReply}
+                                            href={respuesta.attachment}
                                             download
                                             rel="noopener noreferrer"
                                             sx={{
