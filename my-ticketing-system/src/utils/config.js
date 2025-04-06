@@ -2,17 +2,16 @@ const getEnv = (key) => process.env[key];
 
 const config = {
   azure: {
-    azureLoginUrl: getEnv('NEXT_PUBLIC_AZURE_LOGIN_URL'),
-    azureClientId: getEnv('NEXT_PUBLIC_AZURE_CLIENT_ID'),
-    azureClientSecret: getEnv('NEXT_PUBLIC_AZURE_CLIENT_SECRET'),
-    azureTenantId: getEnv('NEXT_PUBLIC_AZURE_TENANT_ID'),
-    azureGrantType: getEnv('NEXT_PUBLIC_AZURE_GRANT_TYPE'),
-    azureScope: getEnv('NEXT_PUBLIC_AZURE_SCOPE'),
-    azureGraphSendEmailUrl: getEnv('NEXT_PUBLIC_AZURE_GRAPH_SEND_EMAIL_URL'),
+    azureLoginUrl: getEnv('REACT_APP_AZURE_LOGIN_URL'),
+    azureClientId: getEnv('REACT_APP_AZURE_CLIENT_ID'),
+    azureTenantId: getEnv('REACT_APP_AZURE_TENANT_ID'),
+    azureGrantType: getEnv('REACT_APP_AZURE_GRANT_TYPE'),
+    azureScope: getEnv('REACT_APP_AZURE_SCOPE'),
+    azureGraphSendEmailUrl: getEnv('REACT_APP_AZURE_GRAPH_SEND_EMAIL_URL'),
   },
   email: {
-    emailSender: getEnv('NEXT_PUBLIC_EMAIL_SENDER'),
-    emailSenderName: getEnv('NEXT_PUBLIC_EMAIL_SENDER_NAME'),
+    emailSender: getEnv('REACT_APP_EMAIL_SENDER'),
+    emailSenderName: getEnv('REACT_APP_EMAIL_SENDER_NAME'),
   }
 };
 

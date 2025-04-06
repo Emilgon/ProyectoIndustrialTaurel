@@ -1,8 +1,15 @@
 import config from './config';
 import sendMail from './sendMail';
 
-export default async function sendResponseEmail(consultaId, consultaName, clientEmail, replyContent, fileName = null) {
-    const { emailSenderName } = config.email;
+export default async function sendResponseEmail(
+  consultaId, 
+  consultaName, 
+  clientEmail, 
+  replyContent, 
+  fileName = null,
+  fileUrl = null
+) {
+    const { emailSenderName, emailSender } = config.email;
 
     const htmlContentBody = `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
@@ -19,7 +26,10 @@ export default async function sendResponseEmail(consultaId, consultaName, client
 
                 ${fileName ? `
                 <p style="margin-top: 15px; font-size: 14px;">
-                    <strong>Archivo adjunto:</strong> ${fileName}
+                    <strong>Archivo adjunto:</strong> 
+                    <a href="${fileUrl || '#'}" target="_blank" style="color: #2B5182; text-decoration: none;">
+                        ${fileName}
+                    </a>
                 </p>
                 ` : ''}
             </div>
@@ -47,10 +57,17 @@ export default async function sendResponseEmail(consultaId, consultaName, client
                 },
             },
         ],
+        from: {
+            emailAddress: {
+                address: emailSender,
+                name: emailSenderName
+            }
+        }
     };
 
     try {
         await sendMail(message);
+        console.log('Correo de respuesta enviado con éxito');
     } catch (error) {
         console.error('Error al enviar el correo de respuesta:', error);
         throw error;

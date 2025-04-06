@@ -20,7 +20,7 @@ import {
   Download as DownloadIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
-
+import sendResponseEmail from '../utils/sendResponseMail';
 const Respuesta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
@@ -124,12 +124,26 @@ const Respuesta = () => {
       };
 
       // Guardar la respuesta en Firestore
-      await addDoc(collection(db, "Responses"), responseData);
+      const docRef = await addDoc(collection(db, "Responses"), responseData);
 
       // Subir archivo si existe
+      let downloadUrl = null;
       if (file) {
         const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
         await uploadBytes(storageRef, file);
+        downloadUrl = await getDownloadURL(storageRef);
+      }
+
+      // Enviar email de notificación al cliente
+      if (consultaData && consultaData.email) {
+        await sendResponseEmail(
+          consultaId,
+          consultaData.type || "Consulta",
+          consultaData.email,
+          reply,
+          file ? file.name : null,
+          downloadUrl
+        );
       }
 
       // Limpiar formulario
@@ -142,16 +156,18 @@ const Respuesta = () => {
 
       Swal.fire({
         icon: 'success',
-        title: 'Respuesta guardada correctamente',
+        title: 'Respuesta enviada correctamente',
+        text: 'La respuesta se ha guardado y el cliente ha sido notificado',
         showConfirmButton: false,
-        timer: 1500
+        timer: 2000
       });
     } catch (error) {
-      console.error("Error al guardar la respuesta:", error);
+      console.error("Error al procesar la respuesta:", error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Hubo un error al guardar la respuesta'
+        text: 'Hubo un problema al guardar o enviar la respuesta',
+        footer: error.message
       });
     }
   };
@@ -181,7 +197,7 @@ const Respuesta = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h6" color="error">
-          Cargando...
+          Cargando datos de la consulta...
         </Typography>
       </Box>
     );
@@ -190,6 +206,15 @@ const Respuesta = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+        {/* Botón de regreso */}
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          sx={{ mb: 2 }}
+        >
+          Volver
+        </Button>
+
         <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94" }}>
           Respuesta a la Consulta
         </Typography>
@@ -333,26 +358,13 @@ const Respuesta = () => {
                         "&:hover": { backgroundColor: "#f5f5f5" },
                       }}
                     >
-                      {respuesta.attachment.startsWith("http") && (
-                        <img
-                          src={respuesta.attachment}
-                          alt="Previsualización"
-                          style={{
-                            maxWidth: "50px",
-                            maxHeight: "50px",
-                            borderRadius: "4px",
-                          }}
-                        />
-                      )}
-
-                      {getFileIcon(respuesta.attachment.split("/").pop())}
+                      {getFileIcon(respuesta.attachment)}
                       <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                        {respuesta.attachment.split("/").pop()}
+                        {respuesta.attachment}
                       </Typography>
-
                       <IconButton
                         component="a"
-                        href={respuesta.attachment}
+                        href={`respuestas/${consultaId}/${respuesta.attachment}`}
                         download
                         rel="noopener noreferrer"
                         sx={{
@@ -374,123 +386,113 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Campo de respuesta */}
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            label="Escribe tu respuesta aquí..."
-            multiline
-            rows={6}
-            variant="outlined"
-            fullWidth
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "12px",
-                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-              },
-            }}
-          />
-        </Box>
+        {/* Formulario de respuesta */}
+        <Box component="form" onSubmit={handleSubmit}>
+          {/* Campo de respuesta */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Escribe tu respuesta aquí..."
+              multiline
+              rows={6}
+              variant="outlined"
+              fullWidth
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              required
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "12px",
+                  boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                },
+              }}
+            />
+          </Box>
 
-        {/* Archivo adjunto */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Archivo Adjunto
-          </Typography>
-          {file ? (
-            <Box display="flex" alignItems="center" gap={1}>
-              {file.type.startsWith('image/') ? (
-                <Box display="flex" alignItems="center" gap={1}>
-                  <img
-                    src={filePreview}
-                    alt={file.name}
-                    style={{ maxWidth: "50px", maxHeight: "50px", borderRadius: "4px" }}
-                  />
-                  <Typography variant="body1" sx={{ flexGrow: 1 }}>
-                    {file.name}
-                  </Typography>
-                </Box>
-              ) : (
-                <Box display="flex" alignItems="center" gap={1}>
-                  {getFileIcon(file.name)}
-                  <Typography variant="body1" sx={{ flexGrow: 1 }}>
-                    {file.name}
-                  </Typography>
-                </Box>
-              )}
+          {/* Archivo adjunto */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Archivo Adjunto
+            </Typography>
+            {file ? (
+              <Box display="flex" alignItems="center" gap={1}>
+                {filePreview ? (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <img
+                      src={filePreview}
+                      alt={file.name}
+                      style={{ maxWidth: "50px", maxHeight: "50px", borderRadius: "4px" }}
+                    />
+                    <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                      {file.name}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {getFileIcon(file.name)}
+                    <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                      {file.name}
+                    </Typography>
+                  </Box>
+                )}
 
+                <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ) : (
               <Button
-                component="a"
-                href={URL.createObjectURL(file)}
-                download={file.name}
+                variant="outlined"
+                component="label"
+                startIcon={<AttachFileIcon />}
                 sx={{
+                  borderRadius: "12px",
+                  borderColor: "#1B5C94",
                   color: "#1B5C94",
                   "&:hover": {
-                    backgroundColor: "#e3f2fd",
+                    borderColor: "#145a8c",
                   },
                 }}
               >
-                <DownloadIcon />
+                Adjuntar Archivo
+                <input type="file" hidden onChange={handleFileChange} />
               </Button>
+            )}
+          </Box>
 
-              <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
-                <DeleteIcon />
-              </IconButton>
-            </Box>
-          ) : (
+          {/* Botones de acción */}
+          <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button
               variant="outlined"
-              component="label"
-              startIcon={<AttachFileIcon />}
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(-1)}
               sx={{
+                backgroundColor: "#f5f5f5",
+                color: "#1B5C94",
                 borderRadius: "12px",
                 borderColor: "#1B5C94",
-                color: "#1B5C94",
                 "&:hover": {
-                  borderColor: "#145a8c",
+                  backgroundColor: "#e3f2fd",
                 },
               }}
             >
-              Adjuntar Archivo
-              <input type="file" hidden onChange={handleFileChange} />
+              Cancelar
             </Button>
-          )}
-        </Box>
-
-        {/* Botones de acción */}
-        <Box display="flex" justifyContent="flex-end" gap={2}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/vista-asesor-formulario")}
-            sx={{
-              backgroundColor: "#f5f5f5",
-              color: "#1B5C94",
-              borderRadius: "12px",
-              borderColor: "#1B5C94",
-              "&:hover": {
-                backgroundColor: "#e3f2fd",
-              },
-            }}
-          >
-            Regresar
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={handleSubmit}
-            sx={{
-              backgroundColor: "#1B5C94",
-              color: "white",
-              borderRadius: "12px",
-              "&:hover": {
-                backgroundColor: "#145a8c",
-              },
-            }}
-          >
-            Guardar Respuesta
-          </Button>
+            <Button
+              variant="contained"
+              startIcon={<SendIcon />}
+              type="submit"
+              sx={{
+                backgroundColor: "#1B5C94",
+                color: "white",
+                borderRadius: "12px",
+                "&:hover": {
+                  backgroundColor: "#145a8c",
+                },
+              }}
+            >
+              Enviar Respuesta
+            </Button>
+          </Box>
         </Box>
       </Card>
     </Box>
