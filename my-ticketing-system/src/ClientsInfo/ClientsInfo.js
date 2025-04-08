@@ -13,12 +13,13 @@ import {
   Box,
   Collapse,
   Chip,
-  IconButton
+  IconButton,
+  Tooltip
 } from "@mui/material";
 import { db, storage } from "../firebaseConfig";
 import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import LogoutIcon from "@mui/icons-material/Logout";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import GetAppIcon from "@mui/icons-material/GetApp";
 
@@ -38,7 +39,6 @@ const ClientsInfo = () => {
     return new Date(timestamp.seconds * 1000).toLocaleDateString();
   };
 
-  // Función para obtener la URL de descarga
   const fetchDownloadUrl = async (fileName) => {
     try {
       const storageRef = ref(storage, `attachments/${fileName}`);
@@ -57,7 +57,6 @@ const ClientsInfo = () => {
         querySnapshot.docs.map(async (doc) => {
           const empresa = { id: doc.id, ...doc.data() };
 
-          // Obtener el número de consultas
           const consultasRef = query(
             collection(db, "Consults"),
             where("name", "==", empresa.name)
@@ -102,7 +101,6 @@ const ClientsInfo = () => {
       ...doc.data(),
     }));
     
-    // Obtener URLs de archivos adjuntos
     const urls = {};
     for (const consulta of consultaData) {
       if (consulta.attachment) {
@@ -135,7 +133,6 @@ const ClientsInfo = () => {
       ...doc.data(),
     }));
     
-    // Obtener URLs de archivos adjuntos
     const urls = {};
     for (const consulta of consultasData) {
       if (consulta.attachment) {
@@ -157,23 +154,26 @@ const ClientsInfo = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Clientes Registrados
-      </Typography>
-      <Button
-        variant="outlined"
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/asesor-control")}
-        sx={{
-          marginBottom: 2,
-          borderColor: "red",
-          color: "red",
-          borderRadius: "20px",
-          "&:hover": { borderColor: "#145a8c", backgroundColor: "#f5f5f5" },
-        }}
-      >
-        Volver
-      </Button>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Clientes Registrados
+        </Typography>
+        <Tooltip title="Salir al menú" arrow>
+          <IconButton
+            onClick={() => navigate("/asesor-control")}
+            sx={{
+              color: "#1B5C94",
+              alignSelf: 'flex-start',
+              mb: 2,
+              "&:hover": {
+                backgroundColor: "rgba(27, 92, 148, 0.1)"
+              }
+            }}
+          >
+            <LogoutIcon fontSize="medium" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table>

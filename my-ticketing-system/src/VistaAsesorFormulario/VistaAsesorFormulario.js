@@ -25,11 +25,13 @@ import {
   Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CheckIcon from '@mui/icons-material/Check';
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import DownloadIcon from "@mui/icons-material/Download";
+import SendIcon from "@mui/icons-material/Send";
 import CloseIcon from '@mui/icons-material/Close';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -74,7 +76,7 @@ const VistaAsesorFormulario = () => {
   const [orderBy, setOrderBy] = useState("company");
   const [editType, setEditType] = useState("No Asignado");
   const [selectedConsultId, setSelectedConsultId] = useState(null);
-  const [resolverDays, setResolverDays] = useState(null); 
+  const [resolverDays, setResolverDays] = useState(null);
   const [pendientesCount, setPendientesCount] = useState(0);
   const [enProcesoCount, setEnProcesoCount] = useState(0);
   const [resueltasCount, setResueltasCount] = useState(0);
@@ -99,7 +101,6 @@ const VistaAsesorFormulario = () => {
     if (!startDate || typeof startDate.toDate !== "function") {
       return indicadorOriginal;
     }
-
     const now = new Date();
     const start = startDate.toDate();
     const differenceInMs = now - start;
@@ -116,8 +117,8 @@ const VistaAsesorFormulario = () => {
         return {
           ...data,
           id: doc.id,
-          remaining_days: data.start_date ? 
-            calculateRemainingDays(data.start_date, data.indicator) : 
+          remaining_days: data.start_date ?
+            calculateRemainingDays(data.start_date, data.indicator) :
             data.indicator
         };
       });
@@ -133,14 +134,14 @@ const VistaAsesorFormulario = () => {
     fetchConsultas();
 
     const interval = setInterval(() => {
-      setConsultas(prevConsultas => 
+      setConsultas(prevConsultas =>
         prevConsultas.map(consulta => {
           if (consulta.start_date && consulta.indicator) {
             const remainingDays = calculateRemainingDays(
-              consulta.start_date, 
+              consulta.start_date,
               consulta.indicator
             );
-            return {...consulta, remaining_days: remainingDays};
+            return { ...consulta, remaining_days: remainingDays };
           }
           return consulta;
         })
@@ -151,7 +152,6 @@ const VistaAsesorFormulario = () => {
   }, []);
 
   useEffect(() => {
-    // Alerta para consultas con tiempo cercano
     const consultasCercanas = consultas.filter(
       (consulta) => (consulta.remaining_days || consulta.indicator) <= 1
     ).length;
@@ -168,10 +168,9 @@ const VistaAsesorFormulario = () => {
       setAlertShown(false);
     }
 
-    // Alerta para consultas no asignadas
     const consultasNoAsignadas = consultas.filter(
-      (consulta) => 
-        (consulta.type === "No Asignado" || !consulta.type) && 
+      (consulta) =>
+        (consulta.type === "No Asignado" || !consulta.type) &&
         (consulta.indicator === "No Asignado" || !consulta.indicator)
     ).length;
 
@@ -190,18 +189,13 @@ const VistaAsesorFormulario = () => {
 
   const handleResponderConsulta = async (id) => {
     try {
-      // Actualizar el estado de la consulta a "En proceso"
       const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, {
         status: "En proceso"
       });
-      
-      // Actualizar el estado local
-      setConsultas(consultas.map(c => 
-        c.id === id ? {...c, status: "En proceso"} : c
+      setConsultas(consultas.map(c =>
+        c.id === id ? { ...c, status: "En proceso" } : c
       ));
-      
-      // Navegar a la página de respuestas
       navigate(`/Respuestas/${id}`);
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
@@ -285,7 +279,6 @@ const VistaAsesorFormulario = () => {
     if (!timestamp || !timestamp.seconds) {
       return "Fecha no disponible";
     }
-
     return moment(timestamp.seconds * 1000)
       .tz("America/Caracas")
       .format("DD MMM YYYY, HH:mm");
@@ -300,7 +293,6 @@ const VistaAsesorFormulario = () => {
   const handleSave = async () => {
     try {
       const consultaRef = doc(db, "Consults", selectedConsultId);
-      
       const now = new Date();
       const updateData = {
         type: editType,
@@ -309,9 +301,7 @@ const VistaAsesorFormulario = () => {
         end_date: new Date(now.getTime() + resolverDays * 24 * 60 * 60 * 1000),
         remaining_days: resolverDays
       };
-
       await updateDoc(consultaRef, updateData);
-      
       setConsultas(prevConsultas =>
         prevConsultas.map(consulta =>
           consulta.id === selectedConsultId
@@ -319,7 +309,6 @@ const VistaAsesorFormulario = () => {
             : consulta
         )
       );
-
       setExpandedRow(null);
       Swal.fire({
         title: "¡Éxito!",
@@ -342,11 +331,9 @@ const VistaAsesorFormulario = () => {
     if (!consulta.indicator && consulta.indicator !== 0) {
       return <Typography>No Asignado</Typography>;
     }
-
-    const remainingDays = consulta.remaining_days !== undefined ? 
-                         consulta.remaining_days : 
-                         consulta.indicator;
-    
+    const remainingDays = consulta.remaining_days !== undefined ?
+      consulta.remaining_days :
+      consulta.indicator;
     return (
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <Box
@@ -354,8 +341,8 @@ const VistaAsesorFormulario = () => {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            backgroundColor: remainingDays <= 1 ? "red" : 
-                           remainingDays <= 3 ? "orange" : "green",
+            backgroundColor: remainingDays <= 1 ? "red" :
+              remainingDays <= 3 ? "orange" : "green",
             mr: 1,
           }}
         />
@@ -383,7 +370,6 @@ const VistaAsesorFormulario = () => {
         }
       },
     });
-
     if (comment) {
       const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, { comentario: comment });
@@ -393,7 +379,6 @@ const VistaAsesorFormulario = () => {
 
   const handleViewComment = async (id) => {
     const consulta = consultas.find((c) => c.id === id);
-
     const { value: result } = await Swal.fire({
       title: "Comentario",
       text: consulta?.comentario || "No hay comentario disponible",
@@ -401,7 +386,6 @@ const VistaAsesorFormulario = () => {
       confirmButtonText: "Aceptar",
       cancelButtonText: "Eliminar comentario",
     });
-
     if (result === undefined) {
       const { isConfirmed } = await Swal.fire({
         title: "Confirmación",
@@ -411,7 +395,6 @@ const VistaAsesorFormulario = () => {
         confirmButtonText: "Eliminar",
         cancelButtonText: "Cancelar",
       });
-
       if (isConfirmed) {
         try {
           const consultaRef = doc(db, "Consults", id);
@@ -434,7 +417,6 @@ const VistaAsesorFormulario = () => {
       confirmButtonText: "Eliminar",
       cancelButtonText: "Cancelar",
     });
-
     if (isConfirmed) {
       try {
         const consultaRef = doc(db, "Consults", id);
@@ -456,15 +438,12 @@ const VistaAsesorFormulario = () => {
     .filter((consulta) => {
       const matchesType = !selectedType || consulta.type === selectedType;
       const matchesState = !selectedState || consulta.status === selectedState;
-
       const consultaDate = consulta.star_date?.toDate();
       const [startDate, endDate] = dateRange;
-
       const matchesDateRange =
         !startDate ||
         !endDate ||
         (consultaDate >= startDate && consultaDate <= endDate);
-      
       let matchesIndicador = true;
       if (indicadorFilter !== "todos") {
         const remainingDays = consulta.remaining_days || consulta.indicator;
@@ -483,10 +462,8 @@ const VistaAsesorFormulario = () => {
             break;
         }
       }
-
-      const matchesCompany = !searchCompany || 
+      const matchesCompany = !searchCompany ||
         consulta.company.toLowerCase().includes(searchCompany.toLowerCase());
-
       return matchesType && matchesState && matchesDateRange && matchesIndicador && matchesCompany;
     })
     .sort((a, b) => {
@@ -496,23 +473,19 @@ const VistaAsesorFormulario = () => {
         const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
         return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
       }
-
       if (orderBy === "apply_date") {
         return order === "asc"
           ? (a.apply_date?.seconds || 0) - (b.apply_date?.seconds || 0)
           : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
       }
-
       if (orderBy === "type") {
         const typesOrder = ["Clasificación Arancelaria", "Asesoría técnica", "No Asignado"];
         const aIndex = typesOrder.indexOf(a.type || "No Asignado");
         const bIndex = typesOrder.indexOf(b.type || "No Asignado");
         return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
       }
-
       const aValue = a[orderBy] || "";
       const bValue = b[orderBy] || "";
-
       if (aValue < bValue) return order === "asc" ? -1 : 1;
       if (aValue > bValue) return order === "asc" ? 1 : -1;
       return 0;
@@ -520,21 +493,24 @@ const VistaAsesorFormulario = () => {
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
+    const iconProps = { sx: { color: "#1B5C94", fontSize: 24 } };
     switch (extension) {
       case "pdf":
-        return <PictureAsPdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
+        return <PictureAsPdfIcon {...iconProps} />;
       case "csv":
-        return <TableChartIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
+      case "xls":
+      case "xlsx":
+        return <TableChartIcon {...iconProps} />;
       case "doc":
       case "docx":
-        return <InsertDriveFileIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
+        return <DescriptionIcon {...iconProps} />;
       case "jpg":
       case "jpeg":
       case "png":
       case "gif":
-        return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
+        return <ImageIcon {...iconProps} />;
       default:
-        return <InsertDriveFileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
+        return <InsertDriveFileIcon {...iconProps} />;
     }
   };
 
@@ -544,54 +520,41 @@ const VistaAsesorFormulario = () => {
       const isImage = ["jpg", "jpeg", "png", "gif"].includes(
         fileName.split(".").pop().toLowerCase()
       );
-
       return (
         <Box
           key={fileName}
           display="flex"
           alignItems="center"
-          gap={1}
-          mb={1}
+          justifyContent="space-between"
           sx={{
             p: 1,
             border: "1px solid #e0e0e0",
             borderRadius: 1,
+            mb: 1,
             "&:hover": { backgroundColor: "#f5f5f5" },
           }}
         >
+          <Box display="flex" alignItems="center" gap={1} flexGrow={1}>
+            {getFileIcon(fileName)}
+            <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
+              {fileName}
+            </Typography>
+          </Box>
           {fileUrl && (
-            <IconButton
-              component="a"
-              href={fileUrl}
-              download
-              rel="noopener noreferrer"
-              aria-label={`Descargar archivo ${fileName}`}
-              sx={{
-                padding: 0,
-                "&:hover": {
-                  opacity: 0.8,
-                },
-              }}
-            >
-              {isImage ? (
-                <img
-                  src={fileUrl}
-                  alt={fileName}
-                  style={{
-                    maxWidth: "50px",
-                    maxHeight: "50px",
-                    borderRadius: "4px",
-                  }}
-                />
-              ) : (
-                getFileIcon(fileName)
-              )}
-            </IconButton>
+            <Tooltip title="Descargar archivo">
+              <IconButton
+                component="a"
+                href={fileUrl}
+                download={fileName}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="small"
+                sx={{ color: "#1B5C94" }}
+              >
+                <DownloadIcon />
+              </IconButton>
+            </Tooltip>
           )}
-
-          <Typography variant="body2" sx={{ flexGrow: 1 }}>
-            {fileName}
-          </Typography>
         </Box>
       );
     });
@@ -605,6 +568,119 @@ const VistaAsesorFormulario = () => {
     setSearchCompany("");
   };
 
+  const renderExpandedDetails = (consulta) => {
+    return (
+      <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94", mb: 3 }}>
+            Detalles de la Consulta
+          </Typography>
+          <TableContainer component={Paper} sx={{ mb: 3 }}>
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', width: '200px', backgroundColor: '#f5f5f5' }}>Nombre y Apellido</TableCell>
+                  <TableCell>{consulta.name || "No disponible"}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Correo</TableCell>
+                  <TableCell>{consulta.email || "No disponible"}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Empresa</TableCell>
+                  <TableCell>{consulta.company || "No disponible"}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Fecha de solicitud</TableCell>
+                  <TableCell>
+                    {consulta.timestamp?.seconds
+                      ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
+                      : "Fecha no disponible"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Consulta</TableCell>
+                  <TableCell>{consulta.messageContent || "No disponible"}</TableCell>
+                </TableRow>
+                {consulta.attachment && (
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Archivo adjunto</TableCell>
+                    <TableCell>
+                      {renderAttachments(consulta.attachment)}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3, color: "#1B5C94" }}>
+            Configuración de la Consulta
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle1" gutterBottom>
+                Tipo de Consulta
+              </Typography>
+              <Select
+                value={editType}
+                onChange={(e) => setEditType(e.target.value)}
+                fullWidth
+                size="small"
+                sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+              >
+                <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
+                <MuiMenuItem value="Asesoría técnica">Asesoría técnica</MuiMenuItem>
+                <MuiMenuItem value="Clasificación arancelaria">
+                  Clasificación arancelaria
+                </MuiMenuItem>
+              </Select>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle1" gutterBottom>
+                Días para resolver consulta
+              </Typography>
+              <Select
+                value={resolverDays === null ? "No Asignado" : resolverDays}
+                onChange={(e) => {
+                  const value = e.target.value === "No Asignado" ? null : e.target.value;
+                  setResolverDays(value);
+                }}
+                fullWidth
+                size="small"
+                sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+              >
+                <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
+                {[...Array(31).keys()].map((day) => (
+                  <MuiMenuItem key={day} value={day}>
+                    {day}
+                  </MuiMenuItem>
+                ))}
+              </Select>
+            </Grid>
+          </Grid>
+          <Box display="flex" justifyContent="flex-end" gap={2}>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              sx={{
+                backgroundColor: "#1B5C94",
+                color: "white",
+                borderRadius: "8px",
+                padding: "8px 24px",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#145a8c",
+                },
+              }}
+            >
+              Guardar
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
@@ -615,7 +691,7 @@ const VistaAsesorFormulario = () => {
           <Tooltip title="Resetear filtros" arrow>
             <IconButton
               onClick={resetFilters}
-              sx={{ 
+              sx={{
                 color: "#666",
                 mr: 1,
                 "&:hover": {
@@ -644,7 +720,7 @@ const VistaAsesorFormulario = () => {
                   }
                 });
               }}
-              sx={{ 
+              sx={{
                 color: "#1B5C94",
                 "&:hover": {
                   backgroundColor: "rgba(27, 92, 148, 0.04)"
@@ -852,9 +928,9 @@ const VistaAsesorFormulario = () => {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      backgroundColor: indicadorFilter === "todos" ? "transparent" : 
-                                     indicadorFilter === "urgente" ? "red" :
-                                     indicadorFilter === "proximo" ? "orange" : "green",
+                      backgroundColor: indicadorFilter === "todos" ? "transparent" :
+                        indicadorFilter === "urgente" ? "red" :
+                          indicadorFilter === "proximo" ? "orange" : "green",
                       display: indicadorFilter === "todos" ? "none" : "block"
                     }}
                   />
@@ -877,7 +953,7 @@ const VistaAsesorFormulario = () => {
                       Todos
                     </MuiMenuItem>
                     <MuiMenuItem onClick={() => handleIndicadorFilter("urgente")}
-                      sx={{ 
+                      sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1
@@ -894,7 +970,7 @@ const VistaAsesorFormulario = () => {
                       Urgente (1 día o menos)
                     </MuiMenuItem>
                     <MuiMenuItem onClick={() => handleIndicadorFilter("proximo")}
-                      sx={{ 
+                      sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1
@@ -911,7 +987,7 @@ const VistaAsesorFormulario = () => {
                       Próximo (2-3 días)
                     </MuiMenuItem>
                     <MuiMenuItem onClick={() => handleIndicadorFilter("normal")}
-                      sx={{ 
+                      sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1
@@ -965,9 +1041,69 @@ const VistaAsesorFormulario = () => {
                   <MuiMenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MuiMenuItem>
                 </Menu>
               </TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Historial</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Comentario</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Borrar</TableCell>
+              <TableCell>
+                <Button
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    textTransform: 'none'
+                  }}
+                >
+                  <HistoryIcon sx={{ fontSize: 20 }} />
+                  Historial
+                </Button>
+              </TableCell>
+
+              
+
+              <TableCell>
+                <Button
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    textTransform: 'none'
+                  }}
+                >
+                  <CheckIcon sx={{ fontSize: 20 }} /> {/* Icono de check */}
+                  Responder
+                </Button>
+              </TableCell>
+              <TableCell>
+                <Button
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    textTransform: 'none'
+                  }}
+                >
+                  <ChatIcon sx={{ fontSize: 20 }} />
+                  Comentario
+                </Button>
+              </TableCell>
+
+              <TableCell>
+                <Button
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    textTransform: 'none'
+                  }}
+                >
+                  Borrar
+                </Button>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -980,7 +1116,8 @@ const VistaAsesorFormulario = () => {
                       !e.target.classList.contains("comment-button") &&
                       !e.target.classList.contains("view-comment-button") &&
                       !e.target.classList.contains("delete-button") &&
-                      !e.target.classList.contains("historial-button")
+                      !e.target.classList.contains("historial-button") &&
+                      !e.target.classList.contains("responder-button")
                     ) {
                       handleToggleDetails(consulta.id);
                     }
@@ -995,16 +1132,50 @@ const VistaAsesorFormulario = () => {
                   </TableCell>
                   <TableCell>{consulta.status}</TableCell>
                   <TableCell>
-                    <IconButton
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleHistorial(consulta.id);
                       }}
-                      className="historial-button"
-                      sx={{ color: "#1B5C94" }}
+                      variant="contained"
+                      sx={{
+                        backgroundColor: "#1B5C94",
+                        color: "white",
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        minWidth: '100px',
+                        '&:hover': {
+                          backgroundColor: "#145a8c",
+                        }
+                      }}
                     >
-                      <HistoryIcon />
-                    </IconButton>
+                      Historial
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResponderConsulta(consulta.id);
+                      }}
+                      variant="contained"
+                      sx={{
+                        backgroundColor: "#1B5C94",
+                        color: "white",
+                        borderRadius: '8px', // Bordes cuadrados con suavizado
+                        padding: '6px 12px',
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        minWidth: '100px',
+                        '&:hover': {
+                          backgroundColor: "#145a8c",
+                        }
+                      }}
+                    >
+                      Responder
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <Button
@@ -1026,6 +1197,7 @@ const VistaAsesorFormulario = () => {
                       <VisibilityIcon sx={{ color: "#1B5C94" }} />
                     </Button>
                   </TableCell>
+                  
                   <TableCell>
                     <Button
                       onClick={(e) => {
@@ -1048,200 +1220,7 @@ const VistaAsesorFormulario = () => {
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.3, ease: "easeInOut" }}
                         >
-                          <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
-                            <CardContent>
-                              <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94" }}>
-                                Detalles de la Consulta
-                              </Typography>
-                              <Grid container spacing={1} sx={{ mb: 2 }}>
-                                <Grid item xs={12} sm={6}>
-                                  <Box display="flex" alignItems="center">
-                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                      <PersonIcon fontSize="medium" />
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="h6" fontWeight="bold">
-                                        Nombre y Apellido
-                                      </Typography>
-                                      <Typography variant="body1">
-                                        {consulta.name || "No disponible"}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Box display="flex" alignItems="center">
-                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                      <BusinessIcon fontSize="medium" />
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="h6" fontWeight="bold">
-                                        Empresa
-                                      </Typography>
-                                      <Typography variant="body1">
-                                        {consulta.company || "No disponible"}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Box display="flex" alignItems="center">
-                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                      <EmailIcon fontSize="medium" />
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="h6" fontWeight="bold">
-                                        Correo
-                                      </Typography>
-                                      <Typography variant="body1">
-                                        {consulta.email || "No disponible"}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Box display="flex" alignItems="center">
-                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                      <CalendarIcon fontSize="medium" />
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="h6" fontWeight="bold">
-                                        Fecha de Solicitud
-                                      </Typography>
-                                      <Typography variant="body1">
-                                        {consulta.timestamp?.seconds
-                                          ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
-                                          : "Fecha no disponible"}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={12}>
-                                  <Box display="flex" alignItems="center">
-                                    <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                      <DescriptionIcon fontSize="medium" />
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="h6" fontWeight="bold">
-                                        Consulta
-                                      </Typography>
-                                      <Typography variant="body1">
-                                        {consulta.messageContent || "No disponible"}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Grid>
-                                {consulta.attachment && (
-                                  <Grid item xs={12}>
-                                    <Box display="flex" alignItems="center">
-                                      <Avatar sx={{ bgcolor: "#1B5C94", mr: 1, width: 40, height: 40 }}>
-                                        <AttachFileIcon fontSize="medium" />
-                                      </Avatar>
-                                      <Box sx={{ width: "100%" }}>
-                                        <Typography variant="h6" fontWeight="bold">
-                                          Archivo Adjunto
-                                        </Typography>
-                                        {renderAttachments(consulta.attachment)}
-                                      </Box>
-                                    </Box>
-                                  </Grid>
-                                )}
-                              </Grid>
-                              <Divider sx={{ my: 2 }} />
-                              <Grid container spacing={1} sx={{ mb: 2 }}>
-                                <Grid item xs={12} sm={6}>
-                                  <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                    Tipo de Consulta
-                                  </Typography>
-                                  <Select
-                                    value={editType}
-                                    onChange={(e) => setEditType(e.target.value)}
-                                    fullWidth
-                                    displayEmpty
-                                    sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
-                                  >
-                                    <MuiMenuItem value="Asesoría técnica">Asesoría técnica</MuiMenuItem>
-                                    <MuiMenuItem value="Clasificación arancelaria">
-                                      Clasificación arancelaria
-                                    </MuiMenuItem>
-                                  </Select>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                    Días para resolver consulta
-                                  </Typography>
-                                  <Select
-                                    value={resolverDays === null ? "No Asignado" : resolverDays}
-                                    onChange={(e) => {
-                                      const value = e.target.value === "No Asignado" ? null : e.target.value;
-                                      setResolverDays(value);
-                                    }}
-                                    fullWidth
-                                    displayEmpty
-                                    sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
-                                  >
-                                    <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
-                                    {[...Array(31).keys()].map((day) => (
-                                      <MuiMenuItem key={day} value={day}>
-                                        {day}
-                                      </MuiMenuItem>
-                                    ))}
-                                  </Select>
-                                </Grid>
-                              </Grid>
-                              <Box display="flex" justifyContent="center" gap={2} mt={2}>
-                                <Button
-                                  variant="contained"
-                                  onClick={handleSave}
-                                  sx={{
-                                    backgroundColor: "#1B5C94",
-                                    color: "white",
-                                    borderRadius: "8px",
-                                    padding: "8px 24px",
-                                    textTransform: "none",
-                                    "&:hover": {
-                                      backgroundColor: "#145a8c",
-                                    },
-                                  }}
-                                >
-                                  Guardar
-                                </Button>
-                                <Button
-                                  variant="outlined"
-                                  onClick={() => setExpandedRow(null)}
-                                  sx={{
-                                    borderColor: "#1B5C94",
-                                    color: "#1B5C94",
-                                    borderRadius: "8px",
-                                    padding: "8px 24px",
-                                    textTransform: "none",
-                                    "&:hover": {
-                                      borderColor: "#145a8c",
-                                      backgroundColor: "rgba(27, 92, 148, 0.04)",
-                                    },
-                                  }}
-                                >
-                                  Cerrar
-                                </Button>
-                                <Button
-                                  variant="contained"
-                                  onClick={() => handleResponderConsulta(consulta.id)}
-                                  sx={{
-                                    backgroundColor: "#1B5C94",
-                                    color: "white",
-                                    borderRadius: "8px",
-                                    padding: "8px 24px",
-                                    textTransform: "none",
-                                    "&:hover": {
-                                      backgroundColor: "#145a8c",
-                                    },
-                                  }}
-                                >
-                                  Responder consulta
-                                </Button>
-                              </Box>
-                            </CardContent>
-                          </Card>
+                          {renderExpandedDetails(consulta)}
                         </motion.div>
                       </TableCell>
                     </TableRow>
@@ -1257,64 +1236,44 @@ const VistaAsesorFormulario = () => {
                         >
                           <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
                             <CardContent>
-                              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94", mb: 3 }}>
                                 Historial de Respuestas
                               </Typography>
                               {respuestas.length > 0 ? (
                                 respuestas.map((respuesta) => (
-                                  <Box
-                                    key={respuesta.id}
-                                    sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
-                                  >
-                                    <Typography variant="body1">
-                                      <strong>Respuesta:</strong> {respuesta.content}
-                                    </Typography>
-                                    {respuesta.timestamp && (
-                                      <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                                        Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
-                                      </Typography>
-                                    )}
-                                    {respuesta.attachment && (
-                                      <Box sx={{ mt: 2 }}>
-                                        <Typography variant="body1" fontWeight="bold" gutterBottom>
-                                          Archivo Adjunto
-                                        </Typography>
-                                        <Box
-                                          display="flex"
-                                          alignItems="center"
-                                          gap={1}
-                                          sx={{
-                                            p: 1,
-                                            border: "1px solid #e0e0e0",
-                                            borderRadius: 1,
-                                            "&:hover": { backgroundColor: "#f5f5f5" },
-                                          }}
-                                        >
-                                          {getFileIcon(respuesta.attachment.split("/").pop())}
-                                          <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                                            {respuesta.attachment.split("/").pop()}
-                                          </Typography>
-                                          <IconButton
-                                            component="a"
-                                            href={respuesta.attachment}
-                                            download
-                                            rel="noopener noreferrer"
-                                            sx={{
-                                              color: "#1B5C94",
-                                              "&:hover": {
-                                                backgroundColor: "#e3f2fd",
-                                              },
-                                            }}
-                                          >
-                                            <DownloadIcon />
-                                          </IconButton>
-                                        </Box>
-                                      </Box>
-                                    )}
+                                  <Box key={respuesta.id} sx={{ mb: 3, p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                                    <TableContainer component={Paper} sx={{ mb: 2 }}>
+                                      <Table>
+                                        <TableBody>
+                                          <TableRow>
+                                            <TableCell sx={{ fontWeight: 'bold', width: '200px', backgroundColor: '#f5f5f5' }}>Fecha</TableCell>
+                                            <TableCell>
+                                              {respuesta.timestamp?.seconds
+                                                ? new Date(respuesta.timestamp.seconds * 1000).toLocaleString()
+                                                : "Fecha no disponible"}
+                                            </TableCell>
+                                          </TableRow>
+                                          <TableRow>
+                                            <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Respuesta</TableCell>
+                                            <TableCell>{respuesta.content}</TableCell>
+                                          </TableRow>
+                                          {respuesta.attachment && (
+                                            <TableRow>
+                                              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Archivo adjunto</TableCell>
+                                              <TableCell>
+                                                {renderAttachments(respuesta.attachment)}
+                                              </TableCell>
+                                            </TableRow>
+                                          )}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
                                   </Box>
                                 ))
                               ) : (
-                                <Typography variant="body1">No hay respuestas aún.</Typography>
+                                <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
+                                  No hay respuestas registradas para esta consulta.
+                                </Typography>
                               )}
                             </CardContent>
                           </Card>
