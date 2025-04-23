@@ -23,6 +23,7 @@ import {
   Popover,
   Avatar,
   Tooltip,
+  TextField
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from '@mui/icons-material/Check';
@@ -61,7 +62,6 @@ import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "./VistaAsesorFormulario.css";
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import CategoryIcon from '@mui/icons-material/Category';
 import TimerIcon from '@mui/icons-material/Timer';
@@ -93,6 +93,8 @@ const VistaAsesorFormulario = () => {
   const [indicadorFilter, setIndicadorFilter] = useState("todos");
   const [searchCompany, setSearchCompany] = useState("");
   const [anchorElSearch, setAnchorElSearch] = useState(null);
+  const [itemsCount, setItemsCount] = useState(null);
+  const [tipoAsesoria, setTipoAsesoria] = useState("");
 
   const navigate = useNavigate();
   const storage = getStorage();
@@ -222,11 +224,15 @@ const VistaAsesorFormulario = () => {
       setEditType("No Asignado");
       setSelectedConsultId(null);
       setResolverDays(null);
+      setItemsCount(null);
+      setTipoAsesoria("");
     } else {
       const consulta = consultas.find((c) => c.id === id);
       setEditType(consulta.type || "No Asignado");
       setSelectedConsultId(id);
       setResolverDays(consulta.indicator || null);
+      setItemsCount(consulta.itemsCount || null);
+      setTipoAsesoria(consulta.tipoAsesoria || "");
 
       if (consulta.attachment) {
         const urls = await fetchDownloadUrls(consulta.attachment);
@@ -292,15 +298,27 @@ const VistaAsesorFormulario = () => {
 
   const handleSave = async () => {
     try {
+      let daysToResolve = resolverDays;
+      
+      // Lógica para determinar días automáticos según tipo de consulta
+      if (editType === "Clasificación arancelaria" && itemsCount !== null) {
+        daysToResolve = itemsCount < 10 ? 2 : 10;
+      } else if (editType === "Asesoría técnica" && tipoAsesoria) {
+        daysToResolve = tipoAsesoria === "Interna" ? 2 : 10;
+      }
+      
       const consultaRef = doc(db, "Consults", selectedConsultId);
       const now = new Date();
       const updateData = {
         type: editType,
-        indicator: resolverDays,
+        indicator: daysToResolve,
         start_date: now,
-        end_date: new Date(now.getTime() + resolverDays * 24 * 60 * 60 * 1000),
-        remaining_days: resolverDays
+        end_date: new Date(now.getTime() + daysToResolve * 24 * 60 * 60 * 1000),
+        remaining_days: daysToResolve,
+        itemsCount: editType === "Clasificación arancelaria" ? itemsCount : null,
+        tipoAsesoria: editType === "Asesoría técnica" ? tipoAsesoria : null
       };
+      
       await updateDoc(consultaRef, updateData);
       setConsultas(prevConsultas =>
         prevConsultas.map(consulta =>
@@ -331,9 +349,18 @@ const VistaAsesorFormulario = () => {
     if (!consulta.indicator && consulta.indicator !== 0) {
       return <Typography>No Asignado</Typography>;
     }
-    const remainingDays = consulta.remaining_days !== undefined ?
-      consulta.remaining_days :
+    
+    const remainingDays = consulta.remaining_days !== undefined ? 
+      consulta.remaining_days : 
       consulta.indicator;
+    
+    let plazoInfo = "";
+    if (consulta.type === "Clasificación arancelaria" && consulta.itemsCount) {
+      plazoInfo = ` (${consulta.itemsCount < 10 ? "Rápida" : "Estándar"})`;
+    } else if (consulta.type === "Asesoría técnica" && consulta.tipoAsesoria) {
+      plazoInfo = ` (${consulta.tipoAsesoria})`;
+    }
+    
     return (
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <Box
@@ -347,7 +374,7 @@ const VistaAsesorFormulario = () => {
           }}
         />
         <Typography>
-          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}
+          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}{plazoInfo}
         </Typography>
       </Box>
     );
@@ -623,7 +650,12 @@ const VistaAsesorFormulario = () => {
               </Typography>
               <Select
                 value={editType}
-                onChange={(e) => setEditType(e.target.value)}
+                onChange={(e) => {
+                  setEditType(e.target.value);
+                  // Resetear campos relacionados al cambiar el tipo
+                  if (e.target.value !== "Clasificación arancelaria") setItemsCount(null);
+                  if (e.target.value !== "Asesoría técnica") setTipoAsesoria("");
+                }}
                 fullWidth
                 size="small"
                 sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
@@ -635,28 +667,80 @@ const VistaAsesorFormulario = () => {
                 </MuiMenuItem>
               </Select>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Días para resolver consulta
-              </Typography>
-              <Select
-                value={resolverDays === null ? "No Asignado" : resolverDays}
-                onChange={(e) => {
-                  const value = e.target.value === "No Asignado" ? null : e.target.value;
-                  setResolverDays(value);
-                }}
-                fullWidth
-                size="small"
-                sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
-              >
-                <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
-                {[...Array(31).keys()].map((day) => (
-                  <MuiMenuItem key={day} value={day}>
-                    {day}
-                  </MuiMenuItem>
-                ))}
-              </Select>
-            </Grid>
+            
+            {/* Campo para cantidad de ítems (solo visible para clasificación arancelaria) */}
+            {editType === "Clasificación arancelaria" && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Cantidad de ítems a clasificar
+                </Typography>
+                <TextField
+                  type="number"
+                  value={itemsCount || ""}
+                  onChange={(e) => setItemsCount(parseInt(e.target.value) || null)}
+                  fullWidth
+                  size="small"
+                  sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                  inputProps={{ min: 1 }}
+                />
+                {itemsCount !== null && (
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#1B5C94' }}>
+                    Plazo automático: {itemsCount < 10 ? "2 días" : "10 días"}
+                  </Typography>
+                )}
+              </Grid>
+            )}
+            
+            {/* Campo para tipo de asesoría (solo visible para asesoría técnica) */}
+            {editType === "Asesoría técnica" && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Tipo de Asesoría
+                </Typography>
+                <Select
+                  value={tipoAsesoria}
+                  onChange={(e) => setTipoAsesoria(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                >
+                  <MuiMenuItem value="">Seleccione...</MuiMenuItem>
+                  <MuiMenuItem value="Interna">Interna (2 días hábiles)</MuiMenuItem>
+                  <MuiMenuItem value="Externa">Externa (10 días hábiles)</MuiMenuItem>
+                </Select>
+                {tipoAsesoria && (
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#1B5C94' }}>
+                    Plazo automático: {tipoAsesoria === "Interna" ? "2 días" : "10 días"}
+                  </Typography>
+                )}
+              </Grid>
+            )}
+            
+            {/* Mostrar días asignados (solo cuando no es automático) */}
+            {(editType !== "Clasificación arancelaria" && editType !== "Asesoría técnica") && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Días para resolver consulta
+                </Typography>
+                <Select
+                  value={resolverDays === null ? "No Asignado" : resolverDays}
+                  onChange={(e) => {
+                    const value = e.target.value === "No Asignado" ? null : e.target.value;
+                    setResolverDays(value);
+                  }}
+                  fullWidth
+                  size="small"
+                  sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                >
+                  <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
+                  {[...Array(31).keys()].map((day) => (
+                    <MuiMenuItem key={day} value={day}>
+                      {day}
+                    </MuiMenuItem>
+                  ))}
+                </Select>
+              </Grid>
+            )}
           </Grid>
           <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button
@@ -1057,8 +1141,6 @@ const VistaAsesorFormulario = () => {
                 </Button>
               </TableCell>
 
-              
-
               <TableCell>
                 <Button
                   sx={{
@@ -1070,7 +1152,7 @@ const VistaAsesorFormulario = () => {
                     textTransform: 'none'
                   }}
                 >
-                  <CheckIcon sx={{ fontSize: 20 }} /> {/* Icono de check */}
+                  <CheckIcon sx={{ fontSize: 20 }} />
                   Responder
                 </Button>
               </TableCell>
@@ -1164,7 +1246,7 @@ const VistaAsesorFormulario = () => {
                       sx={{
                         backgroundColor: "#1B5C94",
                         color: "white",
-                        borderRadius: '8px', // Bordes cuadrados con suavizado
+                        borderRadius: '8px',
                         padding: '6px 12px',
                         textTransform: 'none',
                         fontWeight: 'bold',
