@@ -72,12 +72,11 @@ const AsesorControl = () => {
         </Typography>
       </Box>
 
-      {/* Paneles rectangulares más anchos que altos */}
+      {/* Paneles rectangulares más anchos que altos con botones uno al lado del otro */}
       <Box
         sx={{
           display: "flex",
           gap: 4,
-          flexWrap: "wrap",
           justifyContent: "center",
           width: "100%",
           maxWidth: 1200,

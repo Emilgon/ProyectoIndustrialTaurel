@@ -136,14 +136,23 @@ const Respuesta = () => {
 
       // Enviar email de notificación al cliente
       if (consultaData && consultaData.email) {
-        await sendResponseEmail(
-          consultaId,
-          consultaData.type || "Consulta",
-          consultaData.email,
-          reply,
-          file ? file.name : null,
-          downloadUrl
-        );
+        try {
+          await sendResponseEmail(
+            consultaId,
+            consultaData.type || "Consulta",
+            consultaData.email,
+            reply,
+            file ? file.name : null,
+            downloadUrl
+          );
+        } catch (emailError) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Respuesta guardada',
+            text: 'Se guardó la respuesta en el sistema pero no se pudo enviar el correo electrónico.',
+            confirmButtonColor: '#1B5C94',
+          });
+        }
       }
 
       // Limpiar formulario

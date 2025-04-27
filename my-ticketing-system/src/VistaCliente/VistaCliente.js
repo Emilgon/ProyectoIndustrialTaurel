@@ -116,9 +116,9 @@ const VistaCliente = () => {
   };
 
   // Función para obtener la URL de descarga de un archivo
-  const fetchDownloadUrl = async (fileName) => {
+  const fetchDownloadUrl = async (consultaId, fileName) => {
     try {
-      const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`); // Cambia la ruta según tu estructura
+      const storageRef = ref(storage, `respuestas/${consultaId}/${fileName}`); // Cambiada la ruta para que coincida con Respuesta.js
       const url = await getDownloadURL(storageRef);
       return url;
     } catch (error) {
@@ -135,7 +135,7 @@ const VistaCliente = () => {
         if (consulta.attachment) {
           for (const fileName of consulta.attachment.split(", ")) {
             if (!fileUrls[fileName]) {
-              const url = await fetchDownloadUrl(fileName);
+              const url = await fetchDownloadUrl(consulta.id, fileName);
               if (url) {
                 urls[fileName] = url;
               }
@@ -144,10 +144,10 @@ const VistaCliente = () => {
         }
         if (consulta.respuestas) {
           for (const respuesta of consulta.respuestas) {
-            if (respuesta.attachment) {
+            if (respuesta.attachment) { // Cambiado de attachmentReply a attachment
               for (const fileName of respuesta.attachment.split(", ")) {
                 if (!fileUrls[fileName]) {
-                  const url = await fetchDownloadUrl(fileName);
+                  const url = await fetchDownloadUrl(consulta.id, fileName);
                   if (url) {
                     urls[fileName] = url;
                   }
@@ -340,7 +340,7 @@ const VistaCliente = () => {
                               </Typography>
                             </Box>
                             <Typography sx={{ mb: 1 }}>
-                              <strong>Mensaje:</strong> {respuesta.reply}
+                              <strong>Mensaje:</strong> {respuesta.content}
                             </Typography>
                             {respuesta.timestamp?.seconds ? (
                               <Typography sx={{ mb: 1 }}>
@@ -353,27 +353,37 @@ const VistaCliente = () => {
                               </Typography>
                             )}
 
-                            {/* Mostrar el archivo adjunto de la respuesta (attachmentReply) */}
-                            {respuesta.attachmentReply && (
+                            {/* Mostrar el archivo adjunto de la respuesta */}
+                            {respuesta.attachment && (
                               <Box sx={{ mb: 2 }}>
                                 <Typography variant="h6">
                                   <strong>Archivo Adjunto:</strong>
                                 </Typography>
                                 <List>
-                                  <ListItem>
-                                    <ListItemIcon>
-                                      {getFileIcon(respuesta.attachmentReply)}
-                                    </ListItemIcon>
-                                    <ListItemText primary={respuesta.attachmentReply.split("/").pop()} />
-                                    <IconButton
-                                      component="a"
-                                      href={respuesta.attachmentReply}
-                                      download
-                                      rel="noopener noreferrer"
-                                    >
-                                      <GetAppIcon />
-                                    </IconButton>
-                                  </ListItem>
+                                  {respuesta.attachment.split(", ").map((fileName) => {
+                                    const fileUrl = fileUrls[fileName];
+                                    const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                                      fileName.split(".").pop().toLowerCase()
+                                    );
+                                    return (
+                                      <ListItem key={fileName}>
+                                        <ListItemIcon>
+                                          {getFileIcon(fileName)}
+                                        </ListItemIcon>
+                                        <ListItemText primary={fileName} />
+                                        {fileUrl && (
+                                          <IconButton
+                                            component="a"
+                                            href={fileUrl}
+                                            download
+                                            rel="noopener noreferrer"
+                                          >
+                                            <GetAppIcon />
+                                          </IconButton>
+                                        )}
+                                      </ListItem>
+                                    );
+                                  })}
                                 </List>
                               </Box>
                             )}
