@@ -348,8 +348,8 @@ const Reports = () => {
           alignItems: 'center',
           mb: 3
         }}>
-          <Typography variant="h4" component="h1">
-            Panel de Reportes y Estadísticas
+          <Typography variant="h4" component="h1" color="#1B5C94">
+            Reportes y Estadísticas
           </Typography>
           
           {/* Contenedor de botones */}
