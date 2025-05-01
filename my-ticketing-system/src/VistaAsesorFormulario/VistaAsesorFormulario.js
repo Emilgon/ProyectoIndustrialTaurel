@@ -66,6 +66,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CategoryIcon from '@mui/icons-material/Category';
 import TimerIcon from '@mui/icons-material/Timer';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import { blue } from "@mui/material/colors";
 
 const VistaAsesorFormulario = () => {
   const [consultas, setConsultas] = useState([]);
@@ -299,14 +300,14 @@ const VistaAsesorFormulario = () => {
   const handleSave = async () => {
     try {
       let daysToResolve = resolverDays;
-      
+
       // Lógica para determinar días automáticos según tipo de consulta
       if (editType === "Clasificación arancelaria" && itemsCount !== null) {
         daysToResolve = itemsCount < 10 ? 2 : 10;
       } else if (editType === "Asesoría técnica" && tipoAsesoria) {
         daysToResolve = tipoAsesoria === "Interna" ? 2 : 10;
       }
-      
+
       const consultaRef = doc(db, "Consults", selectedConsultId);
       const now = new Date();
       const updateData = {
@@ -318,7 +319,7 @@ const VistaAsesorFormulario = () => {
         itemsCount: editType === "Clasificación arancelaria" ? itemsCount : null,
         tipoAsesoria: editType === "Asesoría técnica" ? tipoAsesoria : null
       };
-      
+
       await updateDoc(consultaRef, updateData);
       setConsultas(prevConsultas =>
         prevConsultas.map(consulta =>
@@ -349,18 +350,18 @@ const VistaAsesorFormulario = () => {
     if (!consulta.indicator && consulta.indicator !== 0) {
       return <Typography>No Asignado</Typography>;
     }
-    
-    const remainingDays = consulta.remaining_days !== undefined ? 
-      consulta.remaining_days : 
+
+    const remainingDays = consulta.remaining_days !== undefined ?
+      consulta.remaining_days :
       consulta.indicator;
-    
+
     let plazoInfo = "";
     if (consulta.type === "Clasificación arancelaria" && consulta.itemsCount) {
       plazoInfo = ` (${consulta.itemsCount < 10 ? "Rápida" : "Estándar"})`;
     } else if (consulta.type === "Asesoría técnica" && consulta.tipoAsesoria) {
       plazoInfo = ` (${consulta.tipoAsesoria})`;
     }
-    
+
     return (
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <Box
@@ -667,7 +668,7 @@ const VistaAsesorFormulario = () => {
                 </MuiMenuItem>
               </Select>
             </Grid>
-            
+
             {/* Campo para cantidad de ítems (solo visible para clasificación arancelaria) */}
             {editType === "Clasificación arancelaria" && (
               <Grid item xs={12} sm={6}>
@@ -690,7 +691,7 @@ const VistaAsesorFormulario = () => {
                 )}
               </Grid>
             )}
-            
+
             {/* Campo para tipo de asesoría (solo visible para asesoría técnica) */}
             {editType === "Asesoría técnica" && (
               <Grid item xs={12} sm={6}>
@@ -715,7 +716,7 @@ const VistaAsesorFormulario = () => {
                 )}
               </Grid>
             )}
-            
+
             {/* Mostrar días asignados (solo cuando no es automático) */}
             {(editType !== "Clasificación arancelaria" && editType !== "Asesoría técnica") && (
               <Grid item xs={12} sm={6}>
@@ -767,55 +768,25 @@ const VistaAsesorFormulario = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Consultas
-      </Typography>
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
-          <Tooltip title="Resetear filtros" arrow>
-            <IconButton
-              onClick={resetFilters}
-              sx={{
-                color: "#666",
-                mr: 1,
-                "&:hover": {
-                  backgroundColor: "rgba(0, 0, 0, 0.04)"
-                }
-              }}
-            >
-              <RestartAltIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Salir al menú" arrow>
-            <IconButton
-              onClick={() => {
-                Swal.fire({
-                  title: "¿Estás seguro?",
-                  text: "¿Quieres regresar al menú? Los cambios no guardados se perderán.",
-                  icon: "warning",
-                  showCancelButton: true,
-                  confirmButtonText: "Sí, salir",
-                  cancelButtonText: "Cancelar",
-                  confirmButtonColor: "#1B5C94",
-                  cancelButtonColor: "#d33",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    navigate("/asesor-control");
-                  }
-                });
-              }}
-              sx={{
-                color: "#1B5C94",
-                "&:hover": {
-                  backgroundColor: "rgba(27, 92, 148, 0.04)"
-                }
-              }}
-            >
-              <LogoutIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
+          Consultas
+        </Typography>
+        <Tooltip title="Resetear filtros" arrow>
+          <IconButton
+            onClick={resetFilters}
+            sx={{
+              color: "#1B5C94",
+              "&:hover": {
+                backgroundColor: "rgba(27, 92, 148, 0.1)"
+              }
+            }}
+          >
+            <RestartAltIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
+     
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table>
           <TableHead>
@@ -1279,7 +1250,7 @@ const VistaAsesorFormulario = () => {
                       <VisibilityIcon sx={{ color: "#1B5C94" }} />
                     </Button>
                   </TableCell>
-                  
+
                   <TableCell>
                     <Button
                       onClick={(e) => {
