@@ -21,6 +21,7 @@ import {
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
 import sendResponseEmail from '../utils/sendResponseMail';
+
 const Respuesta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
@@ -213,7 +214,7 @@ const Respuesta = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, textAlign: 'left' }}> {/* Cambio clave aquí: textAlign: 'left' */}
       <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
         {/* Botón de regreso */}
         <Button
