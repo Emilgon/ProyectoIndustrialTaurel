@@ -136,15 +136,13 @@ const Respuesta = () => {
       }
 
       // Enviar email de notificación al cliente
-      if (consultaData && consultaData.email) {
+      if (consultaData && consultaData.clientId) {
         try {
           await sendResponseEmail(
             consultaId,
-            consultaData.type || "Consulta",
-            consultaData.email,
             reply,
-            file ? file.name : null,
-            downloadUrl
+            downloadUrl,
+            consultaData.clientId
           );
         } catch (emailError) {
           Swal.fire({
