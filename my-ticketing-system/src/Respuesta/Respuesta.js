@@ -20,6 +20,7 @@ import {
   Download as DownloadIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import sendResponseEmail from '../utils/sendResponseMail';
 
 const Respuesta = () => {
   const { consultaId } = useParams();
@@ -30,7 +31,6 @@ const Respuesta = () => {
   const [filePreview, setFilePreview] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
-  const [isSending, setIsSending] = useState(false);
 
   const obtenerRespuestas = async () => {
     try {
@@ -43,31 +43,18 @@ const Respuesta = () => {
       setRespuestas(respuestasData);
     } catch (error) {
       console.error("Error al obtener las respuestas:", error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudieron cargar las respuestas anteriores',
-        footer: error.message
-      });
     }
   };
 
   const fetchDownloadUrls = async (attachments) => {
     const urls = {};
-    if (!attachments) return urls;
-
-    const filePaths = attachments.split(", ").filter(path => path.trim() !== '');
-
-    for (const filePath of filePaths) {
+    for (const fileName of attachments.split(", ")) {
       try {
-        const storageRef = ref(storage, filePath);
+        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`);
         const url = await getDownloadURL(storageRef);
-        const fileName = filePath.split('/').pop();
         urls[fileName] = url;
       } catch (error) {
-        console.error(`Error al obtener URL para ${filePath}:`, error);
-        const fileName = filePath.split('/').pop();
-        urls[fileName] = null;
+        console.error("Error al obtener la URL de descarga:", error);
       }
     }
     return urls;
@@ -77,8 +64,7 @@ const Respuesta = () => {
     const fetchConsulta = async () => {
       try {
         if (!consultaId) {
-          Swal.fire('Error', 'No se proporcionó un ID de consulta válido', 'error');
-          navigate('/consultas');
+          console.error("No se proporcionó un ID de consulta.");
           return;
         }
 
@@ -94,44 +80,28 @@ const Respuesta = () => {
             setFileDownloadUrls(urls);
           }
         } else {
-          Swal.fire('Error', 'No se encontró la consulta solicitada', 'error');
-          navigate('/consultas');
+          console.error("No se encontró la consulta con ID:", consultaId);
         }
       } catch (error) {
         console.error("Error al obtener la consulta:", error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo cargar la consulta',
-          footer: error.message
-        });
       }
     };
 
     fetchConsulta();
     obtenerRespuestas();
-  }, [consultaId, navigate]);
+  }, [consultaId]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Archivo demasiado grande',
-        text: 'El tamaño máximo permitido es 10MB',
-      });
-      return;
-    }
-
     setFile(selectedFile);
 
-    const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
-    if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
-      setFilePreview(URL.createObjectURL(selectedFile));
-    } else {
-      setFilePreview(null);
+    if (selectedFile) {
+      const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
+      if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
+        setFilePreview(URL.createObjectURL(selectedFile));
+      } else {
+        setFilePreview(null);
+      }
     }
   };
 
@@ -142,114 +112,111 @@ const Respuesta = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!reply.trim()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campo vacío',
-        text: 'Por favor escribe una respuesta antes de enviar',
-      });
-      return;
-    }
-
-    setIsSending(true);
-    const loadingSwal = Swal.fire({
-      title: 'Enviando respuesta...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
+    if (!reply.trim()) return;
 
     try {
-      let fileNameWithPath = null;
-      let downloadUrl = null;
-      
-      if (file) {
-        try {
-          const uniqueFileName = `${Date.now()}_${file.name}`;
-          const storagePath = `respuestas/${consultaId}/${uniqueFileName}`;
-          const storageRef = ref(storage, storagePath);
-          
-          await uploadBytes(storageRef, file);
-          downloadUrl = await getDownloadURL(storageRef);
-          fileNameWithPath = storagePath;
-        } catch (fileError) {
-          console.error("Error al subir archivo:", fileError);
-          throw new Error(`No se pudo subir el archivo adjunto: ${fileError.message}`);
-        }
-      }
-
+      // Crear el documento de respuesta
       const responseData = {
         consultaId,
         content: reply,
         timestamp: new Date(),
         userId: auth.currentUser.uid,
-        userName: auth.currentUser.displayName || 'Asesor',
-        attachment: fileNameWithPath
+        attachment: file ? file.name : null
       };
 
-      await addDoc(collection(db, "Responses"), responseData);
+      // Guardar la respuesta en Firestore
+      const docRef = await addDoc(collection(db, "Responses"), responseData);
 
-      
+      // Subir archivo si existe
+      let downloadUrl = null;
+      if (file) {
+        const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
+        await uploadBytes(storageRef, file);
+        downloadUrl = await getDownloadURL(storageRef);
+      }
 
+      // Enviar email de notificación al cliente
+      if (consultaData && consultaData.email) {
+        try {
+          await sendResponseEmail(
+            consultaId,
+            consultaData.type || "Consulta",
+            consultaData.email,
+            reply,
+            file ? file.name : null,
+            downloadUrl
+          );
+        } catch (emailError) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Respuesta guardada',
+            text: 'Se guardó la respuesta en el sistema pero no se pudo enviar el correo electrónico.',
+            confirmButtonColor: '#1B5C94',
+          });
+        }
+      }
+
+      // Limpiar formulario
       setReply('');
       setFile(null);
       setFilePreview(null);
-      await obtenerRespuestas();
 
-      await loadingSwal.close();
+      // Refrescar respuestas
+      obtenerRespuestas();
+
       Swal.fire({
-        position: 'top-end',
         icon: 'success',
-        title: 'Respuesta enviada',
+        title: 'Respuesta enviada correctamente',
+        text: 'La respuesta se ha guardado y el cliente ha sido notificado',
         showConfirmButton: false,
-        timer: 1500
+        timer: 2000
       });
     } catch (error) {
       console.error("Error al procesar la respuesta:", error);
-      await loadingSwal.close();
       Swal.fire({
-        icon: error.message.includes('correo') ? 'warning' : 'error',
-        title: error.message.includes('correo') ? 'Respuesta guardada' : 'Error',
-        text: error.message.includes('correo')
-          ? 'Se guardó la respuesta pero no se pudo enviar el correo'
-          : 'Hubo un problema al procesar la respuesta',
+        icon: 'error',
+        title: 'Error',
+        text: 'Hubo un problema al guardar o enviar la respuesta',
         footer: error.message
       });
-    } finally {
-      setIsSending(false);
     }
   };
 
   const getFileIcon = (fileName) => {
-    if (!fileName) return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
-    
     const extension = fileName.split(".").pop().toLowerCase();
     switch (extension) {
-      case "pdf": return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
+      case "pdf":
+        return <PdfIcon sx={{ color: "#FF0000", fontSize: 30 }} />;
       case "xls":
-      case "xlsx": return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
+      case "xlsx":
+        return <ExcelIcon sx={{ color: "#4CAF50", fontSize: 30 }} />;
       case "doc":
-      case "docx": return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
+      case "docx":
+        return <DocIcon sx={{ color: "#2196F3", fontSize: 30 }} />;
       case "jpg":
       case "jpeg":
       case "png":
-      case "gif": return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
-      default: return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
+      case "gif":
+        return <ImageIcon sx={{ color: "#FFC107", fontSize: 30 }} />;
+      default:
+        return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
     }
   };
 
   if (!consultaData) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Typography variant="h6">Cargando datos de la consulta...</Typography>
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h6" color="error">
+          Cargando datos de la consulta...
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, textAlign: 'left' }}>
+    <Box sx={{ p: 3, textAlign: 'left' }}> {/* Cambio clave aquí: textAlign: 'left' */}
       <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+        {/* Botón de regreso */}
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
@@ -262,13 +229,14 @@ const Respuesta = () => {
           Respuesta a la Consulta
         </Typography>
 
+        {/* Información del cliente */}
         <Box sx={{ mb: 3 }}>
           <Box display="flex" alignItems="center" gap={1} mb={1}>
             <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
               <PersonIcon fontSize="small" />
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
-              Cliente: {consultaData.name || 'No especificado'}
+              Cliente: {consultaData.name}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -276,7 +244,7 @@ const Respuesta = () => {
               <BusinessIcon fontSize="small" />
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
-              Empresa: {consultaData.company || 'No especificada'}
+              Empresa: {consultaData.company}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={1}>
@@ -284,26 +252,27 @@ const Respuesta = () => {
               <DescriptionIcon fontSize="small" />
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
-              Tipo de consulta: {consultaData.type || 'General'}
+              Tipo de consulta: {consultaData.type}
             </Typography>
           </Box>
         </Box>
 
+        {/* Mensaje del cliente */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             Mensaje del Cliente
           </Typography>
-          <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+          <Typography variant="body1">
             {consultaData.messageContent}
           </Typography>
 
+          {/* Archivo adjunto del cliente */}
           {consultaData.attachment && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment.split(", ").map((filePath, index) => {
-                const fileName = filePath.split('/').pop();
+              {consultaData.attachment.split(", ").map((fileName, index) => {
                 const fileUrl = fileDownloadUrls[fileName];
                 const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                   fileName.split(".").pop().toLowerCase()
@@ -323,14 +292,19 @@ const Respuesta = () => {
                       "&:hover": { backgroundColor: "#f5f5f5" },
                     }}
                   >
-                    {fileUrl ? (
+                    {fileUrl && (
                       <IconButton
                         component="a"
                         href={fileUrl}
                         download
                         rel="noopener noreferrer"
-                        aria-label={`Descargar ${fileName}`}
-                        sx={{ padding: 0 }}
+                        aria-label={`Descargar archivo ${fileName}`}
+                        sx={{
+                          padding: 0,
+                          "&:hover": {
+                            opacity: 0.8,
+                          },
+                        }}
                       >
                         {isImage ? (
                           <img
@@ -346,24 +320,11 @@ const Respuesta = () => {
                           getFileIcon(fileName)
                         )}
                       </IconButton>
-                    ) : (
-                      getFileIcon(fileName)
                     )}
 
                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
                       {fileName}
                     </Typography>
-
-                    {fileUrl && (
-                      <IconButton
-                        component="a"
-                        href={fileUrl}
-                        download
-                        sx={{ color: "#1B5C94" }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    )}
                   </Box>
                 );
               })}
@@ -371,35 +332,30 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {respuestas.length > 0 && (
-          <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Historial de Respuestas
-            </Typography>
-            {respuestas.map((respuesta, index) => (
+        {/* Historial de respuestas */}
+        <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Historial de Respuestas
+          </Typography>
+          {respuestas.length > 0 ? (
+            respuestas.map((respuesta, index) => (
               <Box
                 key={index}
-                sx={{ 
-                  mb: 2, 
-                  p: 2, 
-                  border: "1px solid #e0e0e0", 
-                  borderRadius: 1,
-                  backgroundColor: index % 2 === 0 ? '#f9f9f9' : 'white'
-                }}
+                sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
               >
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                  <strong>{respuesta.userName || 'Asesor'}:</strong> {respuesta.content}
+                <Typography variant="body1">
+                  <strong>Respuesta:</strong> {respuesta.content}
                 </Typography>
                 {respuesta.timestamp && (
                   <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                    {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
+                    Enviado el: {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
                   </Typography>
                 )}
 
                 {respuesta.attachment && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" fontWeight="bold" gutterBottom>
-                      Archivo adjunto:
+                    <Typography variant="body1" fontWeight="bold" gutterBottom>
+                      Archivo Adjunto
                     </Typography>
                     <Box
                       display="flex"
@@ -412,15 +368,21 @@ const Respuesta = () => {
                         "&:hover": { backgroundColor: "#f5f5f5" },
                       }}
                     >
-                      {getFileIcon(respuesta.attachment.split('/').pop())}
+                      {getFileIcon(respuesta.attachment)}
                       <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                        {respuesta.attachment.split('/').pop()}
+                        {respuesta.attachment}
                       </Typography>
                       <IconButton
                         component="a"
-                        href={fileDownloadUrls[respuesta.attachment.split('/').pop()] || '#'}
+                        href={`respuestas/${consultaId}/${respuesta.attachment}`}
                         download
-                        sx={{ color: "#1B5C94" }}
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        }}
                       >
                         <DownloadIcon />
                       </IconButton>
@@ -428,63 +390,62 @@ const Respuesta = () => {
                   </Box>
                 )}
               </Box>
-            ))}
-          </Card>
-        )}
+            ))
+          ) : (
+            <Typography variant="body1">No hay respuestas aún.</Typography>
+          )}
+        </Card>
 
+        {/* Formulario de respuesta */}
         <Box component="form" onSubmit={handleSubmit}>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Escribe tu respuesta
-          </Typography>
-          
-          <TextField
-            label="Detalla tu respuesta aquí..."
-            multiline
-            rows={6}
-            variant="outlined"
-            fullWidth
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            required
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "12px",
-                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-              },
-            }}
-          />
-
+          {/* Campo de respuesta */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-              Adjuntar archivo (opcional)
+            <TextField
+              label="Escribe tu respuesta aquí..."
+              multiline
+              rows={6}
+              variant="outlined"
+              fullWidth
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              required
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "12px",
+                  boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Archivo adjunto */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Archivo Adjunto
             </Typography>
             {file ? (
-              <Box display="flex" alignItems="center" gap={2}>
+              <Box display="flex" alignItems="center" gap={1}>
                 {filePreview ? (
-                  <img
-                    src={filePreview}
-                    alt={file.name}
-                    style={{
-                      maxWidth: "60px",
-                      maxHeight: "60px",
-                      borderRadius: "4px",
-                      border: "1px solid #e0e0e0"
-                    }}
-                  />
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <img
+                      src={filePreview}
+                      alt={file.name}
+                      style={{ maxWidth: "50px", maxHeight: "50px", borderRadius: "4px" }}
+                    />
+                    <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                      {file.name}
+                    </Typography>
+                  </Box>
                 ) : (
-                  getFileIcon(file.name)
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {getFileIcon(file.name)}
+                    <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                      {file.name}
+                    </Typography>
+                  </Box>
                 )}
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="body2">{file.name}</Typography>
-                  <Typography variant="caption">
-                    {(file.size / 1024).toFixed(2)} KB
-                  </Typography>
-                </Box>
-                <IconButton 
-                  onClick={handleRemoveFile} 
-                  sx={{ color: "error.main" }}
-                >
+
+                <IconButton onClick={handleRemoveFile} sx={{ color: "error.main" }}>
                   <DeleteIcon />
                 </IconButton>
               </Box>
@@ -494,43 +455,34 @@ const Respuesta = () => {
                 component="label"
                 startIcon={<AttachFileIcon />}
                 sx={{
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   borderColor: "#1B5C94",
                   color: "#1B5C94",
                   "&:hover": {
                     borderColor: "#145a8c",
-                    backgroundColor: "rgba(27, 92, 148, 0.04)"
                   },
                 }}
               >
-                Seleccionar archivo
-                <input 
-                  type="file" 
-                  hidden 
-                  onChange={handleFileChange} 
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                />
+                Adjuntar Archivo
+                <input type="file" hidden onChange={handleFileChange} />
               </Button>
             )}
           </Box>
 
+          {/* Botones de acción */}
           <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
               onClick={() => navigate(-1)}
-              disabled={isSending}
               sx={{
                 backgroundColor: "#f5f5f5",
                 color: "#1B5C94",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 borderColor: "#1B5C94",
                 "&:hover": {
                   backgroundColor: "#e3f2fd",
                 },
-                "&:disabled": {
-                  opacity: 0.7
-                }
               }}
             >
               Cancelar
@@ -539,20 +491,16 @@ const Respuesta = () => {
               variant="contained"
               startIcon={<SendIcon />}
               type="submit"
-              disabled={isSending || !reply.trim()}
               sx={{
                 backgroundColor: "#1B5C94",
                 color: "white",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 "&:hover": {
                   backgroundColor: "#145a8c",
                 },
-                "&:disabled": {
-                  backgroundColor: "#9e9e9e"
-                }
               }}
             >
-              {isSending ? 'Enviando...' : 'Enviar Respuesta'}
+              Enviar Respuesta
             </Button>
           </Box>
         </Box>
