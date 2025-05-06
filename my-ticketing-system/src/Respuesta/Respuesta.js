@@ -20,7 +20,6 @@ import {
   Download as DownloadIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
-import sendResponseEmail from '../utils/sendResponseMail';
 
 const Respuesta = () => {
   const { consultaId } = useParams();
@@ -136,23 +135,7 @@ const Respuesta = () => {
       }
 
       // Enviar email de notificación al cliente
-      if (consultaData && consultaData.clientId) {
-        try {
-          await sendResponseEmail(
-            consultaId,
-            reply,
-            downloadUrl,
-            consultaData.clientId
-          );
-        } catch (emailError) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Respuesta guardada',
-            text: 'Se guardó la respuesta en el sistema pero no se pudo enviar el correo electrónico.',
-            confirmButtonColor: '#1B5C94',
-          });
-        }
-      }
+
 
       // Limpiar formulario
       setReply('');
@@ -228,6 +211,7 @@ const Respuesta = () => {
         </Typography>
 
         {/* Información del cliente */}
+        {/* Información del cliente */}
         <Box sx={{ mb: 3 }}>
           <Box display="flex" alignItems="center" gap={1} mb={1}>
             <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
@@ -251,6 +235,28 @@ const Respuesta = () => {
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
               Tipo de consulta: {consultaData.type}
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1} mt={1}>
+            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
+              <DescriptionIcon fontSize="small" />
+            </Avatar>
+            <Typography variant="h6" fontWeight="bold">
+              Fecha de envío: {consultaData.start_date && consultaData.start_date.seconds ?
+                new Date(consultaData.start_date.seconds * 1000).toLocaleDateString('es-ES', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }) :
+                new Date(consultaData.start_date).toLocaleDateString('es-ES', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
             </Typography>
           </Box>
         </Box>

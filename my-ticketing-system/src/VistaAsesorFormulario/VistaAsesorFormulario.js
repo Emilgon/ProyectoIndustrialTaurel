@@ -466,7 +466,11 @@ const VistaAsesorFormulario = () => {
     .filter((consulta) => {
       const matchesType = !selectedType || consulta.type === selectedType;
       const matchesState = !selectedState || consulta.status === selectedState;
-      const consultaDate = consulta.star_date?.toDate();
+      const consultaDate = consulta.start_date
+        ? (typeof consulta.start_date.toDate === 'function'
+            ? consulta.start_date.toDate()
+            : new Date(consulta.start_date))
+        : null;
       const [startDate, endDate] = dateRange;
       const matchesDateRange =
         !startDate ||
@@ -1179,7 +1183,7 @@ const VistaAsesorFormulario = () => {
                 >
                   <TableCell>{consulta.company}</TableCell>
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
-                  <TableCell>{formatDateTime(consulta.star_date)}</TableCell>
+                  <TableCell>{formatDateTime(consulta.start_date)}</TableCell>
                   <TableCell>
                     {renderRemainingDays(consulta)}
                   </TableCell>

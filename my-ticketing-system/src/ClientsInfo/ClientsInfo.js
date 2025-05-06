@@ -14,7 +14,10 @@ import {
   Collapse,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  Popover,
+  TextField,
+  InputAdornment
 } from "@mui/material";
 import { db, storage } from "../firebaseConfig";
 import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
@@ -22,6 +25,8 @@ import { ref, getDownloadURL } from "firebase/storage";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import GetAppIcon from "@mui/icons-material/GetApp";
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 const ClientsInfo = () => {
   const [empresas, setEmpresas] = useState([]);
@@ -30,6 +35,8 @@ const ClientsInfo = () => {
   const [showLastQuery, setShowLastQuery] = useState(false);
   const [showLastFiveQueries, setShowLastFiveQueries] = useState(false);
   const [fileUrls, setFileUrls] = useState({});
+  const [searchClient, setSearchClient] = useState("");
+  const [anchorElSearch, setAnchorElSearch] = useState(null);
   const navigate = useNavigate();
 
   const formatDate = (timestamp) => {
@@ -152,6 +159,10 @@ const ClientsInfo = () => {
     setShowLastFiveQueries(true);
   };
 
+  const filteredEmpresas = empresas.filter((empresa) =>
+    empresa.company.toLowerCase().includes(searchClient.toLowerCase())
+  );
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -177,13 +188,73 @@ const ClientsInfo = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: "#1B5C94" }}>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Cliente</TableCell>
+              <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <Button
+                  onClick={(event) => setAnchorElSearch(event.currentTarget)}
+                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  Cliente
+                  {searchClient && (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: "#4CAF50",
+                        display: "block"
+                      }}
+                    />
+                  )}
+                </Button>
+                <Popover
+                  open={Boolean(anchorElSearch)}
+                  anchorEl={anchorElSearch}
+                  onClose={() => setAnchorElSearch(null)}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "left",
+                  }}
+                >
+                  <Box sx={{ p: 2, width: 250 }}>
+                    <TextField
+                      autoFocus
+                      fullWidth
+                      size="small"
+                      variant="outlined"
+                      placeholder="Buscar cliente..."
+                      value={searchClient}
+                      onChange={(e) => setSearchClient(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        ),
+                        endAdornment: searchClient && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setSearchClient("")}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                </Popover>
+              </TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Email</TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Consultas activas</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {empresas.map((empresa) => (
+            {filteredEmpresas.map((empresa) => (
               <React.Fragment key={empresa.id}>
                 <TableRow 
                   hover 
