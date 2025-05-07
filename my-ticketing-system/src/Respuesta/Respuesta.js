@@ -1,9 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
-import { db, auth, storage } from "../firebaseConfig";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { TextField, Box, Button, Card, Typography, Avatar, IconButton } from '@mui/material';
+import { Box, Button, Card, Typography, Avatar, IconButton, TextField } from '@mui/material';
 import Swal from 'sweetalert2';
 import {
   AttachFile as AttachFileIcon,
@@ -20,148 +16,24 @@ import {
   Download as DownloadIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import useRespuestaController from "../hooks/useRespuestaController";
 
 const Respuesta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
-  const [consultaData, setConsultaData] = useState(null);
-  const [reply, setReply] = useState('');
-  const [file, setFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
-  const [respuestas, setRespuestas] = useState([]);
-  const [fileDownloadUrls, setFileDownloadUrls] = useState({});
 
-  const obtenerRespuestas = async () => {
-    try {
-      const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
-      const respuestasSnapshot = await getDocs(respuestasRef);
-      const respuestasData = respuestasSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRespuestas(respuestasData);
-    } catch (error) {
-      console.error("Error al obtener las respuestas:", error);
-    }
-  };
-
-  const fetchDownloadUrls = async (attachments) => {
-    const urls = {};
-    for (const fileName of attachments.split(", ")) {
-      try {
-        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`);
-        const url = await getDownloadURL(storageRef);
-        urls[fileName] = url;
-      } catch (error) {
-        console.error("Error al obtener la URL de descarga:", error);
-      }
-    }
-    return urls;
-  };
-
-  useEffect(() => {
-    const fetchConsulta = async () => {
-      try {
-        if (!consultaId) {
-          console.error("No se proporcionó un ID de consulta.");
-          return;
-        }
-
-        const consultaRef = doc(db, "Consults", consultaId);
-        const consultaDoc = await getDoc(consultaRef);
-
-        if (consultaDoc.exists()) {
-          const data = consultaDoc.data();
-          setConsultaData(data);
-
-          if (data.attachment) {
-            const urls = await fetchDownloadUrls(data.attachment);
-            setFileDownloadUrls(urls);
-          }
-        } else {
-          console.error("No se encontró la consulta con ID:", consultaId);
-        }
-      } catch (error) {
-        console.error("Error al obtener la consulta:", error);
-      }
-    };
-
-    fetchConsulta();
-    obtenerRespuestas();
-  }, [consultaId]);
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-
-    if (selectedFile) {
-      const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
-      if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
-        setFilePreview(URL.createObjectURL(selectedFile));
-      } else {
-        setFilePreview(null);
-      }
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setFile(null);
-    setFilePreview(null);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!reply.trim()) return;
-
-    try {
-      // Crear el documento de respuesta
-      const responseData = {
-        consultaId,
-        content: reply,
-        timestamp: new Date(),
-        userId: auth.currentUser.uid,
-        attachment: file ? file.name : null
-      };
-
-      // Guardar la respuesta en Firestore
-      const docRef = await addDoc(collection(db, "Responses"), responseData);
-
-      // Subir archivo si existe
-      let downloadUrl = null;
-      if (file) {
-        const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
-        await uploadBytes(storageRef, file);
-        downloadUrl = await getDownloadURL(storageRef);
-      }
-
-      // Enviar email de notificación al cliente
-
-
-      // Limpiar formulario
-      setReply('');
-      setFile(null);
-      setFilePreview(null);
-
-      // Refrescar respuestas
-      obtenerRespuestas();
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Respuesta enviada correctamente',
-        text: 'La respuesta se ha guardado y el cliente ha sido notificado',
-        showConfirmButton: false,
-        timer: 2000
-      });
-    } catch (error) {
-      console.error("Error al procesar la respuesta:", error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Hubo un problema al guardar o enviar la respuesta',
-        footer: error.message
-      });
-    }
-  };
+  const {
+    consultaData,
+    respuestas,
+    fileDownloadUrls,
+    reply,
+    setReply,
+    file,
+    filePreview,
+    handleFileChange,
+    handleRemoveFile,
+    handleSubmit
+  } = useRespuestaController(consultaId);
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -194,10 +66,30 @@ const Respuesta = () => {
     );
   }
 
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const result = await handleSubmit();
+    if (result.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Respuesta enviada correctamente',
+        text: 'La respuesta se ha guardado y el cliente ha sido notificado',
+        showConfirmButton: false,
+        timer: 2000
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Hubo un problema al guardar o enviar la respuesta',
+        footer: result.error?.message || ''
+      });
+    }
+  };
+
   return (
-    <Box sx={{ p: 3, textAlign: 'left' }}> {/* Cambio clave aquí: textAlign: 'left' */}
+    <Box sx={{ p: 3, textAlign: 'left' }}>
       <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
-        {/* Botón de regreso */}
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
@@ -210,8 +102,6 @@ const Respuesta = () => {
           Respuesta a la Consulta
         </Typography>
 
-        {/* Información del cliente */}
-        {/* Información del cliente */}
         <Box sx={{ mb: 3 }}>
           <Box display="flex" alignItems="center" gap={1} mb={1}>
             <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
@@ -261,7 +151,6 @@ const Respuesta = () => {
           </Box>
         </Box>
 
-        {/* Mensaje del cliente */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             Mensaje del Cliente
@@ -270,7 +159,6 @@ const Respuesta = () => {
             {consultaData.messageContent}
           </Typography>
 
-          {/* Archivo adjunto del cliente */}
           {consultaData.attachment && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -336,7 +224,6 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Historial de respuestas */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             Historial de Respuestas
@@ -400,9 +287,7 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Formulario de respuesta */}
-        <Box component="form" onSubmit={handleSubmit}>
-          {/* Campo de respuesta */}
+        <Box component="form" onSubmit={onSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField
               label="Escribe tu respuesta aquí..."
@@ -422,7 +307,6 @@ const Respuesta = () => {
             />
           </Box>
 
-          {/* Archivo adjunto */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               Archivo Adjunto
@@ -473,7 +357,6 @@ const Respuesta = () => {
             )}
           </Box>
 
-          {/* Botones de acción */}
           <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button
               variant="outlined"

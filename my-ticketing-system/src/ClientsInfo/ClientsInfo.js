@@ -1,43 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Typography,
-  Box,
-  Collapse,
-  Chip,
-  IconButton,
-  Tooltip,
-  Popover,
-  TextField,
-  InputAdornment
-} from "@mui/material";
-import { db, storage } from "../firebaseConfig";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
-import { ref, getDownloadURL } from "firebase/storage";
+import React from "react";
+import { Box, Button, TextField, Typography, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Chip, IconButton, Tooltip, Popover, InputAdornment } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import useClientsInfoController from "../hooks/useClientsInfoController";
 
 const ClientsInfo = () => {
-  const [empresas, setEmpresas] = useState([]);
-  const [consultas, setConsultas] = useState([]);
-  const [expandedRow, setExpandedRow] = useState(null);
-  const [showLastQuery, setShowLastQuery] = useState(false);
-  const [showLastFiveQueries, setShowLastFiveQueries] = useState(false);
-  const [fileUrls, setFileUrls] = useState({});
-  const [searchClient, setSearchClient] = useState("");
-  const [anchorElSearch, setAnchorElSearch] = useState(null);
-  const navigate = useNavigate();
+  const {
+    clients,
+    expandedClientId,
+    consultas,
+    fileDownloadUrls,
+    searchClient,
+    setSearchClient,
+    showLastQuery,
+    showLastFiveQueries,
+    handleRowClick,
+    fetchLastQuery,
+    fetchLastFiveQueries
+  } = useClientsInfoController();
 
   const formatDate = (timestamp) => {
     if (!timestamp || !timestamp.seconds) {
@@ -46,122 +29,17 @@ const ClientsInfo = () => {
     return new Date(timestamp.seconds * 1000).toLocaleDateString();
   };
 
-  const fetchDownloadUrl = async (fileName) => {
-    try {
-      const storageRef = ref(storage, `attachments/${fileName}`);
-      const url = await getDownloadURL(storageRef);
-      return url;
-    } catch (error) {
-      console.error("Error al obtener la URL de descarga:", error);
-      return null;
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split(".").pop().toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return <AttachmentIcon />;
+      default:
+        return <AttachmentIcon />;
     }
   };
 
-  useEffect(() => {
-    const fetchEmpresas = async () => {
-      const querySnapshot = await getDocs(collection(db, "Clients"));
-      const empresasData = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const empresa = { id: doc.id, ...doc.data() };
-
-          const consultasRef = query(
-            collection(db, "Consults"),
-            where("name", "==", empresa.name)
-          );
-          const consultasSnapshot = await getDocs(consultasRef);
-          const numConsultas = consultasSnapshot.size;
-
-          return {
-            ...empresa,
-            numConsultas
-          };
-        })
-      );
-      setEmpresas(empresasData);
-    };
-    fetchEmpresas();
-  }, []);
-
-  const handleRowClick = async (empresaId, empresaName) => {
-    if (expandedRow === empresaId) {
-      setExpandedRow(null);
-      setConsultas([]);
-      setShowLastQuery(false);
-      setShowLastFiveQueries(false);
-      return;
-    }
-    
-    setExpandedRow(empresaId);
-    await fetchLastQuery(empresaName);
-  };
-
-  const fetchLastQuery = async (empresaName) => {
-    const consultaRef = query(
-      collection(db, "Consults"),
-      where("name", "==", empresaName),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    );
-    const consultaSnapshot = await getDocs(consultaRef);
-    const consultaData = consultaSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    
-    const urls = {};
-    for (const consulta of consultaData) {
-      if (consulta.attachment) {
-        const fileNames = consulta.attachment.split(", ");
-        for (const fileName of fileNames) {
-          if (!fileUrls[fileName]) {
-            const url = await fetchDownloadUrl(fileName);
-            if (url) urls[fileName] = url;
-          }
-        }
-      }
-    }
-    setFileUrls(prev => ({ ...prev, ...urls }));
-    
-    setConsultas(consultaData);
-    setShowLastQuery(true);
-    setShowLastFiveQueries(false);
-  };
-
-  const fetchLastFiveQueries = async (empresaName) => {
-    const consultasRef = query(
-      collection(db, "Consults"),
-      where("name", "==", empresaName),
-      orderBy("timestamp", "desc"),
-      limit(5)
-    );
-    const consultasSnapshot = await getDocs(consultasRef);
-    const consultasData = consultasSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    
-    const urls = {};
-    for (const consulta of consultasData) {
-      if (consulta.attachment) {
-        const fileNames = consulta.attachment.split(", ");
-        for (const fileName of fileNames) {
-          if (!fileUrls[fileName]) {
-            const url = await fetchDownloadUrl(fileName);
-            if (url) urls[fileName] = url;
-          }
-        }
-      }
-    }
-    setFileUrls(prev => ({ ...prev, ...urls }));
-    
-    setConsultas(consultasData);
-    setShowLastQuery(false);
-    setShowLastFiveQueries(true);
-  };
-
-  const filteredEmpresas = empresas.filter((empresa) =>
-    empresa.company.toLowerCase().includes(searchClient.toLowerCase())
-  );
+  const [anchorElSearch, setAnchorElSearch] = React.useState(null);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -171,7 +49,7 @@ const ClientsInfo = () => {
         </Typography>
         <Tooltip title="Salir al panel de control" arrow>
           <IconButton
-            onClick={() => navigate("/asesor-control")}
+            onClick={() => window.location.href = "/asesor-control"}
             sx={{
               color: "#1B5C94",
               "&:hover": {
@@ -254,20 +132,20 @@ const ClientsInfo = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredEmpresas.map((empresa) => (
-              <React.Fragment key={empresa.id}>
+            {clients.map((client) => (
+              <React.Fragment key={client.id}>
                 <TableRow 
                   hover 
-                  onClick={() => handleRowClick(empresa.id, empresa.name)}
+                  onClick={() => handleRowClick(client.id, client.name)}
                   sx={{ cursor: 'pointer' }}
                 >
-                  <TableCell>{empresa.company}</TableCell>
-                  <TableCell>{empresa.email}</TableCell>
-                  <TableCell>{empresa.numConsultas}</TableCell>
+                  <TableCell>{client.company}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.numConsultas}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
-                    <Collapse in={expandedRow === empresa.id} timeout="auto" unmountOnExit>
+                    <Collapse in={expandedClientId === client.id} timeout="auto" unmountOnExit>
                       <Box sx={{ margin: 1, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
                         <Box sx={{ 
                           display: 'flex', 
@@ -296,7 +174,7 @@ const ClientsInfo = () => {
                                 border: '2px solid #1B5C94'
                               }
                             }}
-                            onClick={() => fetchLastQuery(empresa.name)}
+                            onClick={() => fetchLastQuery(client.name)}
                           >
                             Última consulta
                           </Button>
@@ -311,7 +189,7 @@ const ClientsInfo = () => {
                                 border: '2px solid #1B5C94'
                               }
                             }}
-                            onClick={() => fetchLastFiveQueries(empresa.name)}
+                            onClick={() => fetchLastFiveQueries(client.name)}
                           >
                             Últimas 5 consultas
                           </Button>
@@ -352,9 +230,9 @@ const ClientsInfo = () => {
                                               key={fileName}
                                               icon={<AttachmentIcon />}
                                               label={fileName}
-                                              onClick={() => window.open(fileUrls[fileName], '_blank')}
+                                              onClick={() => window.open(fileDownloadUrls[fileName], '_blank')}
                                               deleteIcon={<GetAppIcon />}
-                                              onDelete={fileUrls[fileName] ? () => window.open(fileUrls[fileName], '_blank') : undefined}
+                                              onDelete={fileDownloadUrls[fileName] ? () => window.open(fileDownloadUrls[fileName], '_blank') : undefined}
                                               variant="outlined"
                                               sx={{ 
                                                 maxWidth: 200,
