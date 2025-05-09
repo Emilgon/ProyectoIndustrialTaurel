@@ -5,6 +5,7 @@ import {
   fetchDownloadUrls,
   addRespuesta
 } from "../models/respuestaModel";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
@@ -13,6 +14,9 @@ const useRespuestaController = (consultaId) => {
   const [reply, setReply] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+
+  const functions = getFunctions();
+  const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,10 +58,27 @@ const useRespuestaController = (consultaId) => {
     if (!reply.trim()) return;
 
     try {
-      await addRespuesta(consultaId, reply, file);
+      const { id, downloadUrl } = await addRespuesta(consultaId, reply, file);
       setReply('');
       setFile(null);
       setFilePreview(null);
+
+      // Call cloud function to send email notification
+      if (consultaData && consultaData.clientId) {
+        try {
+          await sendResponseEmail({
+            consultaId,
+            reply,
+            downloadUrl,
+            clientId: consultaData.clientId
+          });
+          console.log("Email notification sent successfully");
+        } catch (emailError) {
+          console.error("Error sending email notification:", emailError);
+        }
+      } else {
+        console.warn("No clientId found in consultaData, email not sent");
+      }
 
       // Refresh respuestas
       const respuestasData = await fetchRespuestasByConsultaId(consultaId);
