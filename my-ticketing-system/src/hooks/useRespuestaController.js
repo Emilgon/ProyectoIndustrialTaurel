@@ -6,6 +6,7 @@ import {
   addRespuesta
 } from "../models/respuestaModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { getAuth } from "firebase/auth";
 
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
@@ -16,21 +17,26 @@ const useRespuestaController = (consultaId) => {
   const [filePreview, setFilePreview] = useState(null);
 
   const functions = getFunctions();
+  const auth = getAuth();
   const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
     const fetchData = async () => {
       if (!consultaId) return;
-      const consulta = await fetchConsultaById(consultaId);
-      setConsultaData(consulta);
+      try {
+        const consulta = await fetchConsultaById(consultaId);
+        setConsultaData(consulta);
 
-      if (consulta && consulta.attachment) {
-        const urls = await fetchDownloadUrls(consulta.attachment);
-        setFileDownloadUrls(urls);
+        if (consulta?.attachment) {
+          const urls = await fetchDownloadUrls(consulta.attachment);
+          setFileDownloadUrls(urls);
+        }
+
+        const respuestasData = await fetchRespuestasByConsultaId(consultaId);
+        setRespuestas(respuestasData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
       }
-
-      const respuestasData = await fetchRespuestasByConsultaId(consultaId);
-      setRespuestas(respuestasData);
     };
     fetchData();
   }, [consultaId]);
@@ -38,15 +44,7 @@ const useRespuestaController = (consultaId) => {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
-
-    if (selectedFile) {
-      const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
-      if (["jpg", "jpeg", "png", "gif", "bmp"].includes(fileExtension)) {
-        setFilePreview(URL.createObjectURL(selectedFile));
-      } else {
-        setFilePreview(null);
-      }
-    }
+    setFilePreview(selectedFile ? URL.createObjectURL(selectedFile) : null);
   };
 
   const handleRemoveFile = () => {
@@ -55,39 +53,69 @@ const useRespuestaController = (consultaId) => {
   };
 
   const handleSubmit = async () => {
-    if (!reply.trim()) return;
+    if (!reply.trim()) {
+      return {
+        success: false,
+        error: { message: "El mensaje de respuesta no puede estar vacío" }
+      };
+    }
 
     try {
-      const { id, downloadUrl } = await addRespuesta(consultaId, reply, file);
+      // 1. Guardar la respuesta en Firestore
+      const { downloadUrl } = await addRespuesta(consultaId, reply, file);
+
+      // 2. Enviar notificación por correo
+      if (consultaData?.clientId) {
+        const currentUser = auth.currentUser;
+        if (!currentUser?.email) {
+          throw new Error("No se pudo obtener el email del asesor");
+        }
+
+        const emailData = {
+          consultaId,
+          reply,
+          downloadUrl: downloadUrl || null,
+          clientId: consultaData.clientId,
+          advisorEmail: currentUser.email
+        };
+
+        console.log("Enviando email con datos:", emailData);
+
+        const result = await sendResponseEmail(emailData);
+        console.log("Resultado del envío:", result.data);
+      }
+
+      // 3. Limpiar formulario
       setReply('');
       setFile(null);
       setFilePreview(null);
 
-      // Call cloud function to send email notification
-      if (consultaData && consultaData.clientId) {
-        try {
-          await sendResponseEmail({
-            consultaId,
-            reply,
-            downloadUrl,
-            clientId: consultaData.clientId
-          });
-          console.log("Email notification sent successfully");
-        } catch (emailError) {
-          console.error("Error sending email notification:", emailError);
-        }
-      } else {
-        console.warn("No clientId found in consultaData, email not sent");
-      }
-
-      // Refresh respuestas
-      const respuestasData = await fetchRespuestasByConsultaId(consultaId);
-      setRespuestas(respuestasData);
+      // 4. Actualizar lista de respuestas
+      const updatedRespuestas = await fetchRespuestasByConsultaId(consultaId);
+      setRespuestas(updatedRespuestas);
 
       return { success: true };
     } catch (error) {
-      console.error("Error submitting respuesta:", error);
-      return { success: false, error };
+      console.error("Error completo al enviar respuesta:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        stack: error.stack
+      });
+
+      // Custom error message for missing client email
+      let userFriendlyMessage = error.message;
+      if (error.message === "El cliente no tiene un email registrado") {
+        userFriendlyMessage = "El cliente no tiene un correo electrónico registrado. Por favor, verifique los datos del cliente.";
+      }
+
+      return {
+        success: false,
+        error: {
+          message: userFriendlyMessage,
+          details: error.details
+        }
+      };
     }
   };
 

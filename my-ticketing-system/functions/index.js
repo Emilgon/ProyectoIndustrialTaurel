@@ -3,81 +3,97 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
 admin.initializeApp();
-
 const db = admin.firestore();
 
-// Configure the email transport using the default SMTP transport and Gmail
-// Make sure to enable "less secure apps" or use an app password for Gmail account
 const transporter = nodemailer.createTransport({
   host: "smtp.office365.com",
   port: 587,
-  secure: false, // STARTTLS
+  secure: false,
   auth: {
-    user: functions.config().outlook.email, // consultastccs@taurel.com
-    pass: functions.config().outlook.apppassword, // App Password
+    user: functions.config().outlook.email,
+    pass: functions.config().outlook.password,
   },
   tls: {
-    ciphers: "SSLv3", // Necesario para Office 365
-  },
+    ciphers: "SSLv3",
+    rejectUnauthorized: false
+  }
 });
 
 exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
-  const { consultaId, reply, downloadUrl, clientId, advisorEmail } = data;
-
-  if (!clientId) {
-    throw new functions.https.HttpsError(
-      "invalid-argument",
-      "El clientId es requerido"
-    );
-  }
-
-  if (!advisorEmail) {
-    throw new functions.https.HttpsError(
-      "invalid-argument",
-      "El email del asesor es requerido"
-    );
-  }
-
   try {
-    // Get client email from Firestore
-    const clientDoc = await db.collection("Clients").doc(clientId).get();
+    // Validar datos requeridos
+    if (!data.consultaId || !data.reply || !data.clientId || !data.advisorEmail) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Datos incompletos para enviar el correo"
+      );
+    }
+
+    // Obtener el email del cliente desde Firestore
+    // IMPORTANTE: Usa el nombre correcto de la colección (Clients o clientes)
+    const clientDoc = await admin.firestore().collection("Clients").doc(data.clientId).get();
+
     if (!clientDoc.exists) {
       throw new functions.https.HttpsError(
         "not-found",
-        "Cliente no encontrado"
+        `No se encontró el cliente con ID: ${data.clientId}`
       );
     }
+
     const clientData = clientDoc.data();
-    const clientEmail = clientData.email;
+    const clientEmail = clientData?.email;
+
     if (!clientEmail) {
+      functions.logger.error("Cliente sin email registrado", {
+        clientId: data.clientId,
+        clientData
+      });
       throw new functions.https.HttpsError(
         "failed-precondition",
         "El cliente no tiene un email registrado"
       );
     }
 
-    // Compose email
-    let mailOptions = {
-      from: functions.config().outlook.email,
-      replyTo: advisorEmail,
+    // Configuración del correo
+    const mailOptions = {
+      from: `"Consultas TCCS" <consultastccs@taurel.com>`,
+      replyTo: data.advisorEmail,
       to: clientEmail,
-      subject: `Respuesta a su consulta #${consultaId}`,
-      text: `Hola,\n\nHa recibido una nueva respuesta a su consulta:\n\n${reply}\n\n`,
+      subject: `Respuesta a consulta #${data.consultaId}`,
+      text: [
+        `Hola,\n\n${data.advisorEmail} ha respondido a su consulta:`,
+        `\n\n${data.reply}\n\n`,
+        data.downloadUrl ? `Archivo adjunto: ${data.downloadUrl}\n\n` : "",
+        "Saludos,\nEquipo de Consultas TCCS"
+      ].join(""),
+      headers: {
+        'X-Consulta-ID': data.consultaId
+      }
     };
 
+    // Enviar correo con logging
+    functions.logger.log("Enviando correo con opciones:", mailOptions);
+    const info = await transporter.sendMail(mailOptions);
 
-    if (downloadUrl) {
-      mailOptions.text += `Adjunto encontrará un archivo relacionado: ${downloadUrl}\n\n`;
-    }
+    return {
+      success: true,
+      messageId: info.messageId
+    };
 
-    mailOptions.text += "Saludos,\nSu equipo de soporte";
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
-    return { success: true };
   } catch (error) {
-    console.error("Error enviando correo:", error);
-    throw new functions.https.HttpsError("internal", error.message);
+    functions.logger.error("Error en sendResponseEmail:", {
+      message: error.message,
+      stack: error.stack,
+      inputData: data
+    });
+
+    throw new functions.https.HttpsError(
+      "internal",
+      error.message,
+      {
+        technicalDetails: "Revise los logs para más información",
+        clientId: data.clientId
+      }
+    );
   }
 });
