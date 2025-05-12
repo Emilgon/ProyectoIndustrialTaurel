@@ -1,4 +1,4 @@
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebaseConfig";
 
@@ -8,6 +8,15 @@ export const fetchClients = async () => {
     id: doc.id,
     ...doc.data()
   }));
+};
+
+export const fetchClientById = async (clientId) => {
+  const clientDocRef = doc(db, "Clients", clientId);
+  const clientDoc = await getDoc(clientDocRef);
+  if (!clientDoc.exists()) {
+    throw new Error(`Client with ID ${clientId} not found`);
+  }
+  return { id: clientDoc.id, ...clientDoc.data() };
 };
 
 export const fetchConsultasByClientName = async (clientName, limitCount = 1) => {

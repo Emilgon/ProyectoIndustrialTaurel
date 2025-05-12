@@ -5,6 +5,7 @@ import {
   fetchDownloadUrls,
   addRespuesta
 } from "../models/respuestaModel";
+import { fetchClientById } from "../models/clientsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 
@@ -64,8 +65,19 @@ const useRespuestaController = (consultaId) => {
       // 1. Guardar la respuesta en Firestore
       const { downloadUrl } = await addRespuesta(consultaId, reply, file);
 
-      // 2. Enviar notificación por correo
+      // 2. Obtener clientEmail
+      let clientEmail = null;
       if (consultaData?.clientId) {
+        try {
+          const clientData = await fetchClientById(consultaData.clientId);
+          clientEmail = clientData.email || null;
+        } catch (error) {
+          console.error("Error fetching client email:", error);
+        }
+      }
+
+      // 3. Enviar notificación por correo
+      if (consultaData?.clientId && clientEmail) {
         const currentUser = auth.currentUser;
         if (!currentUser?.email) {
           throw new Error("No se pudo obtener el email del asesor");
@@ -76,6 +88,7 @@ const useRespuestaController = (consultaId) => {
           reply,
           downloadUrl: downloadUrl || null,
           clientId: consultaData.clientId,
+          clientEmail,
           advisorEmail: currentUser.email
         };
 
@@ -83,14 +96,16 @@ const useRespuestaController = (consultaId) => {
 
         const result = await sendResponseEmail(emailData);
         console.log("Resultado del envío:", result.data);
+      } else {
+        throw new Error("No se pudo obtener el email del cliente");
       }
 
-      // 3. Limpiar formulario
+      // 4. Limpiar formulario
       setReply('');
       setFile(null);
       setFilePreview(null);
 
-      // 4. Actualizar lista de respuestas
+      // 5. Actualizar lista de respuestas
       const updatedRespuestas = await fetchRespuestasByConsultaId(consultaId);
       setRespuestas(updatedRespuestas);
 
@@ -105,7 +120,7 @@ const useRespuestaController = (consultaId) => {
 
       // Custom error message for missing client email
       let userFriendlyMessage = error.message;
-      if (error.message === "El cliente no tiene un email registrado") {
+      if (error.message === "El cliente no tiene un correo electrónico registrado" || error.message === "No se pudo obtener el email del cliente") {
         userFriendlyMessage = "El cliente no tiene un correo electrónico registrado. Por favor, verifique los datos del cliente.";
       }
 

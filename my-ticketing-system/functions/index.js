@@ -22,31 +22,20 @@ const transporter = nodemailer.createTransport({
 exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
   try {
     // Validar datos requeridos
-    if (!data.consultaId || !data.reply || !data.clientId || !data.advisorEmail) {
+    if (!data.consultaId || !data.reply || !data.clientId || !data.advisorEmail || !data.clientEmail) {
       throw new functions.https.HttpsError(
         "invalid-argument",
         "Datos incompletos para enviar el correo"
       );
     }
 
-    // Obtener el email del cliente desde Firestore
-    // IMPORTANTE: Usa el nombre correcto de la colección (Clients o clientes)
-    const clientDoc = await admin.firestore().collection("Clients").doc(data.clientId).get();
-
-    if (!clientDoc.exists) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        `No se encontró el cliente con ID: ${data.clientId}`
-      );
-    }
-
-    const clientData = clientDoc.data();
-    const clientEmail = clientData?.email;
+    // Usar clientEmail directamente
+    const clientEmail = data.clientEmail;
 
     if (!clientEmail) {
       functions.logger.error("Cliente sin email registrado", {
         clientId: data.clientId,
-        clientData
+        clientEmail
       });
       throw new functions.https.HttpsError(
         "failed-precondition",
