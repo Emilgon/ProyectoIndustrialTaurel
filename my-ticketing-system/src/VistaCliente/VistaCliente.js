@@ -283,22 +283,25 @@ const VistaCliente = () => {
                         Consulta
                       </Typography>
                     </Box>
-                    <Typography sx={{ mb: 2 }}>
+                    <Typography sx={{ mb: 2, textAlign: 'left' }}>
+                      <strong>Asunto:</strong> {consulta.affair || "No disponible"}
+                    </Typography>
+                    <Typography sx={{ mb: 2, textAlign: 'left' }}>
                       <strong>Mensaje:</strong> {consulta.messageContent}
                     </Typography>
                     {consulta.timestamp?.seconds ? (
-                      <Typography sx={{ mb: 2 }}>
+                      <Typography sx={{ mb: 2, textAlign: 'left' }}>
                         <strong>Fecha de Envío:</strong>{" "}
                         {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}
                       </Typography>
                     ) : (
-                      <Typography sx={{ mb: 2 }}>
+                      <Typography sx={{ mb: 2, textAlign: 'left' }}>
                         <strong>Fecha de Envío:</strong> No disponible
                       </Typography>
                     )}
                     {consulta.attachment && (
                       <Box sx={{ mb: 2 }}>
-                        <Typography variant="h6">
+                        <Typography variant="h6" sx={{ textAlign: 'left' }}>
                           <strong>Archivo Adjunto:</strong>
                         </Typography>
                         <List>
@@ -322,7 +325,7 @@ const VistaCliente = () => {
                       </Box>
                     )}
                     <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, textAlign: 'left' }}>
                       Respuestas
                     </Typography>
                     {consulta.respuestas && consulta.respuestas.length > 0 ? (
@@ -330,25 +333,25 @@ const VistaCliente = () => {
                         .slice()
                         .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
                         .map((respuesta) => (
-                          <Box key={respuesta.id} sx={{ mb: 2 }}>
+                          <Box key={respuesta.id} sx={{ mb: 2, textAlign: 'left' }}>
                             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                               <Avatar sx={{ bgcolor: "#4CAF50", mr: 2 }}>
                                 <ReplyIcon />
                               </Avatar>
-                              <Typography variant="subtitle1" fontWeight="bold">
+                              <Typography variant="subtitle1" fontWeight="bold" sx={{ textAlign: 'left' }}>
                                 Respuesta
                               </Typography>
                             </Box>
-                            <Typography sx={{ mb: 1 }}>
+                            <Typography sx={{ mb: 1, textAlign: 'left' }}>
                               <strong>Mensaje:</strong> {respuesta.content}
                             </Typography>
                             {respuesta.timestamp?.seconds ? (
-                              <Typography sx={{ mb: 1 }}>
+                              <Typography sx={{ mb: 1, textAlign: 'left' }}>
                                 <strong>Fecha:</strong>{" "}
                                 {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
                               </Typography>
                             ) : (
-                              <Typography sx={{ mb: 1 }}>
+                              <Typography sx={{ mb: 1, textAlign: 'left' }}>
                                 <strong>Fecha:</strong> No disponible
                               </Typography>
                             )}
@@ -356,7 +359,7 @@ const VistaCliente = () => {
                             {/* Mostrar el archivo adjunto de la respuesta */}
                             {respuesta.attachment && (
                               <Box sx={{ mb: 2 }}>
-                                <Typography variant="h6">
+                                <Typography variant="h6" sx={{ textAlign: 'left' }}>
                                   <strong>Archivo Adjunto:</strong>
                                 </Typography>
                                 <List>

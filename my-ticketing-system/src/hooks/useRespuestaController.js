@@ -89,7 +89,8 @@ const useRespuestaController = (consultaId) => {
           downloadUrl: downloadUrl || null,
           clientId: consultaData.clientId,
           clientEmail,
-          advisorEmail: currentUser.email
+          advisorEmail: currentUser.email,
+          affair: consultaData.affair || "Consulta sin asunto"
         };
 
         console.log("Enviando email con datos:", emailData);

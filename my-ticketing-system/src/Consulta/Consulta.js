@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Box, Button, TextField, Typography, Card, CardContent, Input, List, ListItem, ListItemIcon, ListItemText, IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
@@ -9,6 +10,7 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import useConsultaController from "../hooks/useConsultaController";
 
 const Consulta = () => {
+  const [affair, setAffair] = useState("");
   const {
     mensaje,
     setMensaje,
@@ -38,9 +40,10 @@ const Consulta = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const result = await handleEnviarConsulta();
+    const result = await handleEnviarConsulta(mensaje, archivo, affair);
     if (result.success) {
       alert("Consulta enviada con éxito");
+      setAffair("");
     } else {
       alert("Error al enviar consulta: " + (result.error?.message || ""));
     }
@@ -62,6 +65,15 @@ const Consulta = () => {
             Enviar Consulta
           </Typography>
           <form onSubmit={onSubmit}>
+            <TextField
+              label="Asunto"
+              value={affair}
+              onChange={(e) => setAffair(e.target.value)}
+              variant="outlined"
+              fullWidth
+              sx={{ mb: 2 }}
+              required
+            />
             <TextField
               label="Mensaje"
               value={mensaje}

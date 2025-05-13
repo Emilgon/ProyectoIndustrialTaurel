@@ -2,7 +2,7 @@ import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
 
-export const addConsulta = async (mensaje, archivo) => {
+export const addConsulta = async (mensaje, archivo, affair) => {
   let attachmentURL = "";
 
   if (archivo) {
@@ -34,6 +34,7 @@ export const addConsulta = async (mensaje, archivo) => {
     email: user.email,
     messageContent: mensaje,
     attachment: attachmentURL,
+    affair: affair,
     timestamp: new Date(),
     clientId,
     alertShown: false
