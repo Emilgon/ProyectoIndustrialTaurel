@@ -29,6 +29,60 @@ const FormularioCliente = () => {
   const navigate = useNavigate();
   const auth = getAuth();
 
+  const isBusinessEmail = (email) => {
+    // Lista de dominios públicos comunes
+    const publicDomains = [
+      'gmail.com',
+      'yahoo.com',
+      'hotmail.com',
+      'outlook.com',
+      'aol.com',
+      'icloud.com',
+      'mail.com',
+      'gmx.com',
+      'protonmail.com',
+      'zoho.com',
+      'yandex.com',
+      'live.com',
+      'msn.com',
+      'comcast.net',
+      'me.com',
+      'mac.com',
+      'cox.net',
+      'verizon.net',
+      'att.net',
+      'bellsouth.net',
+      'rocketmail.com',
+      'aim.com',
+      'mail.ru',
+      'qq.com',
+      'naver.com',
+      'hanmail.net',
+      'daum.net',
+      'rediffmail.com',
+      'inbox.com',
+      'fastmail.com',
+      'tutanota.com',
+      'posteo.de',
+      'hushmail.com',
+      'yahoo.co.uk',
+      'yahoo.co.in',
+      'yahoo.co.jp',
+      'yahoo.fr',
+      'yahoo.de',
+      'yahoo.ca',
+      'yahoo.com.au',
+      'yahoo.com.sg',
+      'yahoo.com.ph',
+      'yahoo.com.my',
+      'yahoo.com.hk',
+      'yahoo.com.tw',
+    ];
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return false;
+    return !publicDomains.includes(domain);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({ ...prevState, [name]: value }));
@@ -39,6 +93,7 @@ const FormularioCliente = () => {
     const newErrors = {};
     if (formData.name.trim() === '') newErrors.name = 'El campo nombre no puede estar vacío.';
     if (formData.email.trim() === '') newErrors.email = 'El campo correo electrónico no puede estar vacío.';
+    else if (!isBusinessEmail(formData.email.trim())) newErrors.email = 'Por favor ingrese un correo electrónico empresarial.';
     if (formData.password.trim() === '') newErrors.password = 'El campo contraseña no puede estar vacío.';
     if (String(formData.phone).trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
     if (formData.address.trim() === '') newErrors.address = 'El campo dirección no puede estar vacío.';

@@ -185,21 +185,6 @@ const VistaCliente = () => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Barra superior */}
-      <AppBar position="static" sx={{ backgroundColor: "#1B5C94" }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Vista del Cliente
-          </Typography>
-          <IconButton color="inherit" onClick={fetchRespuestas}>
-            <HistoryIcon />
-          </IconButton>
-          <IconButton color="inherit" onClick={handleSalir}>
-            <ExitToAppIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
       {/* Contenido principal */}
       <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 2 }}>
         {/* Sección de Datos del Cliente */}
