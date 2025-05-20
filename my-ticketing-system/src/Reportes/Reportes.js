@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, getFirestore } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { 
   Grid, Card, CardContent, Typography, CircularProgress,
   ButtonGroup, Button, Box, TextField, InputAdornment,
   Select, MenuItem, FormControl, InputLabel, Popover,
-  IconButton, Tooltip
+  IconButton, Tooltip, Snackbar, Alert
 } from '@mui/material';
 import { 
   Bar, Pie, Line, Doughnut, PolarArea 
@@ -15,7 +15,7 @@ import {
   DateRange as DateRangeIcon, CalendarToday as CalendarIcon,
   BarChart as BarChartIcon, PieChart as PieChartIcon,
   ShowChart as LineChartIcon, DonutLarge as DoughnutIcon,
-  Radar as PolarAreaIcon
+  Radar as PolarAreaIcon, Publish as PublishIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -36,7 +36,6 @@ import {
   RadialLinearScale
 } from 'chart.js';
 
-// Registrar todos los componentes necesarios de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -51,7 +50,6 @@ ChartJS.register(
   RadialLinearScale
 );
 
-// Tipos de gráficos disponibles
 const chartTypes = [
   { value: 'bar', label: 'Barras', icon: <BarChartIcon /> },
   { value: 'pie', label: 'Circular', icon: <PieChartIcon /> },
@@ -86,12 +84,9 @@ const Reports = () => {
   const [consultTypeFilter, setConsultTypeFilter] = useState('all');
   const [companySearch, setCompanySearch] = useState('');
   const [responseStatusFilter, setResponseStatusFilter] = useState('all');
-  
-  // Tipos de gráfico por sección (ahora independientes)
   const [responseChartType, setResponseChartType] = useState('pie');
   const [typeChartType, setTypeChartType] = useState('pie');
   const [clientChartType, setClientChartType] = useState('bar');
-  
   const [anchorEl, setAnchorEl] = useState(null);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -99,6 +94,19 @@ const Reports = () => {
     return date;
   });
   const [endDate, setEndDate] = useState(new Date());
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Estados para los gráficos con valores iniciales
+  const [trendChartData, setTrendChartData] = useState({ labels: [], datasets: [] });
+  const [responseRateChartData, setResponseRateChartData] = useState({ labels: [], datasets: [] });
+  const [clientsStaticData, setClientsStaticData] = useState({ labels: [], datasets: [] });
+  const [typesStaticData, setTypesStaticData] = useState({ labels: [], datasets: [] });
+  const [clientsTimeData, setClientsTimeData] = useState({ labels: [], datasets: [] });
+  const [typesTimeData, setTypesTimeData] = useState({ labels: [], datasets: [] });
+
   const open = Boolean(anchorEl);
 
   useEffect(() => {
@@ -106,7 +114,6 @@ const Reports = () => {
       const db = getFirestore();
       
       try {
-        // Obtener consultas
         const consultsQuery = query(collection(db, 'Consults'));
         const consultsSnapshot = await getDocs(consultsQuery);
         const consultsData = consultsSnapshot.docs.map(doc => ({
@@ -115,10 +122,8 @@ const Reports = () => {
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }));
         
-        console.log('Consultas obtenidas:', consultsData.length, consultsData);
         setConsults(consultsData);
         
-        // Obtener respuestas
         const responsesQuery = query(collection(db, 'Responses'));
         const responsesSnapshot = await getDocs(responsesQuery);
         const responsesData = responsesSnapshot.docs.map(doc => ({
@@ -169,11 +174,116 @@ const Reports = () => {
       });
     }
 
-    console.log('Consultas filtradas:', filtered.length, filtered);
     setFilteredConsults(filtered);
   }, [timeRange, consults, consultTypeFilter, startDate, endDate]);
 
-  // Función para clasificar los tipos de consulta
+  useEffect(() => {
+    // Actualizar datos de gráficos cuando cambian los filtros
+    setTrendChartData(generateTimeData(filteredConsults, () => 'Consultas'));
+    
+    const topClients = filteredConsults.reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + 1;
+      return acc;
+    }, {});
+
+    const filteredClients = Object.entries(topClients)
+      .filter(([client]) => 
+        companySearch === '' || 
+        client.toLowerCase().includes(companySearch.toLowerCase())
+      )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    setClientsTimeData(generateTimeData(
+      filteredConsults.filter(consult => 
+        filteredClients.some(([client]) => 
+          client === (consult.company || consult.email || 'Cliente no identificado')
+        )
+      ),
+      consult => consult.company || consult.email || 'Cliente no identificado'
+    ));
+
+    setTypesTimeData(generateTimeData(filteredConsults, consult => classifyConsultType(consult)));
+  }, [filteredConsults, companySearch]);
+
+  useEffect(() => {
+    const responseData = getResponseData();
+    
+    setResponseRateChartData({
+      labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
+      datasets: [{
+        label: 'Estado de respuestas',
+        data: [
+          responseData.timely,
+          responseData.late,
+          responseData.unanswered
+        ],
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.6)',
+          'rgba(255, 206, 86, 0.6)',
+          'rgba(255, 99, 132, 0.6)'
+        ],
+        borderColor: [
+          'rgba(75, 192, 192, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(255, 99, 132, 1)'
+        ],
+        borderWidth: 1,
+      }]
+    });
+
+    const topClients = filteredConsults.reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + 1;
+      return acc;
+    }, {});
+
+    const filteredClients = Object.entries(topClients)
+      .filter(([client]) => 
+        companySearch === '' || 
+        client.toLowerCase().includes(companySearch.toLowerCase())
+      )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    setClientsStaticData({
+      labels: filteredClients.map(([client]) => client),
+      datasets: [{
+        label: 'Consultas por cliente',
+        data: filteredClients.map(([_, count]) => count),
+        backgroundColor: filteredClients.map((_, index) => 
+          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
+        ),
+        borderColor: filteredClients.map((_, index) => 
+          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
+        ),
+        borderWidth: 1,
+      }]
+    });
+
+    const consultsByType = filteredConsults.reduce((acc, consult) => {
+      const type = classifyConsultType(consult);
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    setTypesStaticData({
+      labels: Object.keys(consultsByType),
+      datasets: [{
+        label: 'Consultas por tipo',
+        data: Object.values(consultsByType),
+        backgroundColor: Object.keys(consultsByType).map((_, index) => 
+          `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%, 0.6)`
+        ),
+        borderColor: Object.keys(consultsByType).map((_, index) => 
+          `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%)`
+        ),
+        borderWidth: 1,
+      }]
+    });
+  }, [filteredConsults, responseStatusFilter, companySearch]);
+
   const classifyConsultType = (consult) => {
     if (consult.type === 'Asesoría Técnica') {
       return consult.tipoAsesoria === 'interna' 
@@ -183,7 +293,6 @@ const Reports = () => {
     return consult.type || 'Sin tipo';
   };
 
-  // Obtener los tipos de consulta disponibles
   const getAvailableTypes = () => {
     const types = new Set();
     
@@ -198,25 +307,11 @@ const Reports = () => {
     return Array.from(types);
   };
 
-  const handleDateRangeClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleDateRangeClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleTimeRangeChange = (value) => {
-    setTimeRange(value);
-  };
-
-  const applyCustomDateRange = () => {
-    setTimeRange('custom');
-    setAnchorEl(null);
-  };
-
-  // Función para generar datos temporales agrupados
   const generateTimeData = (items, getKey) => {
+    if (!items || items.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+    
     let rangeStart, rangeEnd;
     const now = new Date();
     
@@ -236,10 +331,6 @@ const Reports = () => {
       rangeStart = new Date(startDate);
       rangeEnd = new Date(endDate);
     } else {
-      if (items.length === 0) {
-        return { labels: [], datasets: [] };
-      }
-      
       const sorted = [...items].sort((a, b) => a.timestamp - b.timestamp);
       rangeStart = sorted[0].timestamp;
       rangeEnd = sorted[sorted.length - 1].timestamp;
@@ -252,19 +343,14 @@ const Reports = () => {
     if (diffDays > 90) interval = 7;
     if (diffDays > 365) interval = 30;
     
-    // Obtener todas las claves únicas (tipos, clientes, etc.)
     const keys = [...new Set(items.map(item => getKey(item)))];
-    
-    // Crear estructura para acumular datos
     const dataByKey = {};
     keys.forEach(key => {
       dataByKey[key] = Array(Math.ceil(diffDays / interval)).fill(0);
     });
     
-    // Generar etiquetas
     const labels = [];
     
-    // Llenar los datos
     for (let i = 0; i <= diffDays; i += interval) {
       const currentDate = new Date(rangeStart);
       currentDate.setDate(currentDate.getDate() + i);
@@ -279,7 +365,6 @@ const Reports = () => {
         dayEnd.setDate(dayEnd.getDate() + interval - 1);
       }
       
-      // Contar por clave en este intervalo
       const periodItems = items.filter(
         item => item.timestamp >= dayStart && item.timestamp <= dayEnd
       );
@@ -290,13 +375,11 @@ const Reports = () => {
         return acc;
       }, {});
       
-      // Actualizar datos acumulados
       const periodIndex = Math.floor(i / interval);
       keys.forEach(key => {
         dataByKey[key][periodIndex] = periodCounts[key] || 0;
       });
       
-      // Agregar etiqueta
       let label;
       if (interval === 1) {
         label = currentDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
@@ -309,7 +392,6 @@ const Reports = () => {
       labels.push(label);
     }
     
-    // Preparar datasets para Chart.js
     const datasets = keys.map((key, index) => ({
       label: key,
       data: dataByKey[key],
@@ -323,25 +405,25 @@ const Reports = () => {
     return { labels, datasets };
   };
 
-  // Datos para el gráfico de tendencia (todas las consultas)
-  const trendChartData = generateTimeData(filteredConsults, () => 'Consultas');
+  const handleDateRangeClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-  // Configuración común para gráficos
-  const commonChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right',
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            return `${context.dataset.label || ''}: ${context.raw}`;
-          },
-        },
-      },
-    },
+  const handleDateRangeClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleTimeRangeChange = (value) => {
+    setTimeRange(value);
+  };
+
+  const applyCustomDateRange = () => {
+    setTimeRange('custom');
+    setAnchorEl(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   const classifyResponseStatus = (consult) => {
@@ -353,11 +435,9 @@ const Reports = () => {
     return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
   };
 
-  // Datos para el gráfico de respuesta
   const getResponseData = () => {
     let filtered = [...filteredConsults];
     
-    // Aplicar filtro de estado de respuesta si no es 'all'
     if (responseStatusFilter !== 'all') {
       filtered = filtered.filter(consult => {
         const status = classifyResponseStatus(consult);
@@ -387,103 +467,93 @@ const Reports = () => {
     };
   };
 
-  const responseData = getResponseData();
+  const simulateOrchestratorCall = async (payload) => {
+    console.log("Simulando llamada a Orchestrator con:", payload);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    return {
+      success: true,
+      message: "Datos recibidos correctamente (simulación)",
+      jdeResponse: {
+        status: "success",
+        table: "F55SA119",
+        rowsAffected: 1,
+        payload: payload
+      }
+    };
+  };
 
-  const responseRateChartData = {
-    labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
-    datasets: [
-      {
-        label: 'Estado de respuestas',
-        data: [
-          responseData.timely,
-          responseData.late,
-          responseData.unanswered
-        ],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(255, 99, 132, 0.6)'
-        ],
-        borderColor: [
-          'rgba(75, 192, 192, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(255, 99, 132, 1)'
-        ],
-        borderWidth: 1,
+  const uploadToIcaroTest = async () => {
+    setIsUploading(true);
+    
+    try {
+      const responseData = getResponseData();
+      const topClients = filteredConsults.reduce((acc, consult) => {
+        const clientKey = consult.company || consult.email || 'Cliente no identificado';
+        acc[clientKey] = (acc[clientKey] || 0) + 1;
+        return acc;
+      }, {});
+
+      const filteredClients = Object.entries(topClients)
+        .filter(([client]) => 
+          companySearch === '' || 
+          client.toLowerCase().includes(companySearch.toLowerCase())
+        )
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const payload = {
+        totalConsultas: responseData.total,
+        consultasRespondidas: responseData.answered,
+        porcentajeRespuesta: responseData.total > 0 ? Math.round((responseData.answered / responseData.total) * 100) : 0,
+        respondidasATiempo: responseData.timely,
+        porcentajeATiempo: responseData.answered > 0 ? Math.round((responseData.timely / responseData.answered) * 100) : 0,
+        topClientes: filteredClients.map(([client, count]) => ({ cliente: client, consultas: count })),
+        fechaActualizacion: new Date().toISOString()
+      };
+
+      const response = await simulateOrchestratorCall(payload);
+      
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      setSnackbarMessage(`Simulación exitosa: ${response.message}`);
+      setSnackbarSeverity('success');
+      
+      console.log("Estructura para JDE:", {
+        table: "F55SA119",
+        company: "TU_COMPANY",
+        document: "IND" + new Date().getTime(),
+        values: payload
+      });
+      
+    } catch (error) {
+      console.error('Error en simulación:', error);
+      setSnackbarMessage('Error en simulación: ' + error.message);
+      setSnackbarSeverity('error');
+    } finally {
+      setIsUploading(false);
+      setSnackbarOpen(true);
+    }
+  };
+
+  const commonChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
       },
-    ],
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `${context.dataset.label || ''}: ${context.raw}`;
+          },
+        },
+      },
+    },
   };
 
-  // Datos para el gráfico de clientes (temporal)
-  const topClients = filteredConsults.reduce((acc, consult) => {
-    const clientKey = consult.company || consult.email || 'Cliente no identificado';
-    acc[clientKey] = (acc[clientKey] || 0) + 1;
-    return acc;
-  }, {});
-
-  const filteredClients = Object.entries(topClients)
-    .filter(([client]) => 
-      companySearch === '' || 
-      client.toLowerCase().includes(companySearch.toLowerCase())
-    )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  // Datos temporales para clientes (solo los top 5)
-  const clientsTimeData = generateTimeData(
-    filteredConsults.filter(consult => 
-      filteredClients.some(([client]) => 
-        client === (consult.company || consult.email || 'Cliente no identificado')
-      )
-    ),
-    consult => consult.company || consult.email || 'Cliente no identificado'
-  );
-
-  // Datos estáticos para gráficos no temporales
-  const clientsStaticData = {
-    labels: filteredClients.map(([client]) => client),
-    datasets: [{
-      label: 'Consultas por cliente',
-      data: filteredClients.map(([_, count]) => count),
-      backgroundColor: filteredClients.map((_, index) => 
-        `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
-      ),
-      borderColor: filteredClients.map((_, index) => 
-        `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
-      ),
-      borderWidth: 1,
-    }]
-  };
-
-  // Datos para el gráfico de tipos de consulta (temporal)
-  const typesTimeData = generateTimeData(
-    filteredConsults,
-    consult => classifyConsultType(consult)
-  );
-
-  // Datos estáticos para tipos de consulta
-  const consultsByType = filteredConsults.reduce((acc, consult) => {
-    const type = classifyConsultType(consult);
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {});
-
-  const typesStaticData = {
-    labels: Object.keys(consultsByType),
-    datasets: [{
-      label: 'Consultas por tipo',
-      data: Object.values(consultsByType),
-      backgroundColor: Object.keys(consultsByType).map((_, index) => 
-        `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%, 0.6)`
-      ),
-      borderColor: Object.keys(consultsByType).map((_, index) => 
-        `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%)`
-      ),
-      borderWidth: 1,
-    }]
-  };
-
-  // Selector de tipo de gráfico
   const ChartTypeSelector = ({ value, onChange }) => (
     <ButtonGroup variant="outlined" size="small" sx={{ ml: 2 }}>
       {chartTypes.map((type) => (
@@ -511,7 +581,6 @@ const Reports = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
       <Box sx={{ padding: '20px' }}>
-        {/* Sección de título y controles */}
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between',
@@ -541,6 +610,17 @@ const Reports = () => {
                 Personalizado
               </Button>
             </ButtonGroup>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<PublishIcon />}
+              onClick={uploadToIcaroTest}
+              disabled={isUploading}
+              sx={{ ml: 2 }}
+            >
+              {isUploading ? 'Enviando...' : 'Subir a ICARO (Prueba)'}
+            </Button>
 
             <Tooltip title="Salir al menú" arrow>
               <IconButton onClick={() => navigate('/asesor-control')} sx={{ color: "#1B5C94" }}>
@@ -586,9 +666,7 @@ const Reports = () => {
           </Box>
         </Popover>
 
-        {/* Tarjetas de métricas */}
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          {/* Tarjetas de resumen */}
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
@@ -596,7 +674,7 @@ const Reports = () => {
                   Consultas recibidas
                 </Typography>
                 <Typography variant="h4" component="h2">
-                  {responseData.total}
+                  {getResponseData().total}
                 </Typography>
               </CardContent>
             </Card>
@@ -609,7 +687,7 @@ const Reports = () => {
                   Consultas respondidas
                 </Typography>
                 <Typography variant="h4" component="h2">
-                  {responseData.answered} ({responseData.total > 0 ? Math.round((responseData.answered / responseData.total) * 100) : 0}%)
+                  {getResponseData().answered} ({getResponseData().total > 0 ? Math.round((getResponseData().answered / getResponseData().total) * 100) : 0}%)
                 </Typography>
               </CardContent>
             </Card>
@@ -622,13 +700,12 @@ const Reports = () => {
                   Respondidas a tiempo
                 </Typography>
                 <Typography variant="h4" component="h2">
-                  {responseData.timely} ({responseData.answered > 0 ? Math.round((responseData.timely / responseData.answered) * 100) : 0}%)
+                  {getResponseData().timely} ({getResponseData().answered > 0 ? Math.round((getResponseData().timely / getResponseData().answered) * 100) : 0}%)
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Gráfico de tendencia (solo línea) */}
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
@@ -636,93 +713,103 @@ const Reports = () => {
                   Tendencia de consultas
                 </Typography>
                 <Box sx={{ height: '400px' }}>
-                  <Line 
-                    data={trendChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: { display: false },
-                      },
-                      scales: {
-                        x: { title: { display: true, text: 'Fecha' } },
-                        y: { 
-                          title: { display: true, text: 'Número de consultas' },
-                          beginAtZero: true 
+                  {trendChartData.labels && trendChartData.labels.length > 0 ? (
+                    <Line 
+                      data={trendChartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                        },
+                        scales: {
+                          x: { title: { display: true, text: 'Fecha' } },
+                          y: { 
+                            title: { display: true, text: 'Número de consultas' },
+                            beginAtZero: true 
+                          }
                         }
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography variant="body1">No hay datos disponibles</Typography>
+                    </Box>
+                  )}
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Gráfico de estado de respuestas */}
           <Grid item xs={12} md={6}>
-        <Card elevation={3}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Estado de respuestas
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
-                  <InputLabel id="response-filter-label">Filtrar por estado</InputLabel>
-                  <Select
-                    labelId="response-filter-label"
-                    value={responseStatusFilter}
-                    onChange={(e) => setResponseStatusFilter(e.target.value)}
-                    label="Filtrar por estado"
-                  >
-                    <MenuItem value="all">Todos los estados</MenuItem>
-                    <MenuItem value="A tiempo">A tiempo</MenuItem>
-                    <MenuItem value="Tardía">Tardía</MenuItem>
-                    <MenuItem value="No respondida">No respondida</MenuItem>
-                  </Select>
-                </FormControl>
-                <ChartTypeSelector value={responseChartType} onChange={setResponseChartType} />
-              </Box>
-            </Box>
-            <Box sx={{ height: '300px' }}>
-              {(() => {
-                switch (responseChartType) {
-                  case 'bar':
-                    return <Bar data={responseRateChartData} options={commonChartOptions} />;
-                  case 'pie':
-                    return <Pie data={responseRateChartData} options={commonChartOptions} />;
-                  case 'line':
-                    // Para respuestas, mostramos tendencia de respuestas a tiempo vs tardías
-                    return <Line 
-                      data={generateTimeData(
-                        filteredConsults.filter(consult => 
-                          responseStatusFilter === 'all' || 
-                          classifyResponseStatus(consult) === responseStatusFilter
-                        ),
-                        classifyResponseStatus
-                      )} 
-                      options={commonChartOptions} 
-                    />;
-                  case 'doughnut':
-                    return <Doughnut data={responseRateChartData} options={commonChartOptions} />;
-                  case 'polarArea':
-                    return <PolarArea data={responseRateChartData} options={{
-                      ...commonChartOptions,
-                      scales: {
-                        r: {
-                          beginAtZero: true,
-                        }
+            <Card elevation={3}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Estado de respuestas
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
+                      <InputLabel id="response-filter-label">Filtrar por estado</InputLabel>
+                      <Select
+                        labelId="response-filter-label"
+                        value={responseStatusFilter}
+                        onChange={(e) => setResponseStatusFilter(e.target.value)}
+                        label="Filtrar por estado"
+                      >
+                        <MenuItem value="all">Todos los estados</MenuItem>
+                        <MenuItem value="A tiempo">A tiempo</MenuItem>
+                        <MenuItem value="Tardía">Tardía</MenuItem>
+                        <MenuItem value="No respondida">No respondida</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <ChartTypeSelector value={responseChartType} onChange={setResponseChartType} />
+                  </Box>
+                </Box>
+                <Box sx={{ height: '300px' }}>
+                  {responseRateChartData.labels && responseRateChartData.labels.length > 0 ? (
+                    (() => {
+                      switch (responseChartType) {
+                        case 'bar':
+                          return <Bar data={responseRateChartData} options={commonChartOptions} />;
+                        case 'pie':
+                          return <Pie data={responseRateChartData} options={commonChartOptions} />;
+                        case 'line':
+                          return <Line 
+                            data={generateTimeData(
+                              filteredConsults.filter(consult => 
+                                responseStatusFilter === 'all' || 
+                                classifyResponseStatus(consult) === responseStatusFilter
+                              ),
+                              classifyResponseStatus
+                            )} 
+                            options={commonChartOptions} 
+                          />;
+                        case 'doughnut':
+                          return <Doughnut data={responseRateChartData} options={commonChartOptions} />;
+                        case 'polarArea':
+                          return <PolarArea data={responseRateChartData} options={{
+                            ...commonChartOptions,
+                            scales: {
+                              r: {
+                                beginAtZero: true,
+                              }
+                            }
+                          }} />;
+                        default:
+                          return <Pie data={responseRateChartData} options={commonChartOptions} />;
                       }
-                    }} />;
-                  default:
-                    return <Pie data={responseRateChartData} options={commonChartOptions} />;
-                }
-              })()}
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-          {/* Gráfico de tipos de consulta */}
+                    })()
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography variant="body1">No hay datos disponibles</Typography>
+                    </Box>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
           <Grid item xs={12} md={6}>
             <Card elevation={3}>
               <CardContent>
@@ -749,42 +836,47 @@ const Reports = () => {
                   </Box>
                 </Box>
                 <Box sx={{ height: '300px' }}>
-                  {(() => {
-                    switch (typeChartType) {
-                      case 'bar':
-                        return <Bar data={typesStaticData} options={commonChartOptions} />;
-                      case 'pie':
-                        return <Pie data={typesStaticData} options={commonChartOptions} />;
-                      case 'line':
-                        return <Line data={typesTimeData} options={{
-                          ...commonChartOptions,
-                          scales: {
-                            y: {
-                              beginAtZero: true
+                  {typesStaticData.labels && typesStaticData.labels.length > 0 ? (
+                    (() => {
+                      switch (typeChartType) {
+                        case 'bar':
+                          return <Bar data={typesStaticData} options={commonChartOptions} />;
+                        case 'pie':
+                          return <Pie data={typesStaticData} options={commonChartOptions} />;
+                        case 'line':
+                          return <Line data={typesTimeData} options={{
+                            ...commonChartOptions,
+                            scales: {
+                              y: {
+                                beginAtZero: true
+                              }
                             }
-                          }
-                        }} />;
-                      case 'doughnut':
-                        return <Doughnut data={typesStaticData} options={commonChartOptions} />;
-                      case 'polarArea':
-                        return <PolarArea data={typesStaticData} options={{
-                          ...commonChartOptions,
-                          scales: {
-                            r: {
-                              beginAtZero: true,
+                          }} />;
+                        case 'doughnut':
+                          return <Doughnut data={typesStaticData} options={commonChartOptions} />;
+                        case 'polarArea':
+                          return <PolarArea data={typesStaticData} options={{
+                            ...commonChartOptions,
+                            scales: {
+                              r: {
+                                beginAtZero: true,
+                              }
                             }
-                          }
-                        }} />;
-                      default:
-                        return <Pie data={typesStaticData} options={commonChartOptions} />;
-                    }
-                  })()}
+                          }} />;
+                        default:
+                          return <Pie data={typesStaticData} options={commonChartOptions} />;
+                      }
+                    })()
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography variant="body1">No hay datos disponibles</Typography>
+                    </Box>
+                  )}
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           
-          {/* Gráfico de top clientes */}
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
@@ -812,67 +904,88 @@ const Reports = () => {
                   </Box>
                 </Box>
                 <Box sx={{ height: '300px' }}>
-                  {(() => {
-                    switch (clientChartType) {
-                      case 'bar':
-                        return <Bar data={clientsStaticData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: false },
-                          },
-                        }} />;
-                      case 'pie':
-                        return <Pie data={clientsStaticData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: false },
-                          },
-                        }} />;
-                      case 'line':
-                        return <Line data={clientsTimeData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: true },
-                          },
-                          scales: {
-                            y: {
-                              beginAtZero: true
+                  {clientsStaticData.labels && clientsStaticData.labels.length > 0 ? (
+                    (() => {
+                      switch (clientChartType) {
+                        case 'bar':
+                          return <Bar data={clientsStaticData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: false },
+                            },
+                          }} />;
+                        case 'pie':
+                          return <Pie data={clientsStaticData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: false },
+                            },
+                          }} />;
+                        case 'line':
+                          return <Line data={clientsTimeData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: true },
+                            },
+                            scales: {
+                              y: {
+                                beginAtZero: true
+                              }
                             }
-                          }
-                        }} />;
-                      case 'doughnut':
-                        return <Doughnut data={clientsStaticData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: false },
-                          },
-                        }} />;
-                      case 'polarArea':
-                        return <PolarArea data={clientsStaticData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: false },
-                          },
-                          scales: {
-                            r: {
-                              beginAtZero: true,
+                          }} />;
+                        case 'doughnut':
+                          return <Doughnut data={clientsStaticData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: false },
+                            },
+                          }} />;
+                        case 'polarArea':
+                          return <PolarArea data={clientsStaticData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: false },
+                            },
+                            scales: {
+                              r: {
+                                beginAtZero: true,
+                              }
                             }
-                          }
-                        }} />;
-                      default:
-                        return <Bar data={clientsStaticData} options={{
-                          ...commonChartOptions,
-                          plugins: {
-                            legend: { display: false },
-                          },
-                        }} />;
-                    }
-                  })()}
+                          }} />;
+                        default:
+                          return <Bar data={clientsStaticData} options={{
+                            ...commonChartOptions,
+                            plugins: {
+                              legend: { display: false },
+                            },
+                          }} />;
+                      }
+                    })()
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography variant="body1">No hay datos disponibles</Typography>
+                    </Box>
+                  )}
                 </Box>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
+
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={handleSnackbarClose} 
+            severity={snackbarSeverity}
+            sx={{ width: '100%' }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </LocalizationProvider>
   );
