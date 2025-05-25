@@ -1,10 +1,17 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from "react-router-dom";
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import PeopleIcon from '@mui/icons-material/People';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+  Link,
+  useLocation,
+} from "react-router-dom";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import PeopleIcon from "@mui/icons-material/People";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import "./App.css";
 import Menu from "./Menu/Menu";
 import LoginRegisterClient from "./LoginRegisterClient/LoginRegisterClient";
@@ -17,13 +24,16 @@ import Respuesta from "./Respuesta/Respuesta";
 import VistaCliente from "./VistaCliente/VistaCliente";
 import Consulta from "./Consulta/Consulta";
 import FormularioCliente from "./FormularioCliente/FormularioCliente";
+import VistaClienteConsulta from "./VistaClienteconsulta/VistaClienteConsulta";
 
 function Header() {
   const location = useLocation();
-  const isVistaAsesorFormulario = location.pathname === '/vista-asesor-formulario';
-  const isReportes = location.pathname === '/reportes';
-  const isClientsInfo = location.pathname === '/clients-info';
-  const showAdminIcon = !isVistaAsesorFormulario && !isReportes && !isClientsInfo;
+  const isVistaAsesorFormulario =
+    location.pathname === "/vista-asesor-formulario";
+  const isReportes = location.pathname === "/reportes";
+  const isClientsInfo = location.pathname === "/clients-info";
+  const showAdminIcon =
+    !isVistaAsesorFormulario && !isReportes && !isClientsInfo;
 
   return (
     <header className="App-header">
@@ -31,42 +41,62 @@ function Header() {
         {/* Logo centrado */}
         <div className="logo-center">
           <Link to="/menu" aria-label="Taurel Logo">
-            <img src="/images/taurel-logo-completo.png" alt="Logo Taurel" className="App-logo" />
+            <img
+              src="/images/taurel-logo-completo.png"
+              alt="Logo Taurel"
+              className="App-logo"
+            />
           </Link>
         </div>
-        
+
         {/* Íconos a la derecha con tooltips */}
         <div className="header-icons">
           {/* Ícono Home - Siempre visible */}
           <div className="icon-tooltip">
             <Link to="/menu" className="icon-link" aria-label="Home">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
               </svg>
             </Link>
             <span className="tooltip-text">Ir a menú principal</span>
           </div>
-          
+
           {/* Íconos para /vista-asesor-formulario */}
           {isVistaAsesorFormulario && (
             <>
               <div className="icon-tooltip">
-                <Link to="/clients-info" className="icon-link" aria-label="Clientes">
-                  <PeopleIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/clients-info"
+                  className="icon-link"
+                  aria-label="Clientes"
+                >
+                  <PeopleIcon style={{ fontSize: "32px", color: "white" }} />
                 </Link>
                 <span className="tooltip-text">Ver clientes</span>
               </div>
-              
+
               <div className="icon-tooltip">
-                <Link to="/reportes" className="icon-link" aria-label="Reportes">
-                  <AssessmentIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/reportes"
+                  className="icon-link"
+                  aria-label="Reportes"
+                >
+                  <AssessmentIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Ver reportes</span>
               </div>
 
               <div className="icon-tooltip">
-                <Link to="/asesor-control" className="icon-link" aria-label="Control Asesor">
-                  <AccountTreeIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/asesor-control"
+                  className="icon-link"
+                  aria-label="Control Asesor"
+                >
+                  <AccountTreeIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -77,22 +107,40 @@ function Header() {
           {isClientsInfo && (
             <>
               <div className="icon-tooltip">
-                <Link to="/vista-asesor-formulario" className="icon-link" aria-label="Consultas">
-                  <QuestionAnswerIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/vista-asesor-formulario"
+                  className="icon-link"
+                  aria-label="Consultas"
+                >
+                  <QuestionAnswerIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Volver a consultas</span>
               </div>
-              
+
               <div className="icon-tooltip">
-                <Link to="/reportes" className="icon-link" aria-label="Reportes">
-                  <AssessmentIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/reportes"
+                  className="icon-link"
+                  aria-label="Reportes"
+                >
+                  <AssessmentIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Ver reportes</span>
               </div>
 
               <div className="icon-tooltip">
-                <Link to="/asesor-control" className="icon-link" aria-label="Control Asesor">
-                  <AccountTreeIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/asesor-control"
+                  className="icon-link"
+                  aria-label="Control Asesor"
+                >
+                  <AccountTreeIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -103,22 +151,38 @@ function Header() {
           {isReportes && (
             <>
               <div className="icon-tooltip">
-                <Link to="/vista-asesor-formulario" className="icon-link" aria-label="Consultas">
-                  <QuestionAnswerIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/vista-asesor-formulario"
+                  className="icon-link"
+                  aria-label="Consultas"
+                >
+                  <QuestionAnswerIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Volver a consultas</span>
               </div>
-              
+
               <div className="icon-tooltip">
-                <Link to="/clients-info" className="icon-link" aria-label="Clientes">
-                  <PeopleIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/clients-info"
+                  className="icon-link"
+                  aria-label="Clientes"
+                >
+                  <PeopleIcon style={{ fontSize: "32px", color: "white" }} />
                 </Link>
                 <span className="tooltip-text">Ver clientes</span>
               </div>
 
               <div className="icon-tooltip">
-                <Link to="/asesor-control" className="icon-link" aria-label="Control Asesor">
-                  <AccountTreeIcon style={{ fontSize: '32px', color: 'white' }} />
+                <Link
+                  to="/asesor-control"
+                  className="icon-link"
+                  aria-label="Control Asesor"
+                >
+                  <AccountTreeIcon
+                    style={{ fontSize: "32px", color: "white" }}
+                  />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -128,8 +192,14 @@ function Header() {
           {/* Ícono Admin - Visible en todas las demás vistas */}
           {showAdminIcon && (
             <div className="icon-tooltip">
-              <Link to="/login-asesor" className="icon-link" aria-label="Administrador">
-                <AdminPanelSettingsIcon style={{ fontSize: '32px', color: 'white' }} />
+              <Link
+                to="/login-asesor"
+                className="icon-link"
+                aria-label="Administrador"
+              >
+                <AdminPanelSettingsIcon
+                  style={{ fontSize: "32px", color: "white" }}
+                />
               </Link>
               <span className="tooltip-text">Iniciar sesión como asesor</span>
             </div>
@@ -152,11 +222,22 @@ function App() {
           <Route path="/formulario-cliente" element={<FormularioCliente />} />
           <Route path="/login-asesor" element={<LoginRegisterAdvisor />} />
           <Route path="/asesor-control" element={<AsesorControl />} />
-          <Route path="/vista-asesor-formulario" element={<VistaAsesorFormulario />} />
+          <Route
+            path="/vista-asesor-formulario"
+            element={<VistaAsesorFormulario />}
+          />
           <Route path="/clients-info" element={<ClientsInfo />} />
           <Route path="/reportes" element={<Reportes />} />
           <Route path="/Respuestas/:consultaId" element={<Respuesta />} />
           <Route path="/vista-cliente" element={<VistaCliente />} />
+          <Route
+            path="/vista-cliente/:consultaId"
+            element={<VistaClienteConsulta />}
+          />
+          <Route
+            path="/vista-cliente-consulta"
+            element={<VistaClienteConsulta />}
+          />
           <Route path="/consulta" element={<Consulta />} />
         </Routes>
       </div>

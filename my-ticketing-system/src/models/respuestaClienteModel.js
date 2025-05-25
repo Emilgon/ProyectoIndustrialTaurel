@@ -12,7 +12,7 @@ import { db, storage, auth } from "../firebaseConfig";
 
 export const fetchRespuestasByConsultaId = async (consultaId) => {
   const respuestasRef = query(
-    collection(db, "Responses"),
+    collection(db, "ResponsesClients"),
     where("consultaId", "==", consultaId)
   );
   const respuestasSnapshot = await getDocs(respuestasRef);
@@ -55,11 +55,14 @@ export const addRespuesta = async (consultaId, content, file) => {
     attachment: file ? file.name : null,
   };
 
-  const docRef = await addDoc(collection(db, "Responses"), responseData);
+  const docRef = await addDoc(collection(db, "ResponsesClients"), responseData);
 
   let downloadUrl = null;
   if (file) {
-    const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
+    const storageRef = ref(
+      storage,
+      `respuestasClientes/${consultaId}/${file.name}`
+    );
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);
   }
