@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
 
@@ -16,7 +16,9 @@ export const addConsulta = async (mensaje, archivo, affair) => {
 
   const userRef = collection(db, "Clients");
   const querySnapshot = await getDocs(userRef);
-  const userData = querySnapshot.docs.find(doc => doc.data().email === user.email);
+  const userData = querySnapshot.docs.find(
+    (doc) => doc.data().email === user.email
+  );
 
   if (!userData) throw new Error("User data not found");
 
@@ -37,7 +39,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
     affair: affair,
     timestamp: new Date(),
     clientId,
-    alertShown: false
+    alertShown: false,
   });
 
   return docRef.id;

@@ -144,7 +144,8 @@ const VistaCliente = () => {
         }
         if (consulta.respuestas) {
           for (const respuesta of consulta.respuestas) {
-            if (respuesta.attachment) { // Cambiado de attachmentReply a attachment
+            if (respuesta.attachment) {
+              // Cambiado de attachmentReply a attachment
               for (const fileName of respuesta.attachment.split(", ")) {
                 if (!fileUrls[fileName]) {
                   const url = await fetchDownloadUrl(consulta.id, fileName);
@@ -203,13 +204,15 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <BusinessIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Empresa:</strong> {userData.company || "No disponible"}
+                  <strong>Empresa:</strong>{" "}
+                  {userData.company || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <WorkIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Rol en la empresa:</strong> {userData.company_role || "No disponible"}
+                  <strong>Rol en la empresa:</strong>{" "}
+                  {userData.company_role || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -221,13 +224,15 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <LocationOnIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Dirección:</strong> {userData.address || "No disponible"}
+                  <strong>Dirección:</strong>{" "}
+                  {userData.address || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <EmailIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Correo electrónico:</strong> {userData.email || "No disponible"}
+                  <strong>Correo electrónico:</strong>{" "}
+                  {userData.email || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -267,32 +272,52 @@ const VistaCliente = () => {
                       <Typography variant="h6" fontWeight="bold">
                         Consulta
                       </Typography>
+
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: "#4CAF50",
+                          color: "#fff",
+                          width: "fit-content",
+                          marginLeft: 2,
+                        }}
+                        onClick={() =>
+                          navigate(`/vista-cliente/${consulta.id}`)
+                        }
+                      >
+                        Ir al chat
+                      </Button>
                     </Box>
-                    <Typography sx={{ mb: 2, textAlign: 'left' }}>
-                      <strong>Asunto:</strong> {consulta.affair || "No disponible"}
+                    <Typography sx={{ mb: 2, textAlign: "left" }}>
+                      <strong>Asunto:</strong>{" "}
+                      {consulta.affair || "No disponible"}
                     </Typography>
-                    <Typography sx={{ mb: 2, textAlign: 'left' }}>
+                    <Typography sx={{ mb: 2, textAlign: "left" }}>
                       <strong>Mensaje:</strong> {consulta.messageContent}
                     </Typography>
                     {consulta.timestamp?.seconds ? (
-                      <Typography sx={{ mb: 2, textAlign: 'left' }}>
+                      <Typography sx={{ mb: 2, textAlign: "left" }}>
                         <strong>Fecha de Envío:</strong>{" "}
-                        {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}
+                        {new Date(
+                          consulta.timestamp.seconds * 1000
+                        ).toLocaleString()}
                       </Typography>
                     ) : (
-                      <Typography sx={{ mb: 2, textAlign: 'left' }}>
+                      <Typography sx={{ mb: 2, textAlign: "left" }}>
                         <strong>Fecha de Envío:</strong> No disponible
                       </Typography>
                     )}
                     {consulta.attachment && (
                       <Box sx={{ mb: 2 }}>
-                        <Typography variant="h6" sx={{ textAlign: 'left' }}>
+                        <Typography variant="h6" sx={{ textAlign: "left" }}>
                           <strong>Archivo Adjunto:</strong>
                         </Typography>
                         <List>
                           {consulta.attachment.split(", ").map((fileName) => (
                             <ListItem key={fileName}>
-                              <ListItemIcon>{getFileIcon(fileName)}</ListItemIcon>
+                              <ListItemIcon>
+                                {getFileIcon(fileName)}
+                              </ListItemIcon>
                               <ListItemText primary={fileName} />
                               {fileUrls[fileName] && (
                                 <IconButton
@@ -308,79 +333,6 @@ const VistaCliente = () => {
                           ))}
                         </List>
                       </Box>
-                    )}
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, textAlign: 'left' }}>
-                      Respuestas
-                    </Typography>
-                    {consulta.respuestas && consulta.respuestas.length > 0 ? (
-                      consulta.respuestas
-                        .slice()
-                        .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
-                        .map((respuesta) => (
-                          <Box key={respuesta.id} sx={{ mb: 2, textAlign: 'left' }}>
-                            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                              <Avatar sx={{ bgcolor: "#4CAF50", mr: 2 }}>
-                                <ReplyIcon />
-                              </Avatar>
-                              <Typography variant="subtitle1" fontWeight="bold" sx={{ textAlign: 'left' }}>
-                                Respuesta
-                              </Typography>
-                            </Box>
-                            <Typography sx={{ mb: 1, textAlign: 'left' }}>
-                              <strong>Mensaje:</strong> {respuesta.content}
-                            </Typography>
-                            {respuesta.timestamp?.seconds ? (
-                              <Typography sx={{ mb: 1, textAlign: 'left' }}>
-                                <strong>Fecha:</strong>{" "}
-                                {new Date(respuesta.timestamp.seconds * 1000).toLocaleString()}
-                              </Typography>
-                            ) : (
-                              <Typography sx={{ mb: 1, textAlign: 'left' }}>
-                                <strong>Fecha:</strong> No disponible
-                              </Typography>
-                            )}
-
-                            {/* Mostrar el archivo adjunto de la respuesta */}
-                            {respuesta.attachment && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="h6" sx={{ textAlign: 'left' }}>
-                                  <strong>Archivo Adjunto:</strong>
-                                </Typography>
-                                <List>
-                                  {respuesta.attachment.split(", ").map((fileName) => {
-                                    const fileUrl = fileUrls[fileName];
-                                    const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                                      fileName.split(".").pop().toLowerCase()
-                                    );
-                                    return (
-                                      <ListItem key={fileName}>
-                                        <ListItemIcon>
-                                          {getFileIcon(fileName)}
-                                        </ListItemIcon>
-                                        <ListItemText primary={fileName} />
-                                        {fileUrl && (
-                                          <IconButton
-                                            component="a"
-                                            href={fileUrl}
-                                            download
-                                            rel="noopener noreferrer"
-                                          >
-                                            <GetAppIcon />
-                                          </IconButton>
-                                        )}
-                                      </ListItem>
-                                    );
-                                  })}
-                                </List>
-                              </Box>
-                            )}
-
-                            <Divider sx={{ my: 2 }} />
-                          </Box>
-                        ))
-                    ) : (
-                      <Typography>No hay respuestas para esta consulta.</Typography>
                     )}
                   </CardContent>
                 </Card>

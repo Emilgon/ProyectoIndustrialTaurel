@@ -4,10 +4,12 @@ import {
   fetchConsultaById,
   fetchDownloadUrls,
   addRespuesta,
-} from "../models/respuestaModel";
-import { fetchClientById } from "../models/clientsInfoModel";
+} from "../models/respuestaClienteModel";
+/*
+import { fetchAdvisorById } from "../models/advisorsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
+*/
 
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
@@ -17,9 +19,9 @@ const useRespuestaController = (consultaId) => {
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
 
-  const functions = getFunctions();
-  const auth = getAuth();
-  const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
+  // const functions = getFunctions();
+  // const auth = getAuth();
+  // const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,13 +65,14 @@ const useRespuestaController = (consultaId) => {
 
     try {
       // 1. Guardar la respuesta en Firestore
-      const { downloadUrl } = await addRespuesta(consultaId, reply, file);
+      await addRespuesta(consultaId, reply, file);
 
+      /*
       // 2. Obtener clientEmail
       let clientEmail = null;
       if (consultaData?.clientId) {
         try {
-          const clientData = await fetchClientById(consultaData.clientId);
+          const clientData = await fetchAdvisorById(consultaData.clientId);
           clientEmail = clientData.email || null;
         } catch (error) {
           console.error("Error fetching client email:", error);
@@ -100,6 +103,7 @@ const useRespuestaController = (consultaId) => {
       } else {
         throw new Error("No se pudo obtener el email del cliente");
       }
+      */
 
       // 4. Limpiar formulario
       setReply("");
@@ -121,14 +125,6 @@ const useRespuestaController = (consultaId) => {
 
       // Custom error message for missing client email
       let userFriendlyMessage = error.message;
-      if (
-        error.message ===
-          "El cliente no tiene un correo electrónico registrado" ||
-        error.message === "No se pudo obtener el email del cliente"
-      ) {
-        userFriendlyMessage =
-          "El cliente no tiene un correo electrónico registrado. Por favor, verifique los datos del cliente.";
-      }
 
       return {
         success: false,

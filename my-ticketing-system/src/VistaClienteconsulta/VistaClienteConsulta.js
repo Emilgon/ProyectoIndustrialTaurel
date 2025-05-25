@@ -25,8 +25,8 @@ import {
   Description as DocIcon,
   Image as ImageIcon,
   Delete as DeleteIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
+  // Person as PersonIcon,
+  // Business as BusinessIcon,
   Description as DescriptionIcon,
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
@@ -34,7 +34,7 @@ import {
   Sort as SortIcon,
 } from "@mui/icons-material";
 
-const Respuesta = () => {
+const VistaClienteConsulta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
 
@@ -49,24 +49,23 @@ const Respuesta = () => {
     handleFileChange,
     handleRemoveFile,
     handleSubmit,
-  } = useRespuestaController(consultaId);
+  } = useRespuestaClienteController(consultaId);
 
-  const { respuestas: respuestasCliente } =
-    useRespuestaClienteController(consultaId);
+  const { respuestas: respuestasAsesor } = useRespuestaController(consultaId);
 
   const [allResponses, setAllResponses] = useState([]);
 
   useEffect(() => {
-    const respuestas1 = [...respuestasCliente];
-    const respuestas2 = [...respuestas];
+    const respuestas1 = [...respuestas];
+    const respuestas2 = [...respuestasAsesor];
 
     respuestas1.forEach((item) => {
-      item["sender"] = "Cliente";
+      item["sender"] = "Tú";
       return item;
     });
 
     respuestas2.forEach((item) => {
-      item["sender"] = "Tú";
+      item["sender"] = "Asesor";
       return item;
     });
 
@@ -76,7 +75,7 @@ const Respuesta = () => {
     });
 
     setAllResponses(mergedArray);
-  }, [respuestasCliente, respuestas]);
+  }, [respuestasAsesor, respuestas]);
 
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -118,7 +117,7 @@ const Respuesta = () => {
       Swal.fire({
         icon: "success",
         title: "Respuesta enviada correctamente",
-        text: "La respuesta se ha guardado y el cliente ha sido notificado",
+        text: "La respuesta se ha guardado",
         showConfirmButton: false,
         timer: 2000,
       });
@@ -153,32 +152,16 @@ const Respuesta = () => {
           gutterBottom
           sx={{ color: "#1B5C94" }}
         >
-          Respuesta a la Consulta
+          Consulta
         </Typography>
 
         <Box sx={{ mb: 3 }}>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
-              <PersonIcon fontSize="small" />
-            </Avatar>
-            <Typography variant="h6" fontWeight="bold">
-              Cliente: {consultaData.name}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
-              <BusinessIcon fontSize="small" />
-            </Avatar>
-            <Typography variant="h6" fontWeight="bold">
-              Empresa: {consultaData.company}
-            </Typography>
-          </Box>
           <Box display="flex" alignItems="center" gap={1}>
             <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
               <DescriptionIcon fontSize="small" />
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
-              Tipo de consulta: {consultaData.type}
+              Tipo de consulta asignada: {consultaData.type}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={1} mt={1}>
@@ -213,7 +196,7 @@ const Respuesta = () => {
 
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Mensaje del Cliente
+            Primer mensaje
           </Typography>
           <Typography variant="body1">{consultaData.messageContent}</Typography>
 
@@ -431,7 +414,7 @@ const Respuesta = () => {
               <Box
                 key={index}
                 backgroundColor={
-                  respuesta.sender === "Cliente" ? "#DDDDDD33" : "#C4E4FF88"
+                  respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
                 }
                 sx={{
                   mb: 2,
@@ -502,4 +485,4 @@ const Respuesta = () => {
   );
 };
 
-export default Respuesta;
+export default VistaClienteConsulta;
