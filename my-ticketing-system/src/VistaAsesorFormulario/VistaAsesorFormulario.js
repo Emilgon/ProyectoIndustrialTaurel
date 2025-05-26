@@ -23,21 +23,21 @@ import {
   Popover,
   Avatar,
   Tooltip,
-  TextField
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckIcon from '@mui/icons-material/Check';
+import CheckIcon from "@mui/icons-material/Check";
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import DownloadIcon from "@mui/icons-material/Download";
 import SendIcon from "@mui/icons-material/Send";
-import CloseIcon from '@mui/icons-material/Close';
-import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import LogoutIcon from '@mui/icons-material/Logout';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CloseIcon from "@mui/icons-material/Close";
+import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import LogoutIcon from "@mui/icons-material/Logout";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import {
   ArrowBack as ArrowBackIcon,
   Business as BusinessIcon,
@@ -46,26 +46,35 @@ import {
   CalendarToday as CalendarIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import ImageIcon from '@mui/icons-material/Image';
-import DescriptionIcon from '@mui/icons-material/Description';
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import ImageIcon from "@mui/icons-material/Image";
+import DescriptionIcon from "@mui/icons-material/Description";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
-import { db, collection, getDocs, updateDoc, doc, deleteDoc, query, where } from "../firebaseConfig";
+import {
+  db,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  query,
+  where,
+} from "../firebaseConfig";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "./VistaAsesorFormulario.css";
-import SearchIcon from '@mui/icons-material/Search';
-import ClearIcon from '@mui/icons-material/Clear';
-import InputAdornment from '@mui/material/InputAdornment';
-import CategoryIcon from '@mui/icons-material/Category';
-import TimerIcon from '@mui/icons-material/Timer';
-import AssignmentIcon from '@mui/icons-material/Assignment';
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import InputAdornment from "@mui/material/InputAdornment";
+import CategoryIcon from "@mui/icons-material/Category";
+import TimerIcon from "@mui/icons-material/Timer";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import { blue } from "@mui/material/colors";
 
 const VistaAsesorFormulario = () => {
@@ -120,16 +129,22 @@ const VistaAsesorFormulario = () => {
         return {
           ...data,
           id: doc.id,
-          remaining_days: data.start_date ?
-            calculateRemainingDays(data.start_date, data.indicator) :
-            data.indicator
+          remaining_days: data.start_date
+            ? calculateRemainingDays(data.start_date, data.indicator)
+            : data.indicator,
         };
       });
       setConsultas(consultasData);
 
-      const pendientes = consultasData.filter((c) => c.status === "Pendiente").length;
-      const enProceso = consultasData.filter((c) => c.status === "En proceso").length;
-      const resueltas = consultasData.filter((c) => c.status === "Resuelta").length;
+      const pendientes = consultasData.filter(
+        (c) => c.status === "Pendiente"
+      ).length;
+      const enProceso = consultasData.filter(
+        (c) => c.status === "En proceso"
+      ).length;
+      const resueltas = consultasData.filter(
+        (c) => c.status === "Resuelta"
+      ).length;
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
@@ -137,8 +152,8 @@ const VistaAsesorFormulario = () => {
     fetchConsultas();
 
     const interval = setInterval(() => {
-      setConsultas(prevConsultas =>
-        prevConsultas.map(consulta => {
+      setConsultas((prevConsultas) =>
+        prevConsultas.map((consulta) => {
           if (consulta.start_date && consulta.indicator) {
             const remainingDays = calculateRemainingDays(
               consulta.start_date,
@@ -194,15 +209,19 @@ const VistaAsesorFormulario = () => {
     try {
       const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, {
-        status: "En proceso"
+        status: "En proceso",
       });
-      setConsultas(consultas.map(c =>
-        c.id === id ? { ...c, status: "En proceso" } : c
-      ));
+      setConsultas(
+        consultas.map((c) => (c.id === id ? { ...c, status: "En proceso" } : c))
+      );
       navigate(`/Respuestas/${id}`);
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
-      Swal.fire("Error", "No se pudo actualizar el estado de la consulta", "error");
+      Swal.fire(
+        "Error",
+        "No se pudo actualizar el estado de la consulta",
+        "error"
+      );
     }
   };
 
@@ -256,13 +275,47 @@ const VistaAsesorFormulario = () => {
 
   const obtenerRespuestas = async (consultaId) => {
     try {
-      const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
+      const respuestasRef = query(
+        collection(db, "Responses"),
+        where("consultaId", "==", consultaId)
+      );
       const respuestasSnapshot = await getDocs(respuestasRef);
       const respuestasData = respuestasSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setRespuestas(respuestasData);
+
+      const respuestasClienteRef = query(
+        collection(db, "ResponsesClients"),
+        where("consultaId", "==", consultaId)
+      );
+      const respuestasClienteSnapshot = await getDocs(respuestasClienteRef);
+      const respuestasClienteData = respuestasClienteSnapshot.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })
+      );
+
+      const respuestas1 = [...respuestasClienteData];
+      const respuestas2 = [...respuestasData];
+
+      respuestas1.forEach((item) => {
+        item["sender"] = "Cliente";
+        return item;
+      });
+
+      respuestas2.forEach((item) => {
+        item["sender"] = "Tú";
+        return item;
+      });
+
+      const mergedArray = respuestas1.concat(respuestas2);
+      mergedArray.sort((a, b) => {
+        return b.timestamp.seconds - a.timestamp.seconds;
+      });
+
+      setRespuestas(mergedArray);
     } catch (error) {
       console.error("Error al obtener las respuestas:", error);
     }
@@ -316,13 +369,14 @@ const VistaAsesorFormulario = () => {
         start_date: now,
         end_date: new Date(now.getTime() + daysToResolve * 24 * 60 * 60 * 1000),
         remaining_days: daysToResolve,
-        itemsCount: editType === "Clasificación arancelaria" ? itemsCount : null,
-        tipoAsesoria: editType === "Asesoría técnica" ? tipoAsesoria : null
+        itemsCount:
+          editType === "Clasificación arancelaria" ? itemsCount : null,
+        tipoAsesoria: editType === "Asesoría técnica" ? tipoAsesoria : null,
       };
 
       await updateDoc(consultaRef, updateData);
-      setConsultas(prevConsultas =>
-        prevConsultas.map(consulta =>
+      setConsultas((prevConsultas) =>
+        prevConsultas.map((consulta) =>
           consulta.id === selectedConsultId
             ? { ...consulta, ...updateData }
             : consulta
@@ -351,9 +405,10 @@ const VistaAsesorFormulario = () => {
       return <Typography>No Asignado</Typography>;
     }
 
-    const remainingDays = consulta.remaining_days !== undefined ?
-      consulta.remaining_days :
-      consulta.indicator;
+    const remainingDays =
+      consulta.remaining_days !== undefined
+        ? consulta.remaining_days
+        : consulta.indicator;
 
     let plazoInfo = "";
     if (consulta.type === "Clasificación arancelaria" && consulta.itemsCount) {
@@ -369,13 +424,18 @@ const VistaAsesorFormulario = () => {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            backgroundColor: remainingDays <= 1 ? "red" :
-              remainingDays <= 3 ? "orange" : "green",
+            backgroundColor:
+              remainingDays <= 1
+                ? "red"
+                : remainingDays <= 3
+                ? "orange"
+                : "green",
             mr: 1,
           }}
         />
         <Typography>
-          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}{plazoInfo}
+          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}
+          {plazoInfo}
         </Typography>
       </Box>
     );
@@ -401,7 +461,9 @@ const VistaAsesorFormulario = () => {
     if (comment) {
       const consultaRef = doc(db, "Consults", id);
       await updateDoc(consultaRef, { comentario: comment });
-      setConsultas(consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c)));
+      setConsultas(
+        consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
+      );
     }
   };
 
@@ -427,7 +489,9 @@ const VistaAsesorFormulario = () => {
         try {
           const consultaRef = doc(db, "Consults", id);
           await updateDoc(consultaRef, { comentario: "" });
-          setConsultas(consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c)));
+          setConsultas(
+            consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c))
+          );
           Swal.fire("Eliminado", "El comentario ha sido eliminado.", "success");
         } catch (error) {
           Swal.fire("Error", "No se pudo eliminar el comentario.", "error");
@@ -467,9 +531,9 @@ const VistaAsesorFormulario = () => {
       const matchesType = !selectedType || consulta.type === selectedType;
       const matchesState = !selectedState || consulta.status === selectedState;
       const consultaDate = consulta.start_date
-        ? (typeof consulta.start_date.toDate === 'function'
-            ? consulta.start_date.toDate()
-            : new Date(consulta.start_date))
+        ? typeof consulta.start_date.toDate === "function"
+          ? consulta.start_date.toDate()
+          : new Date(consulta.start_date)
         : null;
       const [startDate, endDate] = dateRange;
       const matchesDateRange =
@@ -492,17 +556,29 @@ const VistaAsesorFormulario = () => {
           case "no_asignado":
             matchesIndicador = !remainingDays && remainingDays !== 0;
             break;
+          default:
+            matchesIndicador = !remainingDays && remainingDays !== 0;
+            break;
         }
       }
-      const matchesCompany = !searchCompany ||
+      const matchesCompany =
+        !searchCompany ||
         consulta.company.toLowerCase().includes(searchCompany.toLowerCase());
-      return matchesType && matchesState && matchesDateRange && matchesIndicador && matchesCompany;
+      return (
+        matchesType &&
+        matchesState &&
+        matchesDateRange &&
+        matchesIndicador &&
+        matchesCompany
+      );
     })
     .sort((a, b) => {
       if (orderBy === "status") {
         const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
-        const aPriority = a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
-        const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
+        const aPriority =
+          a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
+        const bPriority =
+          b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
         return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
       }
       if (orderBy === "apply_date") {
@@ -511,7 +587,11 @@ const VistaAsesorFormulario = () => {
           : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
       }
       if (orderBy === "type") {
-        const typesOrder = ["Clasificación Arancelaria", "Asesoría técnica", "No Asignado"];
+        const typesOrder = [
+          "Clasificación Arancelaria",
+          "Asesoría técnica",
+          "No Asignado",
+        ];
         const aIndex = typesOrder.indexOf(a.type || "No Asignado");
         const bIndex = typesOrder.indexOf(b.type || "No Asignado");
         return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
@@ -604,39 +684,76 @@ const VistaAsesorFormulario = () => {
     return (
       <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
         <CardContent>
-          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94", mb: 3 }}>
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            gutterBottom
+            sx={{ color: "#1B5C94", mb: 3 }}
+          >
             Detalles de la Consulta
           </Typography>
           <TableContainer component={Paper} sx={{ mb: 3 }}>
             <Table>
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', width: '200px', backgroundColor: '#f5f5f5' }}>Nombre y Apellido</TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      width: "200px",
+                      backgroundColor: "#f5f5f5",
+                    }}
+                  >
+                    Nombre y Apellido
+                  </TableCell>
                   <TableCell>{consulta.name || "No disponible"}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Correo</TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}
+                  >
+                    Correo
+                  </TableCell>
                   <TableCell>{consulta.email || "No disponible"}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Empresa</TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}
+                  >
+                    Empresa
+                  </TableCell>
                   <TableCell>{consulta.company || "No disponible"}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Fecha de solicitud</TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}
+                  >
+                    Fecha de solicitud
+                  </TableCell>
                   <TableCell>
                     {consulta.timestamp?.seconds
-                      ? new Date(consulta.timestamp.seconds * 1000).toLocaleString()
+                      ? new Date(
+                          consulta.timestamp.seconds * 1000
+                        ).toLocaleString()
                       : "Fecha no disponible"}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Consulta</TableCell>
-                  <TableCell>{consulta.messageContent || "No disponible"}</TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}
+                  >
+                    Consulta
+                  </TableCell>
+                  <TableCell>
+                    {consulta.messageContent || "No disponible"}
+                  </TableCell>
                 </TableRow>
                 {consulta.attachment && (
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Archivo adjunto</TableCell>
+                    <TableCell
+                      sx={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}
+                    >
+                      Archivo adjunto
+                    </TableCell>
                     <TableCell>
                       {renderAttachments(consulta.attachment)}
                     </TableCell>
@@ -645,7 +762,12 @@ const VistaAsesorFormulario = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3, color: "#1B5C94" }}>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            gutterBottom
+            sx={{ mt: 3, color: "#1B5C94" }}
+          >
             Configuración de la Consulta
           </Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -658,15 +780,19 @@ const VistaAsesorFormulario = () => {
                 onChange={(e) => {
                   setEditType(e.target.value);
                   // Resetear campos relacionados al cambiar el tipo
-                  if (e.target.value !== "Clasificación arancelaria") setItemsCount(null);
-                  if (e.target.value !== "Asesoría técnica") setTipoAsesoria("");
+                  if (e.target.value !== "Clasificación arancelaria")
+                    setItemsCount(null);
+                  if (e.target.value !== "Asesoría técnica")
+                    setTipoAsesoria("");
                 }}
                 fullWidth
                 size="small"
                 sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
               >
                 <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
-                <MuiMenuItem value="Asesoría técnica">Asesoría técnica</MuiMenuItem>
+                <MuiMenuItem value="Asesoría técnica">
+                  Asesoría técnica
+                </MuiMenuItem>
                 <MuiMenuItem value="Clasificación arancelaria">
                   Clasificación arancelaria
                 </MuiMenuItem>
@@ -682,14 +808,19 @@ const VistaAsesorFormulario = () => {
                 <TextField
                   type="number"
                   value={itemsCount || ""}
-                  onChange={(e) => setItemsCount(parseInt(e.target.value) || null)}
+                  onChange={(e) =>
+                    setItemsCount(parseInt(e.target.value) || null)
+                  }
                   fullWidth
                   size="small"
                   sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
                   inputProps={{ min: 1 }}
                 />
                 {itemsCount !== null && (
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#1B5C94' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ mt: 1, display: "block", color: "#1B5C94" }}
+                  >
                     Plazo automático: {itemsCount < 10 ? "2 días" : "10 días"}
                   </Typography>
                 )}
@@ -710,42 +841,54 @@ const VistaAsesorFormulario = () => {
                   sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
                 >
                   <MuiMenuItem value="">Seleccione...</MuiMenuItem>
-                  <MuiMenuItem value="Interna">Interna (2 días hábiles)</MuiMenuItem>
-                  <MuiMenuItem value="Externa">Externa (10 días hábiles)</MuiMenuItem>
+                  <MuiMenuItem value="Interna">
+                    Interna (2 días hábiles)
+                  </MuiMenuItem>
+                  <MuiMenuItem value="Externa">
+                    Externa (10 días hábiles)
+                  </MuiMenuItem>
                 </Select>
                 {tipoAsesoria && (
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#1B5C94' }}>
-                    Plazo automático: {tipoAsesoria === "Interna" ? "2 días" : "10 días"}
+                  <Typography
+                    variant="caption"
+                    sx={{ mt: 1, display: "block", color: "#1B5C94" }}
+                  >
+                    Plazo automático:{" "}
+                    {tipoAsesoria === "Interna" ? "2 días" : "10 días"}
                   </Typography>
                 )}
               </Grid>
             )}
 
             {/* Mostrar días asignados (solo cuando no es automático) */}
-            {(editType !== "Clasificación arancelaria" && editType !== "Asesoría técnica") && (
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Días para resolver consulta
-                </Typography>
-                <Select
-                  value={resolverDays === null ? "No Asignado" : resolverDays}
-                  onChange={(e) => {
-                    const value = e.target.value === "No Asignado" ? null : e.target.value;
-                    setResolverDays(value);
-                  }}
-                  fullWidth
-                  size="small"
-                  sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
-                >
-                  <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
-                  {[...Array(31).keys()].map((day) => (
-                    <MuiMenuItem key={day} value={day}>
-                      {day}
-                    </MuiMenuItem>
-                  ))}
-                </Select>
-              </Grid>
-            )}
+            {editType !== "Clasificación arancelaria" &&
+              editType !== "Asesoría técnica" && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Días para resolver consulta
+                  </Typography>
+                  <Select
+                    value={resolverDays === null ? "No Asignado" : resolverDays}
+                    onChange={(e) => {
+                      const value =
+                        e.target.value === "No Asignado"
+                          ? null
+                          : e.target.value;
+                      setResolverDays(value);
+                    }}
+                    fullWidth
+                    size="small"
+                    sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
+                  >
+                    <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
+                    {[...Array(31).keys()].map((day) => (
+                      <MuiMenuItem key={day} value={day}>
+                        {day}
+                      </MuiMenuItem>
+                    ))}
+                  </Select>
+                </Grid>
+              )}
           </Grid>
           <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button
@@ -772,7 +915,14 @@ const VistaAsesorFormulario = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
           Consultas
         </Typography>
@@ -782,15 +932,15 @@ const VistaAsesorFormulario = () => {
             sx={{
               color: "#1B5C94",
               "&:hover": {
-                backgroundColor: "rgba(27, 92, 148, 0.1)"
-              }
+                backgroundColor: "rgba(27, 92, 148, 0.1)",
+              },
             }}
           >
             <RestartAltIcon />
           </IconButton>
         </Tooltip>
       </Box>
-     
+
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table>
           <TableHead>
@@ -798,7 +948,13 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElSearch(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
                 >
                   <BusinessIcon sx={{ fontSize: 20 }} />
                   Cliente
@@ -809,7 +965,7 @@ const VistaAsesorFormulario = () => {
                         height: 8,
                         borderRadius: "50%",
                         backgroundColor: "#4CAF50",
-                        display: "block"
+                        display: "block",
                       }}
                     />
                   )}
@@ -861,7 +1017,13 @@ const VistaAsesorFormulario = () => {
                 <Box display="flex" alignItems="center">
                   <Button
                     onClick={(event) => setAnchorElTipo(event.currentTarget)}
-                    sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
                   >
                     <CategoryIcon sx={{ fontSize: 20 }} />
                     Tipo de Consulta
@@ -884,17 +1046,39 @@ const VistaAsesorFormulario = () => {
                     open={Boolean(anchorElTipo)}
                     onClose={() => setAnchorElTipo(null)}
                   >
-                    <MuiMenuItem onClick={() => handleSelectType("")}>Todos</MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleSelectType("No Asignado")}>No Asignado</MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleSelectType("Asesoría técnica")}>Asesoría técnica</MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleSelectType("Clasificación arancelaria")}>Clasificación arancelaria</MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleSelectType("")}>
+                      Todos
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleSelectType("No Asignado")}
+                    >
+                      No Asignado
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleSelectType("Asesoría técnica")}
+                    >
+                      Asesoría técnica
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() =>
+                        handleSelectType("Clasificación arancelaria")
+                      }
+                    >
+                      Clasificación arancelaria
+                    </MuiMenuItem>
                   </Menu>
                 </Box>
               </TableCell>
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElFecha(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
                 >
                   <CalendarTodayIcon sx={{ fontSize: 20 }} />
                   Fecha de Solicitud
@@ -905,7 +1089,7 @@ const VistaAsesorFormulario = () => {
                         height: 8,
                         borderRadius: "50%",
                         backgroundColor: "#4CAF50",
-                        display: "block"
+                        display: "block",
                       }}
                     />
                   )}
@@ -928,8 +1112,8 @@ const VistaAsesorFormulario = () => {
                       p: 2,
                       borderRadius: 2,
                       boxShadow: 3,
-                      minWidth: '400px'
-                    }
+                      minWidth: "400px",
+                    },
                   }}
                 >
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -945,30 +1129,40 @@ const VistaAsesorFormulario = () => {
                       slotProps={{
                         textField: {
                           size: "small",
-                          sx: { width: '180px' }
+                          sx: { width: "180px" },
                         },
                         fieldSeparator: {
-                          children: 'hasta'
-                        }
+                          children: "hasta",
+                        },
                       }}
-                      localeText={{ start: 'Fecha inicial', end: 'Fecha final' }}
+                      localeText={{
+                        start: "Fecha inicial",
+                        end: "Fecha final",
+                      }}
                     />
                   </LocalizationProvider>
-                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 1,
+                    }}
+                  >
                     <IconButton
                       size="small"
                       onClick={() => {
                         setDateRange([null, null]);
                         setAnchorElFecha(null);
                       }}
-                      sx={{ color: '#666' }}
+                      sx={{ color: "#666" }}
                     >
                       <FilterAltOffIcon />
                     </IconButton>
                     <IconButton
                       size="small"
                       onClick={() => setAnchorElFecha(null)}
-                      sx={{ color: '#1B5C94' }}
+                      sx={{ color: "#1B5C94" }}
                     >
                       <CloseIcon />
                     </IconButton>
@@ -978,7 +1172,13 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElIndicador(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
                 >
                   <TimerIcon sx={{ fontSize: 20 }} />
                   Indicador
@@ -987,10 +1187,15 @@ const VistaAsesorFormulario = () => {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      backgroundColor: indicadorFilter === "todos" ? "transparent" :
-                        indicadorFilter === "urgente" ? "red" :
-                          indicadorFilter === "proximo" ? "orange" : "green",
-                      display: indicadorFilter === "todos" ? "none" : "block"
+                      backgroundColor:
+                        indicadorFilter === "todos"
+                          ? "transparent"
+                          : indicadorFilter === "urgente"
+                          ? "red"
+                          : indicadorFilter === "proximo"
+                          ? "orange"
+                          : "green",
+                      display: indicadorFilter === "todos" ? "none" : "block",
                     }}
                   />
                 </Button>
@@ -1011,11 +1216,12 @@ const VistaAsesorFormulario = () => {
                     <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
                       Todos
                     </MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleIndicadorFilter("urgente")}
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("urgente")}
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
                       }}
                     >
                       <Box
@@ -1023,16 +1229,17 @@ const VistaAsesorFormulario = () => {
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          backgroundColor: "red"
+                          backgroundColor: "red",
                         }}
                       />
                       Urgente (1 día o menos)
                     </MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleIndicadorFilter("proximo")}
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("proximo")}
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
                       }}
                     >
                       <Box
@@ -1040,16 +1247,17 @@ const VistaAsesorFormulario = () => {
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          backgroundColor: "orange"
+                          backgroundColor: "orange",
                         }}
                       />
                       Próximo (2-3 días)
                     </MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleIndicadorFilter("normal")}
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("normal")}
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
                       }}
                     >
                       <Box
@@ -1057,12 +1265,14 @@ const VistaAsesorFormulario = () => {
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          backgroundColor: "green"
+                          backgroundColor: "green",
                         }}
                       />
                       Normal ( mayor a 3 días)
                     </MuiMenuItem>
-                    <MuiMenuItem onClick={() => handleIndicadorFilter("no_asignado")}>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("no_asignado")}
+                    >
                       No Asignado
                     </MuiMenuItem>
                   </Box>
@@ -1071,7 +1281,13 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElEstado(event.currentTarget)}
-                  sx={{ color: "white", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: 1 }}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
                 >
                   <AssignmentIcon sx={{ fontSize: 20 }} />
                   Estado
@@ -1094,10 +1310,18 @@ const VistaAsesorFormulario = () => {
                   open={Boolean(anchorElEstado)}
                   onClose={() => setAnchorElEstado(null)}
                 >
-                  <MuiMenuItem onClick={() => handleSelectState("")}>Todos</MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("Resuelto")}>Resuelto</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("")}>
+                    Todos
+                  </MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>
+                    Pendiente
+                  </MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("En proceso")}>
+                    En proceso
+                  </MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Resuelto")}>
+                    Resuelto
+                  </MuiMenuItem>
                 </Menu>
               </TableCell>
               <TableCell>
@@ -1105,10 +1329,10 @@ const VistaAsesorFormulario = () => {
                   sx={{
                     color: "white",
                     fontWeight: "bold",
-                    display: 'flex',
-                    alignItems: 'center',
+                    display: "flex",
+                    alignItems: "center",
                     gap: 1,
-                    textTransform: 'none'
+                    textTransform: "none",
                   }}
                 >
                   <HistoryIcon sx={{ fontSize: 20 }} />
@@ -1121,10 +1345,10 @@ const VistaAsesorFormulario = () => {
                   sx={{
                     color: "white",
                     fontWeight: "bold",
-                    display: 'flex',
-                    alignItems: 'center',
+                    display: "flex",
+                    alignItems: "center",
                     gap: 1,
-                    textTransform: 'none'
+                    textTransform: "none",
                   }}
                 >
                   <CheckIcon sx={{ fontSize: 20 }} />
@@ -1136,10 +1360,10 @@ const VistaAsesorFormulario = () => {
                   sx={{
                     color: "white",
                     fontWeight: "bold",
-                    display: 'flex',
-                    alignItems: 'center',
+                    display: "flex",
+                    alignItems: "center",
                     gap: 1,
-                    textTransform: 'none'
+                    textTransform: "none",
                   }}
                 >
                   <ChatIcon sx={{ fontSize: 20 }} />
@@ -1152,10 +1376,10 @@ const VistaAsesorFormulario = () => {
                   sx={{
                     color: "white",
                     fontWeight: "bold",
-                    display: 'flex',
-                    alignItems: 'center',
+                    display: "flex",
+                    alignItems: "center",
                     gap: 1,
-                    textTransform: 'none'
+                    textTransform: "none",
                   }}
                 >
                   Borrar
@@ -1179,14 +1403,15 @@ const VistaAsesorFormulario = () => {
                       handleToggleDetails(consulta.id);
                     }
                   }}
-                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "#f5f5f5" } }}
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
                 >
                   <TableCell>{consulta.company}</TableCell>
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
                   <TableCell>{formatDateTime(consulta.start_date)}</TableCell>
-                  <TableCell>
-                    {renderRemainingDays(consulta)}
-                  </TableCell>
+                  <TableCell>{renderRemainingDays(consulta)}</TableCell>
                   <TableCell>{consulta.status}</TableCell>
                   <TableCell>
                     <Button
@@ -1198,14 +1423,14 @@ const VistaAsesorFormulario = () => {
                       sx={{
                         backgroundColor: "#1B5C94",
                         color: "white",
-                        borderRadius: '8px',
-                        padding: '6px 12px',
-                        textTransform: 'none',
-                        fontWeight: 'bold',
-                        minWidth: '100px',
-                        '&:hover': {
+                        borderRadius: "8px",
+                        padding: "6px 12px",
+                        textTransform: "none",
+                        fontWeight: "bold",
+                        minWidth: "100px",
+                        "&:hover": {
                           backgroundColor: "#145a8c",
-                        }
+                        },
                       }}
                     >
                       Historial
@@ -1221,14 +1446,14 @@ const VistaAsesorFormulario = () => {
                       sx={{
                         backgroundColor: "#1B5C94",
                         color: "white",
-                        borderRadius: '8px',
-                        padding: '6px 12px',
-                        textTransform: 'none',
-                        fontWeight: 'bold',
-                        minWidth: '100px',
-                        '&:hover': {
+                        borderRadius: "8px",
+                        padding: "6px 12px",
+                        textTransform: "none",
+                        fontWeight: "bold",
+                        minWidth: "100px",
+                        "&:hover": {
                           backgroundColor: "#145a8c",
-                        }
+                        },
                       }}
                     >
                       Responder
@@ -1293,32 +1518,84 @@ const VistaAsesorFormulario = () => {
                         >
                           <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
                             <CardContent>
-                              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: "#1B5C94", mb: 3 }}>
+                              <Typography
+                                variant="h6"
+                                fontWeight="bold"
+                                gutterBottom
+                                sx={{ color: "#1B5C94", mb: 3 }}
+                              >
                                 Historial de Respuestas
                               </Typography>
                               {respuestas.length > 0 ? (
                                 respuestas.map((respuesta) => (
-                                  <Box key={respuesta.id} sx={{ mb: 3, p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
-                                    <TableContainer component={Paper} sx={{ mb: 2 }}>
+                                  <Box
+                                    key={respuesta.id}
+                                    backgroundColor={
+                                      respuesta.sender === "Cliente"
+                                        ? "#DDDDDD33"
+                                        : "#C4E4FF88"
+                                    }
+                                    sx={{
+                                      mb: 3,
+                                      p: 2,
+                                      border: "1px solid #e0e0e0",
+                                      borderRadius: 2,
+                                    }}
+                                  >
+                                    <TableContainer
+                                      component={Paper}
+                                      sx={{ mb: 2 }}
+                                    >
                                       <Table>
                                         <TableBody>
                                           <TableRow>
-                                            <TableCell sx={{ fontWeight: 'bold', width: '200px', backgroundColor: '#f5f5f5' }}>Fecha</TableCell>
+                                            <TableCell
+                                              sx={{
+                                                fontWeight: "bold",
+                                                width: "200px",
+                                                backgroundColor: "#f5f5f5",
+                                              }}
+                                            >
+                                              Fecha
+                                            </TableCell>
                                             <TableCell>
                                               {respuesta.timestamp?.seconds
-                                                ? new Date(respuesta.timestamp.seconds * 1000).toLocaleString()
+                                                ? new Date(
+                                                    respuesta.timestamp
+                                                      .seconds * 1000
+                                                  ).toLocaleString()
                                                 : "Fecha no disponible"}
                                             </TableCell>
                                           </TableRow>
                                           <TableRow>
-                                            <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Respuesta</TableCell>
-                                            <TableCell>{respuesta.content}</TableCell>
+                                            <TableCell
+                                              sx={{
+                                                fontWeight: "bold",
+                                                backgroundColor: "#f5f5f5",
+                                              }}
+                                            >
+                                              {respuesta.sender === "Cliente"
+                                                ? "Tu respuesta"
+                                                : "Respuesta del cliente"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {respuesta.content}
+                                            </TableCell>
                                           </TableRow>
                                           {respuesta.attachment && (
                                             <TableRow>
-                                              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Archivo adjunto</TableCell>
+                                              <TableCell
+                                                sx={{
+                                                  fontWeight: "bold",
+                                                  backgroundColor: "#f5f5f5",
+                                                }}
+                                              >
+                                                Archivo adjunto
+                                              </TableCell>
                                               <TableCell>
-                                                {renderAttachments(respuesta.attachment)}
+                                                {renderAttachments(
+                                                  respuesta.attachment
+                                                )}
                                               </TableCell>
                                             </TableRow>
                                           )}
@@ -1328,8 +1605,12 @@ const VistaAsesorFormulario = () => {
                                   </Box>
                                 ))
                               ) : (
-                                <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                                  No hay respuestas registradas para esta consulta.
+                                <Typography
+                                  variant="body1"
+                                  sx={{ fontStyle: "italic" }}
+                                >
+                                  No hay respuestas registradas para esta
+                                  consulta.
                                 </Typography>
                               )}
                             </CardContent>
