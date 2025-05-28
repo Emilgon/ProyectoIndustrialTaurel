@@ -24,6 +24,7 @@ import {
   Avatar,
   Tooltip,
   TextField,
+  Badge,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
@@ -38,6 +39,7 @@ import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import LogoutIcon from "@mui/icons-material/Logout";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import {
   ArrowBack as ArrowBackIcon,
   Business as BusinessIcon,
@@ -57,11 +59,13 @@ import {
   db,
   collection,
   getDocs,
+  getDoc,
   updateDoc,
   doc,
   deleteDoc,
   query,
   where,
+  onSnapshot
 } from "../firebaseConfig";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -105,6 +109,10 @@ const VistaAsesorFormulario = () => {
   const [anchorElSearch, setAnchorElSearch] = useState(null);
   const [itemsCount, setItemsCount] = useState(null);
   const [tipoAsesoria, setTipoAsesoria] = useState("");
+  const [newResponsesCount, setNewResponsesCount] = useState(() => {
+    const savedCounts = localStorage.getItem('responseCounts');
+    return savedCounts ? JSON.parse(savedCounts) : {};
+  });
 
   const navigate = useNavigate();
   const storage = getStorage();
@@ -120,6 +128,9 @@ const VistaAsesorFormulario = () => {
     const remainingDays = indicadorOriginal - differenceInDays;
     return remainingDays > 0 ? remainingDays : 0;
   };
+  useEffect(() => {
+    localStorage.setItem('responseCounts', JSON.stringify(newResponsesCount));
+  }, [newResponsesCount]);
 
   useEffect(() => {
     const fetchConsultas = async () => {
@@ -151,6 +162,47 @@ const VistaAsesorFormulario = () => {
     };
     fetchConsultas();
 
+    // Configurar listeners para respuestas de clientes
+    // Reemplaza el listener actual con este:
+    const unsubscribeResponses = onSnapshot(
+      collection(db, "ResponsesClients"),
+      (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+          if (change.type === "added") {
+            const newResponse = change.doc.data();
+            try {
+              const consultaRef = doc(db, "Consults", newResponse.consultaId);
+              const consultaDoc = await getDoc(consultaRef);
+
+              // Verificar si el documento existe y tiene datos
+              if (!consultaDoc.exists()) {
+                console.warn(`No existe la consulta con ID: ${newResponse.consultaId}`);
+                return;
+              }
+
+              const consultaData = consultaDoc.data();
+              const responseDate = newResponse.timestamp?.toDate?.();
+              const lastViewedDate = consultaData.lastViewed?.toDate?.();
+
+              // Solo contar si:
+              // 1. Nunca se ha visto O
+              // 2. La respuesta es más reciente que el último visto
+              if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
+                setNewResponsesCount(prev => {
+                  const newCount = (prev[newResponse.consultaId] || 0) + 1;
+                  const newCounts = { ...prev, [newResponse.consultaId]: newCount };
+                  localStorage.setItem('responseCounts', JSON.stringify(newCounts));
+                  return newCounts;
+                });
+              }
+            } catch (error) {
+              console.error("Error al verificar estado de consulta:", error);
+            }
+          }
+        });
+      }
+    );
+
     const interval = setInterval(() => {
       setConsultas((prevConsultas) =>
         prevConsultas.map((consulta) => {
@@ -166,7 +218,10 @@ const VistaAsesorFormulario = () => {
       );
     }, 60000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribeResponses();
+    };
   }, []);
 
   useEffect(() => {
@@ -261,15 +316,81 @@ const VistaAsesorFormulario = () => {
     }
   };
 
+  const handleMarcarResuelta = async (id) => {
+    const { isConfirmed } = await Swal.fire({
+      title: "Confirmar",
+      text: "¿Estás seguro de que deseas marcar esta consulta como resuelta?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, marcar como resuelta",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#4CAF50",
+    });
+
+    if (isConfirmed) {
+      try {
+        const consultaRef = doc(db, "Consults", id);
+        await updateDoc(consultaRef, {
+          status: "Resuelta",
+          resolvedAt: new Date() // Opcional: guardar fecha de resolución
+        });
+
+        // Actualizar el estado local
+        setConsultas(consultas.map(c =>
+          c.id === id ? { ...c, status: "Resuelta" } : c
+        ));
+
+        // Actualizar contadores
+        setResueltasCount(resueltasCount + 1);
+        if (consultas.find(c => c.id === id).status === "En proceso") {
+          setEnProcesoCount(enProcesoCount - 1);
+        } else {
+          setPendientesCount(pendientesCount - 1);
+        }
+
+        Swal.fire(
+          "¡Resuelta!",
+          "La consulta ha sido marcada como resuelta",
+          "success"
+        );
+      } catch (error) {
+        console.error("Error al marcar como resuelta:", error);
+        Swal.fire(
+          "Error",
+          "No se pudo marcar la consulta como resuelta",
+          "error"
+        );
+      }
+    }
+  };
+
   const handleToggleHistorial = async (id) => {
     if (expandedRow === id) {
       setExpandedRow(null);
     }
+
     if (historialAbierto === id) {
       setHistorialAbierto(null);
     } else {
+      // Marcar como leído en Firebase
+      try {
+        const consultaRef = doc(db, "Consults", id);
+        await updateDoc(consultaRef, {
+          lastViewed: new Date()
+        });
+      } catch (error) {
+        console.error("Error al actualizar la fecha de visualización:", error);
+      }
+
       await obtenerRespuestas(id);
       setHistorialAbierto(id);
+
+      // Resetear el contador local
+      setNewResponsesCount(prev => {
+        const newCounts = { ...prev, [id]: 0 };
+        localStorage.setItem('responseCounts', JSON.stringify(newCounts));
+        return newCounts;
+      });
     }
   };
 
@@ -428,8 +549,8 @@ const VistaAsesorFormulario = () => {
               remainingDays <= 1
                 ? "red"
                 : remainingDays <= 3
-                ? "orange"
-                : "green",
+                  ? "orange"
+                  : "green",
             mr: 1,
           }}
         />
@@ -732,8 +853,8 @@ const VistaAsesorFormulario = () => {
                   <TableCell>
                     {consulta.timestamp?.seconds
                       ? new Date(
-                          consulta.timestamp.seconds * 1000
-                        ).toLocaleString()
+                        consulta.timestamp.seconds * 1000
+                      ).toLocaleString()
                       : "Fecha no disponible"}
                   </TableCell>
                 </TableRow>
@@ -1191,10 +1312,10 @@ const VistaAsesorFormulario = () => {
                         indicadorFilter === "todos"
                           ? "transparent"
                           : indicadorFilter === "urgente"
-                          ? "red"
-                          : indicadorFilter === "proximo"
-                          ? "orange"
-                          : "green",
+                            ? "red"
+                            : indicadorFilter === "proximo"
+                              ? "orange"
+                              : "green",
                       display: indicadorFilter === "todos" ? "none" : "block",
                     }}
                   />
@@ -1382,7 +1503,8 @@ const VistaAsesorFormulario = () => {
                     textTransform: "none",
                   }}
                 >
-                  Borrar
+                  <CheckIcon sx={{ fontSize: 20 }} />
+                  Resuelta
                 </Button>
               </TableCell>
             </TableRow>
@@ -1414,27 +1536,44 @@ const VistaAsesorFormulario = () => {
                   <TableCell>{renderRemainingDays(consulta)}</TableCell>
                   <TableCell>{consulta.status}</TableCell>
                   <TableCell>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleHistorial(consulta.id);
-                      }}
-                      variant="contained"
-                      sx={{
-                        backgroundColor: "#1B5C94",
-                        color: "white",
-                        borderRadius: "8px",
-                        padding: "6px 12px",
-                        textTransform: "none",
-                        fontWeight: "bold",
-                        minWidth: "100px",
-                        "&:hover": {
-                          backgroundColor: "#145a8c",
-                        },
-                      }}
-                    >
-                      Historial
-                    </Button>
+                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleHistorial(consulta.id);
+                        }}
+                        variant="contained"
+                        sx={{
+                          backgroundColor: "#1B5C94",
+                          color: "white",
+                          borderRadius: "8px",
+                          padding: "6px 12px",
+                          textTransform: "none",
+                          fontWeight: "bold",
+                          minWidth: "100px",
+                          "&:hover": {
+                            backgroundColor: "#145a8c",
+                          },
+                        }}
+                      >
+                        Historial
+                      </Button>
+                      <Badge
+                        badgeContent={newResponsesCount[consulta.id] || 0}
+                        color="error"
+                        sx={{
+                          position: 'absolute',
+                          top: -5,
+                          right: -3,
+                          '& .MuiBadge-badge': {
+                            height: '20px',
+                            minWidth: '20px',
+                            borderRadius: '50%',
+                            transform: 'scale(1) translate(50%, -50%)',
+                          }
+                        }}
+                      />
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Button
@@ -1481,15 +1620,20 @@ const VistaAsesorFormulario = () => {
                   </TableCell>
 
                   <TableCell>
-                    <Button
+                    <IconButton
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteConsulta(consulta.id);
+                        handleMarcarResuelta(consulta.id);
                       }}
-                      sx={{ minWidth: 0, p: 0 }}
+                      sx={{
+                        color: consulta.status === "Resuelta" ? "#4CAF50" : "#1B5C94",
+                        "&:hover": {
+                          backgroundColor: "rgba(76, 175, 80, 0.1)",
+                        }
+                      }}
                     >
-                      <DeleteIcon sx={{ color: "red" }} />
-                    </Button>
+                      <CheckIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
                 <AnimatePresence>
@@ -1561,9 +1705,9 @@ const VistaAsesorFormulario = () => {
                                             <TableCell>
                                               {respuesta.timestamp?.seconds
                                                 ? new Date(
-                                                    respuesta.timestamp
-                                                      .seconds * 1000
-                                                  ).toLocaleString()
+                                                  respuesta.timestamp
+                                                    .seconds * 1000
+                                                ).toLocaleString()
                                                 : "Fecha no disponible"}
                                             </TableCell>
                                           </TableRow>
