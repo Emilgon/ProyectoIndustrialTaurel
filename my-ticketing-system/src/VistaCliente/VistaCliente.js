@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import {
   Box,
@@ -10,19 +10,16 @@ import {
   Button,
   Card,
   CardContent,
-  Divider,
   Avatar,
-  AppBar,
-  Toolbar,
-  IconButton,
+  Paper,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper,
+  IconButton,
+  Badge
 } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
-import ReplyIcon from "@mui/icons-material/Reply";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import EmailIcon from "@mui/icons-material/Email";
@@ -30,22 +27,23 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import WorkIcon from "@mui/icons-material/Work";
 import HistoryIcon from "@mui/icons-material/History";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf"; // Ícono para PDF
-import ImageIcon from "@mui/icons-material/Image"; // Ícono para imágenes
-import DescriptionIcon from "@mui/icons-material/Description"; // Ícono para documentos
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile"; // Ícono para archivos genéricos
-import GetAppIcon from "@mui/icons-material/GetApp"; // Ícono de descarga
-import TableChartIcon from "@mui/icons-material/TableChart"; // Ícono para archivos Excel
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import ImageIcon from "@mui/icons-material/Image";
+import DescriptionIcon from "@mui/icons-material/Description";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import GetAppIcon from "@mui/icons-material/GetApp";
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import Swal from "sweetalert2";
 
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
-  const [fileUrls, setFileUrls] = useState({}); // Estado para almacenar las URLs de descarga
+  const [fileUrls, setFileUrls] = useState({});
+  const [newResponsesCount, setNewResponsesCount] = useState({});
   const navigate = useNavigate();
-  const storage = getStorage(); // Inicializar Firebase Storage
+  const storage = getStorage();
 
-  // Función para obtener los datos del usuario
   const fetchUserData = async () => {
     const user = auth.currentUser;
     if (user) {
@@ -59,11 +57,9 @@ const VistaCliente = () => {
     }
   };
 
-  // Función para obtener las respuestas
   const fetchRespuestas = async () => {
     const user = auth.currentUser;
     if (user) {
-      // Obtener todas las consultas del cliente
       const consultsRef = query(
         collection(db, "Consults"),
         where("email", "==", user.email)
@@ -74,7 +70,6 @@ const VistaCliente = () => {
         ...doc.data(),
       }));
 
-      // Obtener las respuestas para cada consulta
       for (let consulta of consultasArray) {
         const respuestasRef = query(
           collection(db, "Responses"),
@@ -85,15 +80,102 @@ const VistaCliente = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        consulta.respuestas = respuestasArray; // Añadir las respuestas a la consulta
+        consulta.respuestas = respuestasArray;
       }
 
-      // Guardar todas las consultas con sus respuestas
       setRespuestas(consultasArray);
     }
   };
 
-  // Función para obtener el ícono según el tipo de archivo
+  // Listener para nuevas respuestas del asesor
+  useEffect(() => {
+    const unsubscribeResponses = onSnapshot(
+      collection(db, "Responses"),
+      async (snapshot) => {
+        const newCounts = {...newResponsesCount};
+        let hasChanges = false;
+
+        for (const change of snapshot.docChanges()) {
+          if (change.type === "added" || change.type === "modified") {
+            const newResponse = change.doc.data();
+            try {
+              const consultaRef = doc(db, "Consults", newResponse.consultaId);
+              const consultaDoc = await getDoc(consultaRef);
+              
+              if (consultaDoc.exists()) {
+                const consultaData = consultaDoc.data();
+                const responseDate = newResponse.timestamp?.toDate?.();
+                const lastViewedDate = consultaData.lastViewed?.toDate?.();
+
+                if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
+                  newCounts[newResponse.consultaId] = (newCounts[newResponse.consultaId] || 0) + 1;
+                  hasChanges = true;
+                }
+              }
+            } catch (error) {
+              console.error("Error al verificar estado de consulta:", error);
+            }
+          }
+        }
+
+        if (hasChanges) {
+          setNewResponsesCount(newCounts);
+        }
+      }
+    );
+
+    return () => unsubscribeResponses();
+  }, [newResponsesCount]);
+
+  // Cargar notificaciones existentes al iniciar
+  useEffect(() => {
+    const loadInitialNotifications = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const counts = {};
+      
+      // Obtener todas las consultas del usuario
+      const consultsRef = query(
+        collection(db, "Consults"),
+        where("email", "==", user.email)
+      );
+      const consultsSnapshot = await getDocs(consultsRef);
+      
+      // Para cada consulta, verificar respuestas no vistas
+      for (const consultaDoc of consultsSnapshot.docs) {
+        const consultaData = consultaDoc.data();
+        const lastViewed = consultaData.lastViewed?.toDate?.();
+        
+        // Obtener respuestas de esta consulta
+        const respuestasRef = query(
+          collection(db, "Responses"),
+          where("consultaId", "==", consultaDoc.id)
+        );
+        const respuestasSnapshot = await getDocs(respuestasRef);
+        
+        // Contar respuestas no vistas
+        let unseenCount = 0;
+        respuestasSnapshot.forEach((respuestaDoc) => {
+          const respuestaData = respuestaDoc.data();
+          const respuestaDate = respuestaData.timestamp?.toDate?.();
+          
+          if (!lastViewed || (respuestaDate && respuestaDate > lastViewed)) {
+            unseenCount++;
+          }
+        });
+        
+        if (unseenCount > 0) {
+          counts[consultaDoc.id] = unseenCount;
+        }
+      }
+      
+      setNewResponsesCount(counts);
+    };
+
+    loadInitialNotifications();
+  }, []);
+
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
     switch (extension) {
@@ -115,10 +197,9 @@ const VistaCliente = () => {
     }
   };
 
-  // Función para obtener la URL de descarga de un archivo
   const fetchDownloadUrl = async (consultaId, fileName) => {
     try {
-      const storageRef = ref(storage, `respuestas/${consultaId}/${fileName}`); // Cambiada la ruta para que coincida con Respuesta.js
+      const storageRef = ref(storage, `respuestas/${consultaId}/${fileName}`);
       const url = await getDownloadURL(storageRef);
       return url;
     } catch (error) {
@@ -127,7 +208,6 @@ const VistaCliente = () => {
     }
   };
 
-  // Obtener las URLs de descarga para todos los archivos adjuntos
   useEffect(() => {
     const fetchAllUrls = async () => {
       const urls = {};
@@ -145,7 +225,6 @@ const VistaCliente = () => {
         if (consulta.respuestas) {
           for (const respuesta of consulta.respuestas) {
             if (respuesta.attachment) {
-              // Cambiado de attachmentReply a attachment
               for (const fileName of respuesta.attachment.split(", ")) {
                 if (!fileUrls[fileName]) {
                   const url = await fetchDownloadUrl(consulta.id, fileName);
@@ -166,7 +245,6 @@ const VistaCliente = () => {
     }
   }, [respuestas]);
 
-  // Ejecutar fetchUserData y fetchRespuestas al cargar el componente
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -180,13 +258,33 @@ const VistaCliente = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleSalir = () => {
-    navigate("/menu");
+  const handleVerRespuestas = async (consultaId) => {
+    try {
+      // Marcar como visto al entrar
+      const consultaRef = doc(db, "Consults", consultaId);
+      await updateDoc(consultaRef, {
+        lastViewed: new Date()
+      });
+      
+      // Resetear el contador de notificaciones
+      setNewResponsesCount(prev => ({
+        ...prev,
+        [consultaId]: 0
+      }));
+      
+      navigate(`/vista-cliente/${consultaId}`);
+    } catch (error) {
+      console.error("Error al actualizar la consulta:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo abrir la consulta. Por favor intenta nuevamente.',
+      });
+    }
   };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Contenido principal */}
       <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 2 }}>
         {/* Sección de Datos del Cliente */}
         <Card sx={{ height: "fit-content", boxShadow: 3, flex: 1 }}>
@@ -204,15 +302,13 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <BusinessIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Empresa:</strong>{" "}
-                  {userData.company || "No disponible"}
+                  <strong>Empresa:</strong> {userData.company || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <WorkIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Rol en la empresa:</strong>{" "}
-                  {userData.company_role || "No disponible"}
+                  <strong>Rol en la empresa:</strong> {userData.company_role || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -224,15 +320,13 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <LocationOnIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Dirección:</strong>{" "}
-                  {userData.address || "No disponible"}
+                  <strong>Dirección:</strong> {userData.address || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <EmailIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Correo electrónico:</strong>{" "}
-                  {userData.email || "No disponible"}
+                  <strong>Correo electrónico:</strong> {userData.email || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -273,24 +367,44 @@ const VistaCliente = () => {
                         Consulta
                       </Typography>
 
-                      <Button
-                        variant="contained"
-                        sx={{
-                          backgroundColor: "#4CAF50",
-                          color: "#fff",
-                          width: "fit-content",
-                          marginLeft: 2,
-                        }}
-                        onClick={() =>
-                          navigate(`/vista-cliente/${consulta.id}`)
-                        }
-                      >
-                        Ir al chat
-                      </Button>
+                      <Box sx={{ position: 'relative', display: 'inline-flex', ml: 2 }}>
+                        <Button
+                          variant="contained"
+                          sx={{
+                            backgroundColor: "#1B5C94",
+                            color: "#fff",
+                            "&:hover": {
+                              backgroundColor: "#145a8c",
+                            }
+                          }}
+                          onClick={() => handleVerRespuestas(consulta.id)}
+                        >
+                          VER RESPUESTAS
+                        </Button>
+                        {newResponsesCount[consulta.id] > 0 && (
+                          <Badge
+                            badgeContent={newResponsesCount[consulta.id]}
+                            color="error"
+                            overlap="circular"
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              transform: 'translate(30%, -30%)',
+                              '& .MuiBadge-badge': {
+                                height: '24px',
+                                minWidth: '24px',
+                                borderRadius: '12px',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold'
+                              }
+                            }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                     <Typography sx={{ mb: 2, textAlign: "left" }}>
-                      <strong>Asunto:</strong>{" "}
-                      {consulta.affair || "No disponible"}
+                      <strong>Asunto:</strong> {consulta.affair || "No disponible"}
                     </Typography>
                     <Typography sx={{ mb: 2, textAlign: "left" }}>
                       <strong>Mensaje:</strong> {consulta.messageContent}
@@ -298,9 +412,7 @@ const VistaCliente = () => {
                     {consulta.timestamp?.seconds ? (
                       <Typography sx={{ mb: 2, textAlign: "left" }}>
                         <strong>Fecha de Envío:</strong>{" "}
-                        {new Date(
-                          consulta.timestamp.seconds * 1000
-                        ).toLocaleString()}
+                        {new Date(consulta.timestamp.seconds * 1000).toLocaleString()}
                       </Typography>
                     ) : (
                       <Typography sx={{ mb: 2, textAlign: "left" }}>

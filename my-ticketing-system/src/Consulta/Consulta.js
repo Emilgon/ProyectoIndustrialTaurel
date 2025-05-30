@@ -10,6 +10,7 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import useConsultaController from "../hooks/useConsultaController";
+import Swal from "sweetalert2";
 
 const Consulta = () => {
   const [affair, setAffair] = useState("");
@@ -46,7 +47,10 @@ const Consulta = () => {
     e.preventDefault();
     const result = await handleEnviarConsulta(mensaje, archivo, affair);
     if (result.success) {
-      alert("Consulta enviada con éxito");
+      Swal.fire({
+        icon: "success",
+        title: "Consulta enviada con éxito",
+      });
       setAffair("");
       setMensaje("");
     } else {
