@@ -60,67 +60,105 @@ const LoginRegisterAdvisor = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
-      <Card sx={{ p: 4, boxShadow: 3, borderRadius: 2, width: "100%", maxWidth: 400 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-          <IconButton onClick={() => navigate("/menu")}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" fontWeight="bold">
-            Inicio de sesión Asesor
-          </Typography>
-          <Box sx={{ width: 40 }} /> {/* Espacio para alinear el título */}
-        </Box>
+    <Box sx={{ 
+      display: "flex", 
+      minHeight: "100vh"
+    }}>
+      {/* Sección de la imagen (40%) - Izquierda */}
+      <Box sx={{ 
+        width: "40%",
+        display: { xs: "none", md: "flex" },
+        backgroundColor: "#1B5C94",
+        justifyContent: "center",
+        alignItems: "center"
+      }}>
+        <img 
+          src="/images/imagenloginasesor.png"
+          alt="Login Asesor" 
+          style={{ 
+            width: "100%",
+            height: "100%",
+            objectFit: "cover"
+          }} 
+        />
+      </Box>
 
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            label="Correo electrónico"
-            name="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setEmailError("");
-            }}
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            error={emailError !== ""}
-            helperText={emailError}
-            InputProps={{
-              startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1 }} />,
-            }}
-          />
-          <TextField
-            label="Contraseña"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            type="password"
-            InputProps={{
-              startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1 }} />,
-            }}
-          />
-        </Box>
+      {/* Sección del login (60%) - Derecha */}
+      <Box sx={{ 
+        width: { xs: "100%", md: "60%" },
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center",
+        backgroundColor: "#FFFFFF"  // Cambiado a blanco
+      }}>
+        <Card sx={{ 
+          p: 4, 
+          boxShadow: 3, 
+          borderRadius: 2, 
+          width: "100%", 
+          maxWidth: 400,
+          margin: "0 auto"
+        }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <IconButton onClick={() => navigate("/menu")}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" fontWeight="bold">
+              Inicio de sesión Asesor
+            </Typography>
+            <Box sx={{ width: 40 }} />
+          </Box>
 
-        <Button
-          variant="contained"
-          onClick={handleLogin}
-          fullWidth
-          sx={{
-            backgroundColor: "#1B5C94",
-            color: "white",
-            borderRadius: "12px",
-            "&:hover": {
-              backgroundColor: "#145a8c",
-            },
-          }}
-        >
-          Iniciar Sesión
-        </Button>
-      </Card>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Correo electrónico"
+              name="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError("");
+              }}
+              variant="outlined"
+              fullWidth
+              margin="normal"
+              error={emailError !== ""}
+              helperText={emailError}
+              InputProps={{
+                startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1 }} />,
+              }}
+            />
+            <TextField
+              label="Contraseña"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              variant="outlined"
+              fullWidth
+              margin="normal"
+              type="password"
+              InputProps={{
+                startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1 }} />,
+              }}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            onClick={handleLogin}
+            fullWidth
+            sx={{
+              backgroundColor: "#1B5C94",
+              color: "white",
+              borderRadius: "12px",
+              "&:hover": {
+                backgroundColor: "#145a8c",
+              },
+            }}
+          >
+            Iniciar Sesión
+          </Button>
+        </Card>
+      </Box>
     </Box>
   );
 };
