@@ -25,8 +25,6 @@ import {
   Description as DocIcon,
   Image as ImageIcon,
   Delete as DeleteIcon,
-  // Person as PersonIcon,
-  // Business as BusinessIcon,
   Description as DescriptionIcon,
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
@@ -172,24 +170,24 @@ const VistaClienteConsulta = () => {
               Fecha de envío:{" "}
               {consultaData.start_date && consultaData.start_date.seconds
                 ? new Date(
-                    consultaData.start_date.seconds * 1000
-                  ).toLocaleDateString("es-ES", {
+                  consultaData.start_date.seconds * 1000
+                ).toLocaleDateString("es-ES", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : new Date(consultaData.start_date).toLocaleDateString(
+                  "es-ES",
+                  {
                     day: "2-digit",
                     month: "2-digit",
                     year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  })
-                : new Date(consultaData.start_date).toLocaleDateString(
-                    "es-ES",
-                    {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  )}
+                  }
+                )}
             </Typography>
           </Box>
         </Box>
@@ -265,6 +263,153 @@ const VistaClienteConsulta = () => {
           )}
         </Card>
 
+        {/* Sección de historial de respuestas movida aquí */}
+        <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={1}
+          >
+            <Typography variant="h6" fontWeight="bold">
+              Historial de Respuestas
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel id="sort-order-label">Ordenar por fecha</InputLabel>
+              <Select
+                labelId="sort-order-label"
+                id="sort-order"
+                value={sortOrder}
+                label="Ordenar por fecha"
+                onChange={handleSortChange}
+                startAdornment={<SortIcon sx={{ mr: 1 }} />}
+              >
+                <MenuItem value="asc">De menor a mayor</MenuItem>
+                <MenuItem value="desc">De mayor a menor</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          {allResponses.length > 0 ? (
+            allResponses
+              .slice()
+              .sort((a, b) =>
+                sortOrder === "asc"
+                  ? a.timestamp.seconds - b.timestamp.seconds
+                  : b.timestamp.seconds - a.timestamp.seconds
+              )
+              .map((respuesta, index) => (
+                <Box
+                  key={index}
+                  backgroundColor={
+                    respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
+                  }
+                  sx={{
+                    mb: 2,
+                    p: 2,
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body1">
+                    <strong>{respuesta.sender}:</strong> {respuesta.content}
+                  </Typography>
+                  {respuesta.timestamp && (
+                    <Typography
+                      variant="body2"
+                      sx={{ mt: 1, color: "text.secondary" }}
+                    >
+                      Enviado el:{" "}
+                      {new Date(
+                        respuesta.timestamp.seconds * 1000
+                      ).toLocaleString()}
+                    </Typography>
+                  )}
+                  {respuesta.attachment && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body1" fontWeight="bold" gutterBottom>
+                        Archivo Adjunto
+                      </Typography>
+                      {respuesta.attachment.split(", ").map((fileName, index) => {
+                        const fileUrl = fileDownloadUrls[fileName]?.url || null;
+                        const displayName = fileDownloadUrls[fileName]?.displayName || fileName;
+                        const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                          displayName.split(".").pop().toLowerCase()
+                        );
+
+                        return (
+                          <Box
+                            key={index}
+                            display="flex"
+                            alignItems="center"
+                            gap={1}
+                            sx={{
+                              p: 1,
+                              border: "1px solid #e0e0e0",
+                              borderRadius: 1,
+                              "&:hover": { backgroundColor: "#f5f5f5" },
+                            }}
+                          >
+                            {fileUrl ? (
+                              <IconButton
+                                component="a"
+                                href={fileUrl}
+                                download={displayName}
+                                rel="noopener noreferrer"
+                                aria-label={`Descargar archivo ${displayName}`}
+                                sx={{
+                                  padding: 0,
+                                  "&:hover": { opacity: 0.8 },
+                                }}
+                              >
+                                {isImage ? (
+                                  <img
+                                    src={fileUrl}
+                                    alt={displayName}
+                                    style={{
+                                      maxWidth: "50px",
+                                      maxHeight: "50px",
+                                      borderRadius: "4px",
+                                    }}
+                                  />
+                                ) : (
+                                  getFileIcon(displayName)
+                                )}
+                              </IconButton>
+                            ) : (
+                              getFileIcon(displayName)
+                            )}
+
+                            <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                              {displayName}
+                            </Typography>
+
+                            {fileUrl && (
+                              <IconButton
+                                component="a"
+                                href={fileUrl}
+                                download={displayName}
+                                rel="noopener noreferrer"
+                                sx={{
+                                  color: "#1B5C94",
+                                  "&:hover": { backgroundColor: "#e3f2fd" },
+                                }}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Box>
+              ))
+          ) : (
+            <Typography variant="body1">No hay respuestas aún.</Typography>
+          )}
+        </Card>
+
+        {/* Sección de respuesta */}
         <Box component="form" onSubmit={onSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField
@@ -376,110 +521,6 @@ const VistaClienteConsulta = () => {
             </Button>
           </Box>
         </Box>
-      </Card>
-      <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2, mt: 3 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={1}
-        >
-          <Typography variant="h6" fontWeight="bold">
-            Historial de Respuestas
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="sort-order-label">Ordenar por fecha</InputLabel>
-            <Select
-              labelId="sort-order-label"
-              id="sort-order"
-              value={sortOrder}
-              label="Ordenar por fecha"
-              onChange={handleSortChange}
-              startAdornment={<SortIcon sx={{ mr: 1 }} />}
-            >
-              <MenuItem value="asc">De menor a mayor</MenuItem>
-              <MenuItem value="desc">De mayor a menor</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-        {allResponses.length > 0 ? (
-          allResponses
-            .slice()
-            .sort((a, b) =>
-              sortOrder === "asc"
-                ? a.timestamp.seconds - b.timestamp.seconds
-                : b.timestamp.seconds - a.timestamp.seconds
-            )
-            .map((respuesta, index) => (
-              <Box
-                key={index}
-                backgroundColor={
-                  respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
-                }
-                sx={{
-                  mb: 2,
-                  p: 2,
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body1">
-                  <strong>{respuesta.sender}:</strong> {respuesta.content}
-                </Typography>
-                {respuesta.timestamp && (
-                  <Typography
-                    variant="body2"
-                    sx={{ mt: 1, color: "text.secondary" }}
-                  >
-                    Enviado el:{" "}
-                    {new Date(
-                      respuesta.timestamp.seconds * 1000
-                    ).toLocaleString()}
-                  </Typography>
-                )}
-
-                {respuesta.attachment && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body1" fontWeight="bold" gutterBottom>
-                      Archivo Adjunto
-                    </Typography>
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                      sx={{
-                        p: 1,
-                        border: "1px solid #e0e0e0",
-                        borderRadius: 1,
-                        "&:hover": { backgroundColor: "#f5f5f5" },
-                      }}
-                    >
-                      {getFileIcon(respuesta.attachment)}
-                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                        {respuesta.attachment}
-                      </Typography>
-                      <IconButton
-                        component="a"
-                        href={`respuestas/${consultaId}/${respuesta.attachment}`}
-                        download
-                        rel="noopener noreferrer"
-                        sx={{
-                          color: "#1B5C94",
-                          "&:hover": {
-                            backgroundColor: "#e3f2fd",
-                          },
-                        }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-            ))
-        ) : (
-          <Typography variant="body1">No hay respuestas aún.</Typography>
-        )}
       </Card>
     </Box>
   );

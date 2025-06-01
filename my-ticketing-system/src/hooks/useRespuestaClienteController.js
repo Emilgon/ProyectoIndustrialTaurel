@@ -5,11 +5,6 @@ import {
   fetchDownloadUrls,
   addRespuesta,
 } from "../models/respuestaClienteModel";
-/*
-import { fetchAdvisorById } from "../models/advisorsInfoModel";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { getAuth } from "firebase/auth";
-*/
 
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
@@ -19,24 +14,54 @@ const useRespuestaController = (consultaId) => {
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
 
-  // const functions = getFunctions();
-  // const auth = getAuth();
-  // const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
+  // Función para obtener URLs de descarga para múltiples archivos
+  const fetchAllDownloadUrls = async (attachments) => {
+    if (!attachments) return {};
+    
+    const urls = {};
+    const files = attachments.split(", ");
+    
+    for (const fileName of files) {
+      try {
+        const fileInfo = await fetchDownloadUrls(fileName);
+        urls[fileName] = fileInfo;
+      } catch (error) {
+        console.error(`Error al obtener URL para ${fileName}:`, error);
+        urls[fileName] = { url: null, displayName: fileName };
+      }
+    }
+    
+    return urls;
+  };
 
+  // Cargar datos iniciales
   useEffect(() => {
     const fetchData = async () => {
       if (!consultaId) return;
       try {
+        // 1. Obtener datos de la consulta
         const consulta = await fetchConsultaById(consultaId);
         setConsultaData(consulta);
 
+        // 2. Obtener URLs para archivos adjuntos de la consulta
         if (consulta?.attachment) {
-          const urls = await fetchDownloadUrls(consulta.attachment);
+          const urls = await fetchAllDownloadUrls(consulta.attachment);
           setFileDownloadUrls(urls);
         }
 
+        // 3. Obtener respuestas y sus archivos adjuntos
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
+
+        // 4. Obtener URLs para archivos adjuntos de las respuestas
+        const responseUrls = {};
+        for (const respuesta of respuestasData) {
+          if (respuesta.attachment) {
+            const urls = await fetchAllDownloadUrls(respuesta.attachment);
+            Object.assign(responseUrls, urls);
+          }
+        }
+        setFileDownloadUrls(prev => ({ ...prev, ...responseUrls }));
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -46,11 +71,16 @@ const useRespuestaController = (consultaId) => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-    setFilePreview(selectedFile ? URL.createObjectURL(selectedFile) : null);
+    if (selectedFile) {
+      setFile(selectedFile);
+      setFilePreview(URL.createObjectURL(selectedFile));
+    }
   };
 
   const handleRemoveFile = () => {
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+    }
     setFile(null);
     setFilePreview(null);
   };
@@ -67,69 +97,34 @@ const useRespuestaController = (consultaId) => {
       // 1. Guardar la respuesta en Firestore
       await addRespuesta(consultaId, reply, file);
 
-      /*
-      // 2. Obtener clientEmail
-      let clientEmail = null;
-      if (consultaData?.clientId) {
-        try {
-          const clientData = await fetchAdvisorById(consultaData.clientId);
-          clientEmail = clientData.email || null;
-        } catch (error) {
-          console.error("Error fetching client email:", error);
-        }
-      }
-
-      // 3. Enviar notificación por correo
-      if (consultaData?.clientId && clientEmail) {
-        const currentUser = auth.currentUser;
-        if (!currentUser?.email) {
-          throw new Error("No se pudo obtener el email del asesor");
-        }
-
-        const emailData = {
-          consultaId,
-          reply,
-          downloadUrl: downloadUrl || null,
-          clientId: consultaData.clientId,
-          clientEmail,
-          advisorEmail: currentUser.email,
-          affair: consultaData.affair || "Consulta sin asunto",
-        };
-
-        console.log("Enviando email con datos:", emailData);
-
-        const result = await sendResponseEmail(emailData);
-        console.log("Resultado del envío:", result.data);
-      } else {
-        throw new Error("No se pudo obtener el email del cliente");
-      }
-      */
-
-      // 4. Limpiar formulario
+      // 2. Limpiar formulario
       setReply("");
-      setFile(null);
-      setFilePreview(null);
+      handleRemoveFile();
 
-      // 5. Actualizar lista de respuestas
+      // 3. Actualizar lista de respuestas y URLs de descarga
       const updatedRespuestas = await fetchRespuestasByConsultaId(consultaId);
       setRespuestas(updatedRespuestas);
 
+      // 4. Actualizar URLs para nuevas respuestas con archivos adjuntos
+      const newResponseUrls = {};
+      for (const respuesta of updatedRespuestas) {
+        if (respuesta.attachment && !fileDownloadUrls[respuesta.attachment]) {
+          const urls = await fetchAllDownloadUrls(respuesta.attachment);
+          Object.assign(newResponseUrls, urls);
+        }
+      }
+      
+      if (Object.keys(newResponseUrls).length > 0) {
+        setFileDownloadUrls(prev => ({ ...prev, ...newResponseUrls }));
+      }
+
       return { success: true };
     } catch (error) {
-      console.error("Error completo al enviar respuesta:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        stack: error.stack,
-      });
-
-      // Custom error message for missing client email
-      let userFriendlyMessage = error.message;
-
+      console.error("Error al enviar respuesta:", error);
       return {
         success: false,
         error: {
-          message: userFriendlyMessage,
+          message: error.message || "Error al enviar la respuesta",
           details: error.details,
         },
       };

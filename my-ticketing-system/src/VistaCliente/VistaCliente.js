@@ -92,7 +92,7 @@ const VistaCliente = () => {
     const unsubscribeResponses = onSnapshot(
       collection(db, "Responses"),
       async (snapshot) => {
-        const newCounts = {...newResponsesCount};
+        const newCounts = { ...newResponsesCount };
         let hasChanges = false;
 
         for (const change of snapshot.docChanges()) {
@@ -101,7 +101,7 @@ const VistaCliente = () => {
             try {
               const consultaRef = doc(db, "Consults", newResponse.consultaId);
               const consultaDoc = await getDoc(consultaRef);
-              
+
               if (consultaDoc.exists()) {
                 const consultaData = consultaDoc.data();
                 const responseDate = newResponse.timestamp?.toDate?.();
@@ -134,42 +134,42 @@ const VistaCliente = () => {
       if (!user) return;
 
       const counts = {};
-      
+
       // Obtener todas las consultas del usuario
       const consultsRef = query(
         collection(db, "Consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
-      
+
       // Para cada consulta, verificar respuestas no vistas
       for (const consultaDoc of consultsSnapshot.docs) {
         const consultaData = consultaDoc.data();
         const lastViewed = consultaData.lastViewed?.toDate?.();
-        
+
         // Obtener respuestas de esta consulta
         const respuestasRef = query(
           collection(db, "Responses"),
           where("consultaId", "==", consultaDoc.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
-        
+
         // Contar respuestas no vistas
         let unseenCount = 0;
         respuestasSnapshot.forEach((respuestaDoc) => {
           const respuestaData = respuestaDoc.data();
           const respuestaDate = respuestaData.timestamp?.toDate?.();
-          
+
           if (!lastViewed || (respuestaDate && respuestaDate > lastViewed)) {
             unseenCount++;
           }
         });
-        
+
         if (unseenCount > 0) {
           counts[consultaDoc.id] = unseenCount;
         }
       }
-      
+
       setNewResponsesCount(counts);
     };
 
@@ -199,9 +199,22 @@ const VistaCliente = () => {
 
   const fetchDownloadUrl = async (consultaId, fileName) => {
     try {
-      const storageRef = ref(storage, `respuestas/${consultaId}/${fileName}`);
+      // Si es una URL de Firebase Storage, extraemos solo el nombre del archivo
+      if (fileName.includes('firebasestorage.googleapis.com')) {
+        // Extraemos el nombre codificado de la URL
+        const encodedFileName = fileName.split('%2F').pop().split('?')[0];
+        // Decodificamos el nombre (por ejemplo, reemplaza %20 con espacios)
+        const decodedFileName = decodeURIComponent(encodedFileName);
+        // Usamos el nombre decodificado para crear la referencia
+        const storageRef = ref(storage, `archivos/${decodedFileName}`);
+        const url = await getDownloadURL(storageRef);
+        return { url, displayName: decodedFileName };
+      }
+
+      // Si no es una URL completa, asumimos que es solo el nombre del archivo
+      const storageRef = ref(storage, `archivos/${fileName}`);
       const url = await getDownloadURL(storageRef);
-      return url;
+      return { url, displayName: fileName };
     } catch (error) {
       console.error("Error al obtener la URL de descarga:", error);
       return null;
@@ -215,9 +228,9 @@ const VistaCliente = () => {
         if (consulta.attachment) {
           for (const fileName of consulta.attachment.split(", ")) {
             if (!fileUrls[fileName]) {
-              const url = await fetchDownloadUrl(consulta.id, fileName);
-              if (url) {
-                urls[fileName] = url;
+              const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
+              if (fileInfo) {
+                urls[fileName] = fileInfo;
               }
             }
           }
@@ -227,9 +240,9 @@ const VistaCliente = () => {
             if (respuesta.attachment) {
               for (const fileName of respuesta.attachment.split(", ")) {
                 if (!fileUrls[fileName]) {
-                  const url = await fetchDownloadUrl(consulta.id, fileName);
-                  if (url) {
-                    urls[fileName] = url;
+                  const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
+                  if (fileInfo) {
+                    urls[fileName] = fileInfo;
                   }
                 }
               }
@@ -265,13 +278,13 @@ const VistaCliente = () => {
       await updateDoc(consultaRef, {
         lastViewed: new Date()
       });
-      
+
       // Resetear el contador de notificaciones
       setNewResponsesCount(prev => ({
         ...prev,
         [consultaId]: 0
       }));
-      
+
       navigate(`/vista-cliente/${consultaId}`);
     } catch (error) {
       console.error("Error al actualizar la consulta:", error);
@@ -425,24 +438,27 @@ const VistaCliente = () => {
                           <strong>Archivo Adjunto:</strong>
                         </Typography>
                         <List>
-                          {consulta.attachment.split(", ").map((fileName) => (
-                            <ListItem key={fileName}>
-                              <ListItemIcon>
-                                {getFileIcon(fileName)}
-                              </ListItemIcon>
-                              <ListItemText primary={fileName} />
-                              {fileUrls[fileName] && (
+                          {consulta.attachment.split(", ").map((file) => {
+                            const fileInfo = fileUrls[file];
+                            if (!fileInfo) return null;
+
+                            return (
+                              <ListItem key={file}>
+                                <ListItemIcon>
+                                  {getFileIcon(fileInfo.displayName)}
+                                </ListItemIcon>
+                                <ListItemText primary={fileInfo.displayName} />
                                 <IconButton
                                   component="a"
-                                  href={fileUrls[fileName]}
-                                  download
+                                  href={fileInfo.url}
+                                  download={fileInfo.displayName}
                                   rel="noopener noreferrer"
                                 >
                                   <GetAppIcon />
                                 </IconButton>
-                              )}
-                            </ListItem>
-                          ))}
+                              </ListItem>
+                            );
+                          })}
                         </List>
                       </Box>
                     )}
