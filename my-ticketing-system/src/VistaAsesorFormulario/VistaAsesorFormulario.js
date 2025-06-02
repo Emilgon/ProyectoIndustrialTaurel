@@ -133,13 +133,14 @@ const VistaAsesorFormulario = () => {
   }, [newResponsesCount]);
 
   useEffect(() => {
-    const fetchConsultas = async () => {
-      const querySnapshot = await getDocs(collection(db, "Consults"));
+    // Replace initial fetch with real-time listener on "Consults"
+    const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           ...data,
           id: doc.id,
+          timestamp: data.timestamp || data.apply_date || new Date(), // Ensure timestamp always present
           remaining_days: data.start_date
             ? calculateRemainingDays(data.start_date, data.indicator)
             : data.indicator,
@@ -159,11 +160,9 @@ const VistaAsesorFormulario = () => {
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
-    };
-    fetchConsultas();
+    });
 
     // Configurar listeners para respuestas de clientes
-    // Reemplaza el listener actual con este:
     const unsubscribeResponses = onSnapshot(
       collection(db, "ResponsesClients"),
       (snapshot) => {
@@ -174,7 +173,6 @@ const VistaAsesorFormulario = () => {
               const consultaRef = doc(db, "Consults", newResponse.consultaId);
               const consultaDoc = await getDoc(consultaRef);
 
-              // Verificar si el documento existe y tiene datos
               if (!consultaDoc.exists()) {
                 console.warn(`No existe la consulta con ID: ${newResponse.consultaId}`);
                 return;
@@ -184,9 +182,6 @@ const VistaAsesorFormulario = () => {
               const responseDate = newResponse.timestamp?.toDate?.();
               const lastViewedDate = consultaData.lastViewed?.toDate?.();
 
-              // Solo contar si:
-              // 1. Nunca se ha visto O
-              // 2. La respuesta es más reciente que el último visto
               if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
                 setNewResponsesCount(prev => {
                   const newCount = (prev[newResponse.consultaId] || 0) + 1;
@@ -221,6 +216,7 @@ const VistaAsesorFormulario = () => {
     return () => {
       clearInterval(interval);
       unsubscribeResponses();
+      unsubscribeConsults();
     };
   }, []);
 
@@ -444,25 +440,61 @@ const VistaAsesorFormulario = () => {
 
   const fetchDownloadUrls = async (attachments) => {
     const urls = {};
-    for (const fileName of attachments.split(", ")) {
+
+    // Si attachments es un string, lo convertimos a array
+    const files = typeof attachments === 'string' ?
+      attachments.split(", ") :
+      Array.isArray(attachments) ? attachments : [];
+
+    for (const fileUrl of files) {
       try {
-        const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`);
+        // Si ya es una URL completa, la usamos directamente
+        if (fileUrl.startsWith('http')) {
+          urls[fileUrl] = fileUrl;
+          continue;
+        }
+
+        // Extraer el nombre del archivo decodificando y eliminando parámetros de consulta
+        let fileName = fileUrl.split('/').pop() || '';
+        fileName = decodeURIComponent(fileName.split('?')[0]);
+
+        const storageRef = ref(storage, `${fileName}`);
         const url = await getDownloadURL(storageRef);
         urls[fileName] = url;
       } catch (error) {
         console.error("Error al obtener la URL de descarga:", error);
+        // Si falla, al menos mostramos el nombre del archivo
+        urls[fileUrl] = null;
       }
     }
     return urls;
   };
 
   const formatDateTime = (timestamp) => {
-    if (!timestamp || !timestamp.seconds) {
-      return "Fecha no disponible";
+    if (!timestamp) return "Fecha no disponible";
+
+    // Si es un objeto de Firestore Timestamp
+    if (timestamp.seconds) {
+      return moment(timestamp.seconds * 1000)
+        .tz("America/Caracas")
+        .format("DD MMM YYYY, HH:mm");
     }
-    return moment(timestamp.seconds * 1000)
-      .tz("America/Caracas")
-      .format("DD MMM YYYY, HH:mm");
+
+    // Si ya es una fecha (puede ser el caso cuando se actualiza)
+    if (timestamp instanceof Date) {
+      return moment(timestamp)
+        .tz("America/Caracas")
+        .format("DD MMM YYYY, HH:mm");
+    }
+
+    // Si es un string ISO (por si acaso)
+    if (typeof timestamp === 'string') {
+      return moment(timestamp)
+        .tz("America/Caracas")
+        .format("DD MMM YYYY, HH:mm");
+    }
+
+    return "Fecha no disponible";
   };
 
   const handleRequestSort = (property) => {
@@ -695,7 +727,7 @@ const VistaAsesorFormulario = () => {
     })
     .sort((a, b) => {
       if (orderBy === "status") {
-        const statesOrder = ["Pendiente", "En proceso", "Resuelto"];
+        const statesOrder = ["Pendiente", "En proceso", "Resuelta"];
         const aPriority =
           a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
         const bPriority =
@@ -748,11 +780,18 @@ const VistaAsesorFormulario = () => {
   };
 
   const renderAttachments = (attachments) => {
-    return attachments.split(", ").map((fileName) => {
+    if (!attachments) return null;
+
+    const files = typeof attachments === 'string' ?
+      attachments.split(", ") :
+      Array.isArray(attachments) ? attachments : [];
+
+    return files.map((fileName) => {
       const fileUrl = fileDownloadUrls[fileName];
-      const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-        fileName.split(".").pop().toLowerCase()
-      );
+      // Decodificar y eliminar parámetros de consulta para mostrar solo el nombre limpio
+      let displayName = fileName.split('/').pop() || '';
+      displayName = decodeURIComponent(displayName.split('?')[0]);
+
       return (
         <Box
           key={fileName}
@@ -768,9 +807,9 @@ const VistaAsesorFormulario = () => {
           }}
         >
           <Box display="flex" alignItems="center" gap={1} flexGrow={1}>
-            {getFileIcon(fileName)}
+            {getFileIcon(displayName)}
             <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
-              {fileName}
+              {displayName}
             </Typography>
           </Box>
           {fileUrl && (
@@ -778,7 +817,7 @@ const VistaAsesorFormulario = () => {
               <IconButton
                 component="a"
                 href={fileUrl}
-                download={fileName}
+                download={displayName}
                 target="_blank"
                 rel="noopener noreferrer"
                 size="small"
@@ -1440,8 +1479,8 @@ const VistaAsesorFormulario = () => {
                   <MuiMenuItem onClick={() => handleSelectState("En proceso")}>
                     En proceso
                   </MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("Resuelto")}>
-                    Resuelto
+                  <MuiMenuItem onClick={() => handleSelectState("REsuelta")}>
+                    Resuelta
                   </MuiMenuItem>
                 </Menu>
               </TableCell>

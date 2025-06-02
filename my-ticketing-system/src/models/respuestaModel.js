@@ -36,7 +36,7 @@ export const fetchDownloadUrls = async (attachments) => {
   if (!attachments) return urls;
   for (const fileName of attachments.split(", ")) {
     try {
-      const storageRef = ref(storage, `ruta_de_tus_archivos/${fileName}`);
+      const storageRef = ref(storage, `${fileName}`);
       const url = await getDownloadURL(storageRef);
       urls[fileName] = url;
     } catch (error) {

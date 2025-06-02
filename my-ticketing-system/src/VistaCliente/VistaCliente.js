@@ -206,13 +206,13 @@ const VistaCliente = () => {
         // Decodificamos el nombre (por ejemplo, reemplaza %20 con espacios)
         const decodedFileName = decodeURIComponent(encodedFileName);
         // Usamos el nombre decodificado para crear la referencia
-        const storageRef = ref(storage, `archivos/${decodedFileName}`);
+        const storageRef = ref(storage, `${decodedFileName}`);
         const url = await getDownloadURL(storageRef);
         return { url, displayName: decodedFileName };
       }
 
       // Si no es una URL completa, asumimos que es solo el nombre del archivo
-      const storageRef = ref(storage, `archivos/${fileName}`);
+      const storageRef = ref(storage, `${fileName}`);
       const url = await getDownloadURL(storageRef);
       return { url, displayName: fileName };
     } catch (error) {

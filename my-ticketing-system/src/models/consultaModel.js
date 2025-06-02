@@ -6,7 +6,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
   let attachmentURL = "";
 
   if (archivo) {
-    const storageRef = ref(storage, `archivos/${archivo.name}`);
+    const storageRef = ref(storage, `${archivo.name}`);
     await uploadBytes(storageRef, archivo);
     attachmentURL = await getDownloadURL(storageRef);
   }
