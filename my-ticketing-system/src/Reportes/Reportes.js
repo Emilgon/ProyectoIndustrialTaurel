@@ -81,27 +81,44 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [consults, setConsults] = useState([]);
   const [responses, setResponses] = useState([]);
-  const [timeRange, setTimeRange] = useState('month');
-  const [filteredConsults, setFilteredConsults] = useState([]);
-  const [consultTypeFilter, setConsultTypeFilter] = useState('all');
-  const [companySearch, setCompanySearch] = useState('');
-  const [responseStatusFilter, setResponseStatusFilter] = useState('all');
-  const [responseChartType, setResponseChartType] = useState('pie');
-  const [typeChartType, setTypeChartType] = useState('pie');
-  const [clientChartType, setClientChartType] = useState('bar');
   const [anchorEl, setAnchorEl] = useState(null);
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - 1);
-    return date;
-  });
-  const [endDate, setEndDate] = useState(new Date());
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [isUploading, setIsUploading] = useState(false);
+  const [responseChartType, setResponseChartType] = useState('pie');
+  const [typeChartType, setTypeChartType] = useState('pie');
+  const [clientChartType, setClientChartType] = useState('bar');
 
-  // Estados para los gráficos con valores iniciales
+  // Estados para los filtros independientes de cada gráfico
+  const [filters, setFilters] = useState({
+    trend: {
+      timeRange: 'month',
+      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate: new Date(),
+      consultType: 'all'
+    },
+    responseStatus: {
+      timeRange: 'month',
+      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate: new Date(),
+      statusFilter: 'all'
+    },
+    consultTypes: {
+      timeRange: 'month',
+      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate: new Date(),
+      typeFilter: 'all'
+    },
+    clients: {
+      timeRange: 'month',
+      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate: new Date(),
+      companySearch: ''
+    }
+  });
+
+  // Estados para los datos de los gráficos
   const [trendChartData, setTrendChartData] = useState({ labels: [], datasets: [] });
   const [responseRateChartData, setResponseRateChartData] = useState({ labels: [], datasets: [] });
   const [clientsStaticData, setClientsStaticData] = useState({ labels: [], datasets: [] });
@@ -145,10 +162,11 @@ const Reports = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
+  const filterConsults = (consults, { timeRange, startDate, endDate, consultType, statusFilter, companySearch }) => {
     let filtered = [...consults];
     const now = new Date();
 
+    // Filtro por rango de tiempo
     if (timeRange === 'week') {
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       filtered = filtered.filter(consult => consult.timestamp >= oneWeekAgo);
@@ -167,59 +185,50 @@ const Reports = () => {
       );
     }
 
-    if (consultTypeFilter !== 'all') {
+    // Filtro por tipo de consulta
+    // Filtro por tipo de consulta
+    if (consultType && consultType !== 'all') {
       filtered = filtered.filter(consult => {
-        if (consultTypeFilter === 'Asesoría Técnica') {
-          return consult.type === 'Asesoría Técnica';
-        }
-        return consult.type === consultTypeFilter;
+        const type = classifyConsultType(consult);
+        return type === consultType;
       });
     }
 
-    setFilteredConsults(filtered);
-  }, [timeRange, consults, consultTypeFilter, startDate, endDate]);
+    // Filtro por estado de respuesta
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(consult => {
+        const status = classifyResponseStatus(consult);
+        return status === statusFilter;
+      });
+    }
+
+    // Filtro por búsqueda de empresa
+    if (companySearch && companySearch !== '') {
+      filtered = filtered.filter(consult =>
+        (consult.company || consult.email || 'Cliente no identificado').toLowerCase()
+          .includes(companySearch.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  // Efectos para actualizar cada gráfico independientemente
+  useEffect(() => {
+    const trendFiltered = filterConsults(consults, filters.trend);
+    setTrendChartData(generateTimeData(trendFiltered, () => 'Consultas'));
+  }, [consults, filters.trend]);
 
   useEffect(() => {
-    // Actualizar datos de gráficos cuando cambian los filtros
-    setTrendChartData(generateTimeData(filteredConsults, () => 'Consultas'));
-
-    const topClients = filteredConsults.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
-      acc[clientKey] = (acc[clientKey] || 0) + 1;
-      return acc;
-    }, {});
-
-    const filteredClients = Object.entries(topClients)
-      .filter(([client]) =>
-        companySearch === '' ||
-        client.toLowerCase().includes(companySearch.toLowerCase())
-      )
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    setClientsTimeData(generateTimeData(
-      filteredConsults.filter(consult =>
-        filteredClients.some(([client]) =>
-          client === (consult.company || consult.email || 'Cliente no identificado')
-        )
-      ),
-      consult => consult.company || consult.email || 'Cliente no identificado'
-    ));
-
-    setTypesTimeData(generateTimeData(filteredConsults, consult => classifyConsultType(consult)));
-  }, [filteredConsults, companySearch]);
-
-  useEffect(() => {
-    const responseData = getResponseData();
-
+    const responseFiltered = filterConsults(consults, filters.responseStatus);
     setResponseRateChartData({
       labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
       datasets: [{
         label: 'Estado de respuestas',
         data: [
-          responseData.timely,
-          responseData.late,
-          responseData.unanswered
+          responseFiltered.filter(consult => classifyResponseStatus(consult) === 'A tiempo').length,
+          responseFiltered.filter(consult => classifyResponseStatus(consult) === 'Tardía').length,
+          responseFiltered.filter(consult => classifyResponseStatus(consult) === 'No respondida').length
         ],
         backgroundColor: [
           'rgba(75, 192, 192, 0.6)',
@@ -234,37 +243,12 @@ const Reports = () => {
         borderWidth: 1,
       }]
     });
+  }, [consults, filters.responseStatus]);
 
-    const topClients = filteredConsults.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
-      acc[clientKey] = (acc[clientKey] || 0) + 1;
-      return acc;
-    }, {});
+  useEffect(() => {
+    const typesFiltered = filterConsults(consults, filters.consultTypes);
 
-    const filteredClients = Object.entries(topClients)
-      .filter(([client]) =>
-        companySearch === '' ||
-        client.toLowerCase().includes(companySearch.toLowerCase())
-      )
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    setClientsStaticData({
-      labels: filteredClients.map(([client]) => client),
-      datasets: [{
-        label: 'Consultas por cliente',
-        data: filteredClients.map(([_, count]) => count),
-        backgroundColor: filteredClients.map((_, index) =>
-          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
-        ),
-        borderColor: filteredClients.map((_, index) =>
-          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
-        ),
-        borderWidth: 1,
-      }]
-    });
-
-    const consultsByType = filteredConsults.reduce((acc, consult) => {
+    const consultsByType = typesFiltered.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
       acc[type] = (acc[type] || 0) + 1;
       return acc;
@@ -284,81 +268,143 @@ const Reports = () => {
         borderWidth: 1,
       }]
     });
-  }, [filteredConsults, responseStatusFilter, companySearch]);
+
+    setTypesTimeData(generateTimeData(typesFiltered, consult => classifyConsultType(consult)));
+  }, [consults, filters.consultTypes]);
+
+  useEffect(() => {
+    const clientsFiltered = filterConsults(consults, filters.clients);
+
+    const topClients = clientsFiltered.reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + 1;
+      return acc;
+    }, {});
+
+    const filteredClients = Object.entries(topClients)
+      .filter(([client]) =>
+        filters.clients.companySearch === '' ||
+        client.toLowerCase().includes(filters.clients.companySearch.toLowerCase())
+      )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    setClientsStaticData({
+      labels: filteredClients.map(([client]) => client),
+      datasets: [{
+        label: 'Consultas por cliente',
+        data: filteredClients.map(([_, count]) => count),
+        backgroundColor: filteredClients.map((_, index) =>
+          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
+        ),
+        borderColor: filteredClients.map((_, index) =>
+          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
+        ),
+        borderWidth: 1,
+      }]
+    });
+
+    setClientsTimeData(generateTimeData(
+      clientsFiltered.filter(consult =>
+        filteredClients.some(([client]) =>
+          client === (consult.company || consult.email || 'Cliente no identificado')
+        )
+      ),
+      consult => consult.company || consult.email || 'Cliente no identificado'
+    ));
+  }, [consults, filters.clients]);
+
+  // Manejadores de filtros independientes
+  const handleTimeRangeChange = (value, chart) => {
+    setFilters(prev => ({
+      ...prev,
+      [chart]: {
+        ...prev[chart],
+        timeRange: value
+      }
+    }));
+  };
+
+  const handleConsultTypeFilterChange = (value) => {
+    setFilters(prev => ({
+      ...prev,
+      consultTypes: {
+        ...prev.consultTypes,
+        typeFilter: value
+      }
+    }));
+  };
+
+  const handleResponseStatusFilterChange = (value) => {
+    setFilters(prev => ({
+      ...prev,
+      responseStatus: {
+        ...prev.responseStatus,
+        statusFilter: value
+      }
+    }));
+  };
+
+  const handleCompanySearchChange = (value) => {
+    setFilters(prev => ({
+      ...prev,
+      clients: {
+        ...prev.clients,
+        companySearch: value
+      }
+    }));
+  };
+
+  const handleDateRangeClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleDateRangeClose = () => {
+    setAnchorEl(null);
+  };
+
+  const applyCustomDateRange = (chart) => {
+    setFilters(prev => ({
+      ...prev,
+      [chart]: {
+        ...prev[chart],
+        timeRange: 'custom'
+      }
+    }));
+    setAnchorEl(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   const classifyConsultType = (consult) => {
+    if (!consult.type) return 'Sin tipo';
+
     if (consult.type === 'Asesoría Técnica') {
       return consult.tipoAsesoria === 'interna'
         ? 'Asesoría Técnica (Interna)'
         : 'Asesoría Técnica (Externa)';
     }
-    return consult.type || 'Sin tipo';
+
+    return consult.type;
   };
+
+  const classifyResponseStatus = (consult) => {
+    const response = responses.find(res => res.consultaId === consult.id);
+
+    if (!response) return 'No respondida';
+
+    const responseTime = response.timestamp.getTime() - consult.timestamp.getTime();
+    return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
+  };
+
   const generateFileName = () => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const day = now.getDate();
     const quincena = day <= 15 ? '115' : '215';
     return `Reporte${month}${month}Actual${quincena}`;
-  };
-
-  const exportToExcel = () => {
-    const fileName = generateFileName();
-    const data = [];
-
-    // Datos generales
-    const responseData = getResponseData();
-    data.push(['Métrica', 'Valor']);
-    data.push(['Consultas recibidas', responseData.total]);
-    data.push(['Consultas respondidas', responseData.answered]);
-    data.push(['Porcentaje de respuesta', `${Math.round((responseData.answered / responseData.total) * 100)}%`]);
-    data.push(['Respondidas a tiempo', responseData.timely]);
-    data.push(['Porcentaje a tiempo', `${Math.round((responseData.timely / responseData.answered) * 100)}%`]);
-    data.push([]);
-
-    // Consultas por cliente
-    const topClients = filteredConsults.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
-      acc[clientKey] = (acc[clientKey] || 0) + 1;
-      return acc;
-    }, {});
-
-    const clientsData = Object.entries(topClients)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-
-    data.push(['Top Clientes', 'Consultas']);
-    clientsData.forEach(([client, count]) => data.push([client, count]));
-    data.push([]);
-
-    // Consultas por tipo
-    const consultsByType = filteredConsults.reduce((acc, consult) => {
-      const type = classifyConsultType(consult);
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
-
-    data.push(['Tipo de Consulta', 'Cantidad']);
-    Object.entries(consultsByType).forEach(([type, count]) => data.push([type, count]));
-
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-    XLSX.writeFile(wb, `${fileName}.xlsx`);
-  };
-
-  const getAvailableTypes = () => {
-    const types = new Set();
-
-    consults.forEach(consult => {
-      if (consult.type === 'Asesoría Técnica') {
-        types.add('Asesoría Técnica');
-      } else {
-        types.add(consult.type || 'Sin tipo');
-      }
-    });
-
-    return Array.from(types);
   };
 
   const generateTimeData = (items, getKey) => {
@@ -368,6 +414,8 @@ const Reports = () => {
 
     let rangeStart, rangeEnd;
     const now = new Date();
+
+    const timeRange = filters.trend.timeRange; // Usamos el filtro de tendencia como base
 
     if (timeRange === 'week') {
       rangeStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -382,8 +430,8 @@ const Reports = () => {
       rangeStart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
       rangeEnd = now;
     } else if (timeRange === 'custom') {
-      rangeStart = new Date(startDate);
-      rangeEnd = new Date(endDate);
+      rangeStart = new Date(filters.trend.startDate);
+      rangeEnd = new Date(filters.trend.endDate);
     } else {
       const sorted = [...items].sort((a, b) => a.timestamp - b.timestamp);
       rangeStart = sorted[0].timestamp;
@@ -459,46 +507,53 @@ const Reports = () => {
     return { labels, datasets };
   };
 
-  const handleDateRangeClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const exportToExcel = () => {
+    const fileName = generateFileName();
+    const data = [];
 
-  const handleDateRangeClose = () => {
-    setAnchorEl(null);
-  };
+    // Datos generales
+    const responseData = getResponseData();
+    data.push(['Métrica', 'Valor']);
+    data.push(['Consultas recibidas', responseData.total]);
+    data.push(['Consultas respondidas', responseData.answered]);
+    data.push(['Porcentaje de respuesta', `${Math.round((responseData.answered / responseData.total) * 100)}%`]);
+    data.push(['Respondidas a tiempo', responseData.timely]);
+    data.push(['Porcentaje a tiempo', `${Math.round((responseData.timely / responseData.answered) * 100)}%`]);
+    data.push([]);
 
-  const handleTimeRangeChange = (value) => {
-    setTimeRange(value);
-  };
+    // Consultas por cliente
+    const topClients = filterConsults(consults, filters.clients).reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + 1;
+      return acc;
+    }, {});
 
-  const applyCustomDateRange = () => {
-    setTimeRange('custom');
-    setAnchorEl(null);
-  };
+    const clientsData = Object.entries(topClients)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
+    data.push(['Top Clientes', 'Consultas']);
+    clientsData.forEach(([client, count]) => data.push([client, count]));
+    data.push([]);
 
-  const classifyResponseStatus = (consult) => {
-    const response = responses.find(res => res.consultaId === consult.id);
+    // Consultas por tipo
+    const consultsByType = filterConsults(consults, filters.consultTypes).reduce((acc, consult) => {
+      const type = classifyConsultType(consult);
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
 
-    if (!response) return 'No respondida';
+    data.push(['Tipo de Consulta', 'Cantidad']);
+    Object.entries(consultsByType).forEach(([type, count]) => data.push([type, count]));
 
-    const responseTime = response.timestamp.getTime() - consult.timestamp.getTime();
-    return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
   };
 
   const getResponseData = () => {
-    let filtered = [...filteredConsults];
-
-    if (responseStatusFilter !== 'all') {
-      filtered = filtered.filter(consult => {
-        const status = classifyResponseStatus(consult);
-        return status === responseStatusFilter;
-      });
-    }
-
+    const filtered = filterConsults(consults, filters.responseStatus);
     const totalConsults = filtered.length;
     const answeredConsults = filtered.filter(consult =>
       responses.some(response => response.consultaId === consult.id)
@@ -521,6 +576,16 @@ const Reports = () => {
     };
   };
 
+  const getAvailableTypes = () => {
+    const types = new Set();
+
+    consults.forEach(consult => {
+      types.add(classifyConsultType(consult));
+    });
+
+    return Array.from(types);
+  };
+
   const simulateOrchestratorCall = async (payload) => {
     console.log("Simulando llamada a Orchestrator con:", payload);
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -541,7 +606,7 @@ const Reports = () => {
 
     try {
       const responseData = getResponseData();
-      const topClients = filteredConsults.reduce((acc, consult) => {
+      const topClients = filterConsults(consults, filters.clients).reduce((acc, consult) => {
         const clientKey = consult.company || consult.email || 'Cliente no identificado';
         acc[clientKey] = (acc[clientKey] || 0) + 1;
         return acc;
@@ -549,8 +614,8 @@ const Reports = () => {
 
       const filteredClients = Object.entries(topClients)
         .filter(([client]) =>
-          companySearch === '' ||
-          client.toLowerCase().includes(companySearch.toLowerCase())
+          filters.clients.companySearch === '' ||
+          client.toLowerCase().includes(filters.clients.companySearch.toLowerCase())
         )
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
@@ -623,7 +688,6 @@ const Reports = () => {
       ))}
     </ButtonGroup>
   );
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
@@ -644,27 +708,7 @@ const Reports = () => {
           <Typography variant="h4" component="h1" color="#1B5C94">
             Reportes y Estadísticas
           </Typography>
-
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <ButtonGroup variant="contained" orientation="horizontal">
-              {timeRanges.map((range) => (
-                <Button
-                  key={range.value}
-                  onClick={() => handleTimeRangeChange(range.value)}
-                  color={timeRange === range.value ? 'primary' : 'inherit'}
-                >
-                  {range.label}
-                </Button>
-              ))}
-              <Button
-                onClick={handleDateRangeClick}
-                startIcon={<DateRangeIcon />}
-                color={timeRange === 'custom' ? 'primary' : 'inherit'}
-              >
-                Personalizado
-              </Button>
-            </ButtonGroup>
-
             <Button
               variant="contained"
               color="secondary"
@@ -675,7 +719,6 @@ const Reports = () => {
             >
               {isUploading ? 'Enviando...' : 'Subir a ICARO (Prueba)'}
             </Button>
-
             <Button
               variant="contained"
               color="success"
@@ -685,7 +728,6 @@ const Reports = () => {
             >
               Exportar a Excel
             </Button>
-
             <Tooltip title="Salir al menú" arrow>
               <IconButton onClick={() => navigate('/asesor-control')} sx={{ color: "#1B5C94" }}>
                 <LogoutIcon fontSize="medium" />
@@ -693,7 +735,6 @@ const Reports = () => {
             </Tooltip>
           </Box>
         </Box>
-
         <Popover
           open={open}
           anchorEl={anchorEl}
@@ -705,31 +746,42 @@ const Reports = () => {
             <Typography variant="h6">Seleccionar rango de fechas</Typography>
             <DatePicker
               label="Fecha de inicio"
-              value={startDate}
-              onChange={setStartDate}
-              maxDate={endDate}
+              value={filters.trend.startDate}
+              onChange={(newValue) => setFilters(prev => ({
+                ...prev,
+                trend: {
+                  ...prev.trend,
+                  startDate: newValue
+                }
+              }))}
+              maxDate={filters.trend.endDate}
               inputFormat="dd/MM/yyyy"
               renderInput={(params) => <TextField {...params} />}
             />
             <DatePicker
               label="Fecha de fin"
-              value={endDate}
-              onChange={setEndDate}
-              minDate={startDate}
+              value={filters.trend.endDate}
+              onChange={(newValue) => setFilters(prev => ({
+                ...prev,
+                trend: {
+                  ...prev.trend,
+                  endDate: newValue
+                }
+              }))}
+              minDate={filters.trend.startDate}
               maxDate={new Date()}
               inputFormat="dd/MM/yyyy"
               renderInput={(params) => <TextField {...params} />}
             />
             <Button
               variant="contained"
-              onClick={applyCustomDateRange}
+              onClick={() => applyCustomDateRange('trend')}
               startIcon={<CalendarIcon />}
             >
               Aplicar rango
             </Button>
           </Box>
         </Popover>
-
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
@@ -743,7 +795,6 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
@@ -756,7 +807,6 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
@@ -769,13 +819,32 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Tendencia de consultas
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Tendencia de consultas
+                  </Typography>
+                  <ButtonGroup variant="contained" orientation="horizontal">
+                    {timeRanges.map((range) => (
+                      <Button
+                        key={range.value}
+                        onClick={() => handleTimeRangeChange(range.value, 'trend')}
+                        color={filters.trend.timeRange === range.value ? 'primary' : 'inherit'}
+                      >
+                        {range.label}
+                      </Button>
+                    ))}
+                    <Button
+                      onClick={handleDateRangeClick}
+                      startIcon={<DateRangeIcon />}
+                      color={filters.trend.timeRange === 'custom' ? 'primary' : 'inherit'}
+                    >
+                      Personalizado
+                    </Button>
+                  </ButtonGroup>
+                </Box>
                 <Box sx={{ height: '400px' }}>
                   {trendChartData.labels && trendChartData.labels.length > 0 ? (
                     <Line
@@ -804,7 +873,6 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} md={6}>
             <Card elevation={3}>
               <CardContent>
@@ -817,8 +885,8 @@ const Reports = () => {
                       <InputLabel id="response-filter-label">Filtrar por estado</InputLabel>
                       <Select
                         labelId="response-filter-label"
-                        value={responseStatusFilter}
-                        onChange={(e) => setResponseStatusFilter(e.target.value)}
+                        value={filters.responseStatus.statusFilter}
+                        onChange={(e) => handleResponseStatusFilterChange(e.target.value)}
                         label="Filtrar por estado"
                       >
                         <MenuItem value="all">Todos los estados</MenuItem>
@@ -841,10 +909,7 @@ const Reports = () => {
                         case 'line':
                           return <Line
                             data={generateTimeData(
-                              filteredConsults.filter(consult =>
-                                responseStatusFilter === 'all' ||
-                                classifyResponseStatus(consult) === responseStatusFilter
-                              ),
+                              filterConsults(consults, filters.responseStatus),
                               classifyResponseStatus
                             )}
                             options={commonChartOptions}
@@ -873,21 +938,20 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} md={6}>
             <Card elevation={3}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6" gutterBottom>
-                    Consultas por tipo
+                    Tipos de consulta
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
                       <InputLabel id="type-filter-label">Filtrar por tipo</InputLabel>
                       <Select
                         labelId="type-filter-label"
-                        value={consultTypeFilter}
-                        onChange={(e) => setConsultTypeFilter(e.target.value)}
+                        value={filters.consultTypes.typeFilter}
+                        onChange={(e) => handleConsultTypeFilterChange(e.target.value)}
                         label="Filtrar por tipo"
                       >
                         <MenuItem value="all">Todos los tipos</MenuItem>
@@ -908,14 +972,7 @@ const Reports = () => {
                         case 'pie':
                           return <Pie data={typesStaticData} options={commonChartOptions} />;
                         case 'line':
-                          return <Line data={typesTimeData} options={{
-                            ...commonChartOptions,
-                            scales: {
-                              y: {
-                                beginAtZero: true
-                              }
-                            }
-                          }} />;
+                          return <Line data={typesTimeData} options={commonChartOptions} />;
                         case 'doughnut':
                           return <Doughnut data={typesStaticData} options={commonChartOptions} />;
                         case 'polarArea':
@@ -946,15 +1003,13 @@ const Reports = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6" gutterBottom>
-                    Top clientes (por consultas)
+                    Consultas por cliente
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <TextField
                       variant="outlined"
                       size="small"
-                      placeholder="Buscar empresa..."
-                      value={companySearch}
-                      onChange={(e) => setCompanySearch(e.target.value)}
+                      placeholder="Buscar cliente..."
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -962,54 +1017,28 @@ const Reports = () => {
                           </InputAdornment>
                         ),
                       }}
-                      sx={{ width: 200, mr: 2 }}
+                      value={filters.clients.companySearch}
+                      onChange={(e) => handleCompanySearchChange(e.target.value)}
+                      sx={{ mr: 2 }}
                     />
                     <ChartTypeSelector value={clientChartType} onChange={setClientChartType} />
                   </Box>
                 </Box>
-                <Box sx={{ height: '300px' }}>
+                <Box sx={{ height: '400px' }}>
                   {clientsStaticData.labels && clientsStaticData.labels.length > 0 ? (
                     (() => {
                       switch (clientChartType) {
                         case 'bar':
-                          return <Bar data={clientsStaticData} options={{
-                            ...commonChartOptions,
-                            plugins: {
-                              legend: { display: false },
-                            },
-                          }} />;
+                          return <Bar data={clientsStaticData} options={commonChartOptions} />;
                         case 'pie':
-                          return <Pie data={clientsStaticData} options={{
-                            ...commonChartOptions,
-                            plugins: {
-                              legend: { display: false },
-                            },
-                          }} />;
+                          return <Pie data={clientsStaticData} options={commonChartOptions} />;
                         case 'line':
-                          return <Line data={clientsTimeData} options={{
-                            ...commonChartOptions,
-                            plugins: {
-                              legend: { display: true },
-                            },
-                            scales: {
-                              y: {
-                                beginAtZero: true
-                              }
-                            }
-                          }} />;
+                          return <Line data={clientsTimeData} options={commonChartOptions} />;
                         case 'doughnut':
-                          return <Doughnut data={clientsStaticData} options={{
-                            ...commonChartOptions,
-                            plugins: {
-                              legend: { display: false },
-                            },
-                          }} />;
+                          return <Doughnut data={clientsStaticData} options={commonChartOptions} />;
                         case 'polarArea':
                           return <PolarArea data={clientsStaticData} options={{
                             ...commonChartOptions,
-                            plugins: {
-                              legend: { display: false },
-                            },
                             scales: {
                               r: {
                                 beginAtZero: true,
@@ -1017,12 +1046,7 @@ const Reports = () => {
                             }
                           }} />;
                         default:
-                          return <Bar data={clientsStaticData} options={{
-                            ...commonChartOptions,
-                            plugins: {
-                              legend: { display: false },
-                            },
-                          }} />;
+                          return <Bar data={clientsStaticData} options={commonChartOptions} />;
                       }
                     })()
                   ) : (
@@ -1040,13 +1064,9 @@ const Reports = () => {
           open={snackbarOpen}
           autoHideDuration={6000}
           onClose={handleSnackbarClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         >
-          <Alert
-            onClose={handleSnackbarClose}
-            severity={snackbarSeverity}
-            sx={{ width: '100%' }}
-          >
+          <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
             {snackbarMessage}
           </Alert>
         </Snackbar>
