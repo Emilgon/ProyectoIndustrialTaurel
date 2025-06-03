@@ -162,7 +162,7 @@ const Reports = () => {
     fetchData();
   }, []);
 
-  const filterConsults = (consults, { timeRange, startDate, endDate, consultType, statusFilter, companySearch }) => {
+  const filterConsults = (consults, { timeRange, startDate, endDate, typeFilter, statusFilter, companySearch }) => {
     let filtered = [...consults];
     const now = new Date();
 
@@ -186,11 +186,10 @@ const Reports = () => {
     }
 
     // Filtro por tipo de consulta
-    // Filtro por tipo de consulta
-    if (consultType && consultType !== 'all') {
+    if (typeFilter && typeFilter !== 'all') {
       filtered = filtered.filter(consult => {
         const type = classifyConsultType(consult);
-        return type === consultType;
+        return type === typeFilter;
       });
     }
 
