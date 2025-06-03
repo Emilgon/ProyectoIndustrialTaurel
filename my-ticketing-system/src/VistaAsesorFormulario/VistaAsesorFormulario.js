@@ -1080,7 +1080,6 @@ const VistaAsesorFormulario = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
         }}
       >
         <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
@@ -1100,7 +1099,44 @@ const VistaAsesorFormulario = () => {
           </IconButton>
         </Tooltip>
       </Box>
-
+      <Grid container spacing={2} mt={.5} mb={2}>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ boxShadow: 3 , color: "#1B5C94" }} >
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" >
+                CONSULTAS PENDIENTES:
+              </Typography>
+              <Typography variant="h4" color="error">
+                {pendientesCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ boxShadow: 3, color: "#1B5C94" }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold">
+                CONSULTAS EN PROCESO:
+              </Typography>
+              <Typography variant="h4" color="warning.main">
+                {enProcesoCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ boxShadow: 3, color: "#1B5C94" }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold">
+                CONSULTAS RESUELTAS:
+              </Typography>
+              <Typography variant="h4" color="success.main">
+                {resueltasCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table>
           <TableHead>
@@ -1808,44 +1844,7 @@ const VistaAsesorFormulario = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Grid container spacing={2} mt={4}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold">
-                CONSULTAS PENDIENTES:
-              </Typography>
-              <Typography variant="h4" color="error">
-                {pendientesCount}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold">
-                CONSULTAS EN PROCESO:
-              </Typography>
-              <Typography variant="h4" color="warning.main">
-                {enProcesoCount}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold">
-                CONSULTAS RESUELTAS:
-              </Typography>
-              <Typography variant="h4" color="success.main">
-                {resueltasCount}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+
     </Box>
   );
 };

@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { collection, query, getDocs, getFirestore } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   Grid, Card, CardContent, Typography, CircularProgress,
   ButtonGroup, Button, Box, TextField, InputAdornment,
   Select, MenuItem, FormControl, InputLabel, Popover,
   IconButton, Tooltip, Snackbar, Alert
 } from '@mui/material';
-import { 
-  Bar, Pie, Line, Doughnut, PolarArea 
+import {
+  Bar, Pie, Line, Doughnut, PolarArea
 } from 'react-chartjs-2';
-import { 
+import {
   Search as SearchIcon, Logout as LogoutIcon,
   DateRange as DateRangeIcon, CalendarToday as CalendarIcon,
   BarChart as BarChartIcon, PieChart as PieChartIcon,
   ShowChart as LineChartIcon, DonutLarge as DoughnutIcon,
-  Radar as PolarAreaIcon, Publish as PublishIcon
+  Radar as PolarAreaIcon, Publish as PublishIcon,
+  GridOn as GridOnIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -112,7 +114,7 @@ const Reports = () => {
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
-      
+
       try {
         const consultsQuery = query(collection(db, 'Consults'));
         const consultsSnapshot = await getDocs(consultsQuery);
@@ -121,9 +123,9 @@ const Reports = () => {
           ...doc.data(),
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }));
-        
+
         setConsults(consultsData);
-        
+
         const responsesQuery = query(collection(db, 'Responses'));
         const responsesSnapshot = await getDocs(responsesQuery);
         const responsesData = responsesSnapshot.docs.map(doc => ({
@@ -132,7 +134,7 @@ const Reports = () => {
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }));
         setResponses(responsesData);
-        
+
       } catch (error) {
         console.error('Error al obtener datos:', error);
       } finally {
@@ -160,7 +162,7 @@ const Reports = () => {
       const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
       filtered = filtered.filter(consult => consult.timestamp >= oneYearAgo);
     } else if (timeRange === 'custom') {
-      filtered = filtered.filter(consult => 
+      filtered = filtered.filter(consult =>
         consult.timestamp >= startDate && consult.timestamp <= endDate
       );
     }
@@ -180,7 +182,7 @@ const Reports = () => {
   useEffect(() => {
     // Actualizar datos de gráficos cuando cambian los filtros
     setTrendChartData(generateTimeData(filteredConsults, () => 'Consultas'));
-    
+
     const topClients = filteredConsults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
@@ -188,16 +190,16 @@ const Reports = () => {
     }, {});
 
     const filteredClients = Object.entries(topClients)
-      .filter(([client]) => 
-        companySearch === '' || 
+      .filter(([client]) =>
+        companySearch === '' ||
         client.toLowerCase().includes(companySearch.toLowerCase())
       )
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
     setClientsTimeData(generateTimeData(
-      filteredConsults.filter(consult => 
-        filteredClients.some(([client]) => 
+      filteredConsults.filter(consult =>
+        filteredClients.some(([client]) =>
           client === (consult.company || consult.email || 'Cliente no identificado')
         )
       ),
@@ -209,7 +211,7 @@ const Reports = () => {
 
   useEffect(() => {
     const responseData = getResponseData();
-    
+
     setResponseRateChartData({
       labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
       datasets: [{
@@ -240,8 +242,8 @@ const Reports = () => {
     }, {});
 
     const filteredClients = Object.entries(topClients)
-      .filter(([client]) => 
-        companySearch === '' || 
+      .filter(([client]) =>
+        companySearch === '' ||
         client.toLowerCase().includes(companySearch.toLowerCase())
       )
       .sort((a, b) => b[1] - a[1])
@@ -252,10 +254,10 @@ const Reports = () => {
       datasets: [{
         label: 'Consultas por cliente',
         data: filteredClients.map(([_, count]) => count),
-        backgroundColor: filteredClients.map((_, index) => 
+        backgroundColor: filteredClients.map((_, index) =>
           `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
         ),
-        borderColor: filteredClients.map((_, index) => 
+        borderColor: filteredClients.map((_, index) =>
           `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
         ),
         borderWidth: 1,
@@ -273,10 +275,10 @@ const Reports = () => {
       datasets: [{
         label: 'Consultas por tipo',
         data: Object.values(consultsByType),
-        backgroundColor: Object.keys(consultsByType).map((_, index) => 
+        backgroundColor: Object.keys(consultsByType).map((_, index) =>
           `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%, 0.6)`
         ),
-        borderColor: Object.keys(consultsByType).map((_, index) => 
+        borderColor: Object.keys(consultsByType).map((_, index) =>
           `hsl(${(index * 360 / Object.keys(consultsByType).length)}, 70%, 50%)`
         ),
         borderWidth: 1,
@@ -286,16 +288,68 @@ const Reports = () => {
 
   const classifyConsultType = (consult) => {
     if (consult.type === 'Asesoría Técnica') {
-      return consult.tipoAsesoria === 'interna' 
-        ? 'Asesoría Técnica (Interna)' 
+      return consult.tipoAsesoria === 'interna'
+        ? 'Asesoría Técnica (Interna)'
         : 'Asesoría Técnica (Externa)';
     }
     return consult.type || 'Sin tipo';
   };
+  const generateFileName = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const quincena = day <= 15 ? '115' : '215';
+    return `Reporte${month}${month}Actual${quincena}`;
+  };
+
+  const exportToExcel = () => {
+    const fileName = generateFileName();
+    const data = [];
+
+    // Datos generales
+    const responseData = getResponseData();
+    data.push(['Métrica', 'Valor']);
+    data.push(['Consultas recibidas', responseData.total]);
+    data.push(['Consultas respondidas', responseData.answered]);
+    data.push(['Porcentaje de respuesta', `${Math.round((responseData.answered / responseData.total) * 100)}%`]);
+    data.push(['Respondidas a tiempo', responseData.timely]);
+    data.push(['Porcentaje a tiempo', `${Math.round((responseData.timely / responseData.answered) * 100)}%`]);
+    data.push([]);
+
+    // Consultas por cliente
+    const topClients = filteredConsults.reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + 1;
+      return acc;
+    }, {});
+
+    const clientsData = Object.entries(topClients)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    data.push(['Top Clientes', 'Consultas']);
+    clientsData.forEach(([client, count]) => data.push([client, count]));
+    data.push([]);
+
+    // Consultas por tipo
+    const consultsByType = filteredConsults.reduce((acc, consult) => {
+      const type = classifyConsultType(consult);
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    data.push(['Tipo de Consulta', 'Cantidad']);
+    Object.entries(consultsByType).forEach(([type, count]) => data.push([type, count]));
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  };
 
   const getAvailableTypes = () => {
     const types = new Set();
-    
+
     consults.forEach(consult => {
       if (consult.type === 'Asesoría Técnica') {
         types.add('Asesoría Técnica');
@@ -303,7 +357,7 @@ const Reports = () => {
         types.add(consult.type || 'Sin tipo');
       }
     });
-    
+
     return Array.from(types);
   };
 
@@ -311,10 +365,10 @@ const Reports = () => {
     if (!items || items.length === 0) {
       return { labels: [], datasets: [] };
     }
-    
+
     let rangeStart, rangeEnd;
     const now = new Date();
-    
+
     if (timeRange === 'week') {
       rangeStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       rangeEnd = now;
@@ -335,51 +389,51 @@ const Reports = () => {
       rangeStart = sorted[0].timestamp;
       rangeEnd = sorted[sorted.length - 1].timestamp;
     }
-    
+
     const diffTime = Math.abs(rangeEnd - rangeStart);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     let interval = 1;
     if (diffDays > 90) interval = 7;
     if (diffDays > 365) interval = 30;
-    
+
     const keys = [...new Set(items.map(item => getKey(item)))];
     const dataByKey = {};
     keys.forEach(key => {
       dataByKey[key] = Array(Math.ceil(diffDays / interval)).fill(0);
     });
-    
+
     const labels = [];
-    
+
     for (let i = 0; i <= diffDays; i += interval) {
       const currentDate = new Date(rangeStart);
       currentDate.setDate(currentDate.getDate() + i);
-      
+
       const dayStart = new Date(currentDate);
       dayStart.setHours(0, 0, 0, 0);
-      
+
       const dayEnd = new Date(currentDate);
       dayEnd.setHours(23, 59, 59, 999);
-      
+
       if (interval > 1) {
         dayEnd.setDate(dayEnd.getDate() + interval - 1);
       }
-      
+
       const periodItems = items.filter(
         item => item.timestamp >= dayStart && item.timestamp <= dayEnd
       );
-      
+
       const periodCounts = periodItems.reduce((acc, item) => {
         const key = getKey(item);
         acc[key] = (acc[key] || 0) + 1;
         return acc;
       }, {});
-      
+
       const periodIndex = Math.floor(i / interval);
       keys.forEach(key => {
         dataByKey[key][periodIndex] = periodCounts[key] || 0;
       });
-      
+
       let label;
       if (interval === 1) {
         label = currentDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
@@ -388,10 +442,10 @@ const Reports = () => {
       } else {
         label = currentDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
       }
-      
+
       labels.push(label);
     }
-    
+
     const datasets = keys.map((key, index) => ({
       label: key,
       data: dataByKey[key],
@@ -401,7 +455,7 @@ const Reports = () => {
       tension: 0.1,
       fill: false
     }));
-    
+
     return { labels, datasets };
   };
 
@@ -428,32 +482,32 @@ const Reports = () => {
 
   const classifyResponseStatus = (consult) => {
     const response = responses.find(res => res.consultaId === consult.id);
-    
+
     if (!response) return 'No respondida';
-    
+
     const responseTime = response.timestamp.getTime() - consult.timestamp.getTime();
     return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
   };
 
   const getResponseData = () => {
     let filtered = [...filteredConsults];
-    
+
     if (responseStatusFilter !== 'all') {
       filtered = filtered.filter(consult => {
         const status = classifyResponseStatus(consult);
         return status === responseStatusFilter;
       });
     }
-    
+
     const totalConsults = filtered.length;
-    const answeredConsults = filtered.filter(consult => 
+    const answeredConsults = filtered.filter(consult =>
       responses.some(response => response.consultaId === consult.id)
     ).length;
-    
+
     const timelyAnswered = filtered.filter(consult => {
       const response = responses.find(res => res.consultaId === consult.id);
       if (!response) return false;
-      
+
       const responseTime = response.timestamp.getTime() - consult.timestamp.getTime();
       return responseTime <= 24 * 60 * 60 * 1000;
     }).length;
@@ -484,7 +538,7 @@ const Reports = () => {
 
   const uploadToIcaroTest = async () => {
     setIsUploading(true);
-    
+
     try {
       const responseData = getResponseData();
       const topClients = filteredConsults.reduce((acc, consult) => {
@@ -494,8 +548,8 @@ const Reports = () => {
       }, {});
 
       const filteredClients = Object.entries(topClients)
-        .filter(([client]) => 
-          companySearch === '' || 
+        .filter(([client]) =>
+          companySearch === '' ||
           client.toLowerCase().includes(companySearch.toLowerCase())
         )
         .sort((a, b) => b[1] - a[1])
@@ -512,21 +566,21 @@ const Reports = () => {
       };
 
       const response = await simulateOrchestratorCall(payload);
-      
+
       if (!response.success) {
         throw new Error(response.message);
       }
 
       setSnackbarMessage(`Simulación exitosa: ${response.message}`);
       setSnackbarSeverity('success');
-      
+
       console.log("Estructura para JDE:", {
         table: "F55SA119",
         company: "TU_COMPANY",
         document: "IND" + new Date().getTime(),
         values: payload
       });
-      
+
     } catch (error) {
       console.error('Error en simulación:', error);
       setSnackbarMessage('Error en simulación: ' + error.message);
@@ -581,8 +635,8 @@ const Reports = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
       <Box sx={{ padding: '20px' }}>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           mb: 3
@@ -590,7 +644,7 @@ const Reports = () => {
           <Typography variant="h4" component="h1" color="#1B5C94">
             Reportes y Estadísticas
           </Typography>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <ButtonGroup variant="contained" orientation="horizontal">
               {timeRanges.map((range) => (
@@ -620,6 +674,16 @@ const Reports = () => {
               sx={{ ml: 2 }}
             >
               {isUploading ? 'Enviando...' : 'Subir a ICARO (Prueba)'}
+            </Button>
+
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<GridOnIcon />}
+              onClick={exportToExcel}
+              sx={{ ml: 2 }}
+            >
+              Exportar a Excel
             </Button>
 
             <Tooltip title="Salir al menú" arrow>
@@ -656,8 +720,8 @@ const Reports = () => {
               inputFormat="dd/MM/yyyy"
               renderInput={(params) => <TextField {...params} />}
             />
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={applyCustomDateRange}
               startIcon={<CalendarIcon />}
             >
@@ -679,7 +743,7 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
@@ -692,7 +756,7 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
@@ -714,7 +778,7 @@ const Reports = () => {
                 </Typography>
                 <Box sx={{ height: '400px' }}>
                   {trendChartData.labels && trendChartData.labels.length > 0 ? (
-                    <Line 
+                    <Line
                       data={trendChartData}
                       options={{
                         responsive: true,
@@ -724,9 +788,9 @@ const Reports = () => {
                         },
                         scales: {
                           x: { title: { display: true, text: 'Fecha' } },
-                          y: { 
+                          y: {
                             title: { display: true, text: 'Número de consultas' },
-                            beginAtZero: true 
+                            beginAtZero: true
                           }
                         }
                       }}
@@ -775,15 +839,15 @@ const Reports = () => {
                         case 'pie':
                           return <Pie data={responseRateChartData} options={commonChartOptions} />;
                         case 'line':
-                          return <Line 
+                          return <Line
                             data={generateTimeData(
-                              filteredConsults.filter(consult => 
-                                responseStatusFilter === 'all' || 
+                              filteredConsults.filter(consult =>
+                                responseStatusFilter === 'all' ||
                                 classifyResponseStatus(consult) === responseStatusFilter
                               ),
                               classifyResponseStatus
-                            )} 
-                            options={commonChartOptions} 
+                            )}
+                            options={commonChartOptions}
                           />;
                         case 'doughnut':
                           return <Doughnut data={responseRateChartData} options={commonChartOptions} />;
@@ -876,7 +940,7 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
@@ -978,8 +1042,8 @@ const Reports = () => {
           onClose={handleSnackbarClose}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          <Alert 
-            onClose={handleSnackbarClose} 
+          <Alert
+            onClose={handleSnackbarClose}
             severity={snackbarSeverity}
             sx={{ width: '100%' }}
           >
