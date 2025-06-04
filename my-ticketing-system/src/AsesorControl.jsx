@@ -33,66 +33,71 @@ const AsesorControl = () => {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
+        justifyContent: "flex-start", // Cambiado para mejor uso del espacio
         alignItems: "center",
         minHeight: "100vh",
         background: "white",
         p: 4,
+        pt: 6, 
       }}
     >
-      {/* Contador de consultas centrado y más arriba */}
+      {/* Contador de consultas más grande y prominente */}
       <Box 
         sx={{ 
-          mb: 6, 
           textAlign: "center",
-          marginTop: '-80px' // Esto sube el contador más arriba
+          width: "100%",
+          maxWidth: 1200,
+          mb: 15,
+          mt: 10, // Espacio entre el contador y los botones
         }}
       >
         <Typography 
-          variant="h4" 
+          variant="h2" // Tamaño aumentado
           component="h2" 
           sx={{ 
             color: "#1B5C94", 
             fontWeight: 'bold',
-            mb: 1
+            mb: 2
           }}
         >
           Consultas activas
         </Typography>
         <Typography 
-          variant="h2" 
+          variant="h1" // Tamaño aumentado
           component="div" 
           sx={{ 
             color: "#1B5C94", 
             fontWeight: 'bold',
-            fontSize: '3.5rem'
+            fontSize: '5rem', // Tamaño aumentado
+            lineHeight: 1
           }}
         >
           {loading ? "..." : consultCount}
         </Typography>
       </Box>
 
-      {/* Paneles rectangulares más anchos que altos con botones uno al lado del otro */}
+      {/* Paneles más grandes y con mejor distribución */}
       <Box
         sx={{
           display: "flex",
-          gap: 4,
+          gap: 6, // Espacio aumentado entre botones
           justifyContent: "center",
           width: "100%",
-          maxWidth: 1200,
+          maxWidth: 1400, // Ancho máximo aumentado
+          flexWrap: "wrap", // Permite ajuste en pantallas pequeñas
         }}
       >
-        {/* Botón para Consultas */}
+        {/* Botón para Consultas - tamaño aumentado */}
         <Button
           sx={{
-            width: 380,
-            height: 250,
-            borderRadius: 2,
-            boxShadow: 3,
+            width: 420, // Ancho aumentado
+            height: 300, // Altura aumentada
+            borderRadius: 3, // Bordes más redondeados
+            boxShadow: 4, // Sombra más pronunciada
             backgroundColor: "#1B5C94",
             "&:hover": {
               backgroundColor: "#f0f0f0",
-              boxShadow: 6,
+              boxShadow: 8,
               "& .MuiTypography-root": {
                 color: "#1B5C94",
               },
@@ -104,31 +109,32 @@ const AsesorControl = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            p: 3,
+            p: 4, // Padding aumentado
             textTransform: 'none',
+            transition: 'all 0.3s ease', // Transición suave
           }}
           onClick={() => navigate("/vista-asesor-formulario")}
         >
-          <QuestionAnswerIcon sx={{ fontSize: 60, color: "white", mb: 2 }} />
-          <Typography variant="h4" component="h2" sx={{ color: "white", mb: 1, textTransform: 'none' }}>
+          <QuestionAnswerIcon sx={{ fontSize: 80, color: "white", mb: 3 }} />
+          <Typography variant="h3" component="h2" sx={{ color: "white", mb: 2, fontSize: '2rem' }}>
             Consultas
           </Typography>
-          <Typography variant="body1" sx={{ color: "white", textAlign: "center" }}>
+          <Typography variant="h6" sx={{ color: "white", textAlign: "center", fontSize: '1.1rem' }}>
             Gestiona y responde a las consultas de tus clientes
           </Typography>
         </Button>
 
-        {/* Botón para Clientes */}
+        {/* Botón para Clientes - tamaño aumentado */}
         <Button
           sx={{
-            width: 380,
-            height: 250,
-            borderRadius: 2,
-            boxShadow: 3,
+            width: 420,
+            height: 300,
+            borderRadius: 3,
+            boxShadow: 4,
             backgroundColor: "#1B5C94",
             "&:hover": {
               backgroundColor: "#f0f0f0",
-              boxShadow: 6,
+              boxShadow: 8,
               "& .MuiTypography-root": {
                 color: "#1B5C94",
               },
@@ -140,31 +146,32 @@ const AsesorControl = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            p: 3,
+            p: 4,
             textTransform: 'none',
+            transition: 'all 0.3s ease',
           }}
           onClick={() => navigate("/clients-info")}
         >
-          <PeopleIcon sx={{ fontSize: 60, color: "white", mb: 2 }} />
-          <Typography variant="h4" component="h2" sx={{ color: "white", mb: 1, textTransform: 'none' }}>
+          <PeopleIcon sx={{ fontSize: 80, color: "white", mb: 3 }} />
+          <Typography variant="h3" component="h2" sx={{ color: "white", mb: 2, fontSize: '2rem' }}>
             Clientes
           </Typography>
-          <Typography variant="body1" sx={{ color: "white", textAlign: "center" }}>
+          <Typography variant="h6" sx={{ color: "white", textAlign: "center", fontSize: '1.1rem' }}>
             Administra la información de tus clientes
           </Typography>
         </Button>
 
-        {/* Botón para Reportes */}
+        {/* Botón para Reportes - tamaño aumentado */}
         <Button
           sx={{
-            width: 380,
-            height: 250,
-            borderRadius: 2,
-            boxShadow: 3,
+            width: 420,
+            height: 300,
+            borderRadius: 3,
+            boxShadow: 4,
             backgroundColor: "#1B5C94",
             "&:hover": {
               backgroundColor: "#f0f0f0",
-              boxShadow: 6,
+              boxShadow: 8,
               "& .MuiTypography-root": {
                 color: "#1B5C94",
               },
@@ -176,16 +183,17 @@ const AsesorControl = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            p: 3,
+            p: 4,
             textTransform: 'none',
+            transition: 'all 0.3s ease',
           }}
           onClick={() => navigate("/reportes")}
         >
-          <AssessmentIcon sx={{ fontSize: 60, color: "white", mb: 2 }} />
-          <Typography variant="h4" component="h2" sx={{ color: "white", mb: 1, textTransform: 'none' }}>
+          <AssessmentIcon sx={{ fontSize: 80, color: "white", mb: 3 }} />
+          <Typography variant="h3" component="h2" sx={{ color: "white", mb: 2, fontSize: '2rem' }}>
             Reportes
           </Typography>
-          <Typography variant="body1" sx={{ color: "white", textAlign: "center" }}>
+          <Typography variant="h6" sx={{ color: "white", textAlign: "center", fontSize: '1.1rem' }}>
             Genera reportes de tu actividad y desempeño
           </Typography>
         </Button>
