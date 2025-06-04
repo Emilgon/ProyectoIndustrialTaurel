@@ -4,6 +4,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: #f5f5f5;
 }
 
 /* Header */
@@ -15,16 +16,18 @@
   align-items: center;
   position: relative;
   width: 100%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 0 30px; /* Añadido padding directamente en el header */
 }
 
 .header-wrapper {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 30px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* Cambiado a flex-end para alinear todo a la derecha */
   align-items: center;
+  position: relative;
 }
 
 /* Logo centrado */
@@ -35,6 +38,8 @@
   height: 100%;
   display: flex;
   align-items: center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .App-logo {
@@ -42,17 +47,26 @@
   max-height: 80px;
   width: auto;
   object-fit: contain;
+  transition: transform 0.3s ease;
 }
 
-/* Íconos y tooltips */
+.App-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Contenedor de íconos - Modificado para alinear estrictamente a la derecha */
 .header-icons {
   display: flex;
   gap: 25px;
-  margin-left: auto;
   align-items: center;
   z-index: 2;
+  padding: 8px 15px;
+  background-color: rgba(27, 92, 148, 0.9);
+  border-radius: 30px;
 }
 
+
+/* Tooltips e íconos */
 .icon-tooltip {
   position: relative;
   display: inline-block;
@@ -61,7 +75,7 @@
 .tooltip-text {
   visibility: hidden;
   width: max-content;
-  background-color: #1B5C94;
+  background-color: #1b5c94;
   color: white;
   text-align: center;
   border-radius: 4px;
@@ -74,8 +88,8 @@
   opacity: 0;
   transition: opacity 0.3s;
   font-size: 0.8rem;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  font-family: "Arial", sans-serif;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
 }
 
@@ -87,32 +101,49 @@
 .icon-link {
   display: flex;
   align-items: center;
-  transition: transform 0.3s ease;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: 45px;
+  height: 45px;
 }
 
 .icon-link:hover {
   transform: scale(1.1);
 }
 
+.icon-link svg,
 .icon-link .MuiSvgIcon-root {
-  transition: transform 0.3s ease;
+  width: 100%;
+  height: 100%;
+  color: white;
+}
+
+/* Contenido principal */
+.main-content {
+  flex: 1;
+  padding: 20px;
+  margin-top: 20px;
 }
 
 /* Estilos para el botón "Soy Asesor" */
 .asesor-button {
   margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #1B5C94;
+  padding: 12px 25px;
+  background-color: #1b5c94;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .asesor-button:hover {
   background-color: #164f7b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Media queries para responsividad */
@@ -120,19 +151,37 @@
   .header-wrapper {
     padding: 0 20px;
   }
-  
+
   .App-logo {
     height: 70%;
     max-height: 70px;
   }
-  
+
   .header-icons {
     gap: 20px;
+    padding: 6px 12px;
   }
-  
+
+  .icon-link {
+    width: 38px;
+    height: 38px;
+  }
+
   .tooltip-text {
     font-size: 0.7rem;
     bottom: -35px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header-icons {
+    gap: 15px;
+    padding: 5px 10px;
+    border-radius: 25px;
+  }
+
+  .logo-center {
+    transform: translateX(-50%) scale(0.9);
   }
 }
 
@@ -141,23 +190,39 @@
     height: 10vh;
     min-height: 70px;
   }
-  
+
   .App-logo {
     height: 65%;
     max-height: 60px;
   }
-  
+
   .header-icons {
-    gap: 15px;
+    gap: 12px;
+    padding: 4px 8px;
   }
-  
-  .icon-link svg,
-  .icon-link .MuiSvgIcon-root {
-    width: 28px;
-    height: 28px;
+
+  .icon-link {
+    width: 32px;
+    height: 32px;
   }
-  
+
   .tooltip-text {
-    bottom: -30px;
+    display: none;
+  }
+}
+
+/* Efecto de transición para las páginas */
+.page-transition {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

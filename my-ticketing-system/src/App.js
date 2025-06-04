@@ -38,8 +38,9 @@ function Header() {
 
   // Tamaño aumentado para todos los íconos
   const iconStyle = {
-    fontSize: "50px", // Aumentado de 32px a 40px
+    fontSize: "45px", // Aumentado de 32px a 40px
     color: "white",
+
   };
 
   return (
@@ -67,7 +68,7 @@ function Header() {
           {!isMenu && (
             <div className="icon-tooltip">
               <Link to="/menu" className="icon-link" aria-label="Home">
-                <svg width="50" height="50" viewBox="0 0 24 24" fill="white">
+                <svg width="45" height="45" viewBox="0 0 24 24" fill="white">
                   <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
                 </svg>
               </Link>

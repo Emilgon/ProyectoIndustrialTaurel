@@ -27,6 +27,7 @@ import {
   Badge,
   Checkbox,
 } from "@mui/material";
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -313,48 +314,61 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const handleMarcarResuelta = async (id) => {
+  const handleMarcarResuelta = async (id, currentStatus) => {
+    const isResuelta = currentStatus === "Resuelta";
     const { isConfirmed } = await Swal.fire({
-      title: "Confirmar",
-      text: "¿Estás seguro de que deseas marcar esta consulta como resuelta?",
+      title: isResuelta ? "Desmarcar como resuelta" : "Confirmar",
+      text: isResuelta
+        ? "¿Estás seguro de que deseas desmarcar esta consulta como resuelta?"
+        : "¿Estás seguro de que deseas marcar esta consulta como resuelta?",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Sí, marcar como resuelta",
+      confirmButtonText: isResuelta ? "Sí, desmarcar" : "Sí, marcar como resuelta",
       cancelButtonText: "Cancelar",
-      confirmButtonColor: "#4CAF50",
+      confirmButtonColor: isResuelta ? "#FF9800" : "#4CAF50",
     });
 
     if (isConfirmed) {
       try {
         const consultaRef = doc(db, "Consults", id);
-        await updateDoc(consultaRef, {
-          status: "Resuelta",
-          resolvedAt: new Date() // Opcional: guardar fecha de resolución
-        });
+        const newStatus = isResuelta ? "En proceso" : "Resuelta";
+        const updateData = {
+          status: newStatus,
+          ...(isResuelta ? {} : { resolvedAt: new Date() })
+        };
+
+        await updateDoc(consultaRef, updateData);
 
         // Actualizar el estado local
         setConsultas(consultas.map(c =>
-          c.id === id ? { ...c, status: "Resuelta" } : c
+          c.id === id ? { ...c, status: newStatus } : c
         ));
 
         // Actualizar contadores
-        setResueltasCount(resueltasCount + 1);
-        if (consultas.find(c => c.id === id).status === "En proceso") {
-          setEnProcesoCount(enProcesoCount - 1);
+        if (isResuelta) {
+          setResueltasCount(resueltasCount - 1);
+          setEnProcesoCount(enProcesoCount + 1);
         } else {
-          setPendientesCount(pendientesCount - 1);
+          setResueltasCount(resueltasCount + 1);
+          if (consultas.find(c => c.id === id).status === "Pendiente") {
+            setPendientesCount(pendientesCount - 1);
+          } else {
+            setEnProcesoCount(enProcesoCount - 1);
+          }
         }
 
         Swal.fire(
-          "¡Resuelta!",
-          "La consulta ha sido marcada como resuelta",
+          isResuelta ? "¡Desmarcada!" : "¡Resuelta!",
+          isResuelta
+            ? "La consulta ha sido desmarcada como resuelta"
+            : "La consulta ha sido marcada como resuelta",
           "success"
         );
       } catch (error) {
-        console.error("Error al marcar como resuelta:", error);
+        console.error("Error al actualizar el estado:", error);
         Swal.fire(
           "Error",
-          "No se pudo marcar la consulta como resuelta",
+          `No se pudo ${isResuelta ? "desmarcar" : "marcar"} la consulta`,
           "error"
         );
       }
@@ -840,6 +854,22 @@ const VistaAsesorFormulario = () => {
     setIndicadorFilter("todos");
     setSearchCompany("");
   };
+  const filterButtonStyle = {
+    color: "white",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    '&:hover': {
+      backgroundColor: "rgba(255, 255, 255, 0.15)", // Sutil brillo blanco
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      transform: "translateY(-1px)",
+      transition: "all 0.2s ease",
+    },
+    '&:active': {
+      transform: "translateY(0)",
+    }
+  };
 
   const renderExpandedDetails = (consulta) => {
     return (
@@ -1145,16 +1175,19 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElSearch(event.currentTarget)}
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
+                  sx={filterButtonStyle}
                 >
                   <BusinessIcon sx={{ fontSize: 20 }} />
                   Cliente
+                  <SearchIcon
+                    sx={{
+                      transform: orderBy === "status"
+                        ? order === "asc" ? "rotate(0deg)" : "rotate(180deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
                   {searchCompany && (
                     <Box
                       sx={{
@@ -1214,13 +1247,7 @@ const VistaAsesorFormulario = () => {
                 <Box display="flex" alignItems="center">
                   <Button
                     onClick={(event) => setAnchorElTipo(event.currentTarget)}
-                    sx={{
-                      color: "white",
-                      fontWeight: "bold",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                    }}
+                    sx={filterButtonStyle}
                   >
                     <CategoryIcon sx={{ fontSize: 20 }} />
                     Tipo de Consulta
@@ -1269,16 +1296,19 @@ const VistaAsesorFormulario = () => {
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElFecha(event.currentTarget)}
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
+                  sx={filterButtonStyle}
                 >
                   <CalendarTodayIcon sx={{ fontSize: 20 }} />
                   Fecha de Solicitud
+                  <ExpandMoreIcon
+                    sx={{
+                      transform: orderBy === "status"
+                        ? order === "asc" ? "rotate(0deg)" : "rotate(180deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
                   {dateRange[0] && dateRange[1] && (
                     <Box
                       sx={{
@@ -1356,29 +1386,25 @@ const VistaAsesorFormulario = () => {
                     >
                       <FilterAltOffIcon />
                     </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => setAnchorElFecha(null)}
-                      sx={{ color: "#1B5C94" }}
-                    >
-                      <CloseIcon />
-                    </IconButton>
                   </Box>
                 </Popover>
               </TableCell>
               <TableCell>
                 <Button
                   onClick={(event) => setAnchorElIndicador(event.currentTarget)}
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
+                  sx={filterButtonStyle}
                 >
                   <TimerIcon sx={{ fontSize: 20 }} />
                   Indicador
+                  <ExpandMoreIcon
+                    sx={{
+                      transform: orderBy === "status"
+                        ? order === "asc" ? "rotate(0deg)" : "rotate(180deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 0.3s ease",
+                      fontSize: 16,
+                    }}
+                  />
                   <Box
                     sx={{
                       width: 8,
@@ -1475,113 +1501,70 @@ const VistaAsesorFormulario = () => {
                   </Box>
                 </Popover>
               </TableCell>
-              <TableCell>
-                <Button
-                  onClick={(event) => setAnchorElEstado(event.currentTarget)}
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <AssignmentIcon sx={{ fontSize: 20 }} />
-                  Estado
-                  <ExpandMoreIcon
-                    sx={{
-                      transform:
-                        orderBy === "status"
-                          ? order === "asc"
-                            ? "rotate(0deg)"
-                            : "rotate(180deg)"
+              <TableCell align="center">
+                <Box display="flex" justifyContent="center">
+                  <Button
+                    onClick={(event) => setAnchorElEstado(event.currentTarget)}
+                    sx={filterButtonStyle}
+                  >
+                    <AssignmentIcon sx={{ fontSize: 20 }} />
+                    ESTADO
+                    <ExpandMoreIcon
+                      sx={{
+                        transform: orderBy === "status"
+                          ? order === "asc" ? "rotate(0deg)" : "rotate(180deg)"
                           : "rotate(0deg)",
-                      transition: "transform 0.3s ease",
-                      fontSize: 16,
-                    }}
-                  />
-                </Button>
+                        transition: "transform 0.3s ease",
+                        fontSize: 16,
+                      }}
+                    />
+                  </Button>
+                </Box>
                 <Menu
                   id="state-menu"
                   anchorEl={anchorElEstado}
                   open={Boolean(anchorElEstado)}
                   onClose={() => setAnchorElEstado(null)}
                 >
-                  <MuiMenuItem onClick={() => handleSelectState("")}>
-                    Todos
-                  </MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>
-                    Pendiente
-                  </MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("En proceso")}>
-                    En proceso
-                  </MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("Resuelta")}>
-                    Resuelta
-                  </MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("")}>Todos</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Resuelta")}>Resuelta</MuiMenuItem>
                 </Menu>
               </TableCell>
-              <TableCell>
-                <Button
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    textTransform: "none",
-                  }}
-                >
-                  <HistoryIcon sx={{ fontSize: 20 }} />
-                  HISTORIAL
-                </Button>
+              <TableCell align="center">
+                <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
+                  <HistoryIcon sx={{ fontSize: 20, color: "white" }} />
+                  <Typography variant="subtitle2" color="white" fontWeight="bold">
+                    HISTORIAL
+                  </Typography>
+                </Box>
               </TableCell>
 
-              <TableCell>
-                <Button
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    textTransform: "none",
-                  }}
-                >
-                  <CheckIcon sx={{ fontSize: 20 }} />
-                  RESPONDER
-                </Button>
+              <TableCell align="center">
+                <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
+                  <AssignmentTurnedInIcon sx={{ fontSize: 20, color: "white" }} />
+                  <Typography variant="subtitle2" color="white" fontWeight="bold">
+                    RESPONDER
+                  </Typography>
+                </Box>
               </TableCell>
-              <TableCell>
-                <Button
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    textTransform: "none",
-                  }}
-                >
-                  <ChatIcon sx={{ fontSize: 20 }} />
-                  COMENTARIO
-                </Button>
+              <TableCell align="center">
+                <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
+                  <ChatIcon sx={{ fontSize: 20, color: "white" }} />
+                  <Typography variant="subtitle2" color="white" fontWeight="bold">
+                    COMENTARIO
+                  </Typography>
+                </Box>
               </TableCell>
 
-              <TableCell>
-                <Button
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    textTransform: "none",
-                  }}
-                >
-                  <CheckIcon sx={{ fontSize: 20 }} />
-                  RESUELTA
-                </Button>
+              <TableCell align="center">
+                <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
+                  <CheckIcon sx={{ fontSize: 20, color: "white" }} />
+                  <Typography variant="subtitle2" color="white" fontWeight="bold">
+                    RESUELTA
+                  </Typography>
+                </Box>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -1607,16 +1590,58 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <TableCell>{consulta.company}</TableCell>
-                  <TableCell>{consulta.type || "No Asignado"}</TableCell>
-                  <TableCell>{formatDateTime(consulta.start_date)}</TableCell>
-                  <TableCell>{renderRemainingDays(consulta)}</TableCell>
-                  <TableCell>{consulta.status}</TableCell>
-                  <TableCell>
-                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                  <TableCell >{consulta.type || "No Asignado"}</TableCell>
+                  <TableCell align="center">{formatDateTime(consulta.start_date)}</TableCell>
+                  <TableCell align="center">{renderRemainingDays(consulta)}</TableCell>
+                  <TableCell align="center">{consulta.status}</TableCell>
+                  <TableCell align="center">
+                    <Box display="flex" justifyContent="center">
+                      <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleHistorial(consulta.id);
+                          }}
+                          variant="contained"
+                          sx={{
+                            backgroundColor: "#1B5C94",
+                            color: "white",
+                            borderRadius: "8px",
+                            padding: "6px 12px",
+                            textTransform: "none",
+                            fontWeight: "bold",
+                            minWidth: "100px",
+                            "&:hover": {
+                              backgroundColor: "#145a8c",
+                            },
+                          }}
+                        >
+                          Historial
+                        </Button>
+                        <Badge
+                          badgeContent={newResponsesCount[consulta.id] || 0}
+                          color="error"
+                          sx={{
+                            position: 'absolute',
+                            top: -5,
+                            right: -3,
+                            '& .MuiBadge-badge': {
+                              height: '20px',
+                              minWidth: '20px',
+                              borderRadius: '50%',
+                              transform: 'scale(1) translate(50%, -50%)',
+                            }
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box display="flex" justifyContent="center">
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleToggleHistorial(consulta.id);
+                          handleResponderConsulta(consulta.id);
                         }}
                         variant="contained"
                         sx={{
@@ -1632,47 +1657,9 @@ const VistaAsesorFormulario = () => {
                           },
                         }}
                       >
-                        Historial
+                        Responder
                       </Button>
-                      <Badge
-                        badgeContent={newResponsesCount[consulta.id] || 0}
-                        color="error"
-                        sx={{
-                          position: 'absolute',
-                          top: -5,
-                          right: -3,
-                          '& .MuiBadge-badge': {
-                            height: '20px',
-                            minWidth: '20px',
-                            borderRadius: '50%',
-                            transform: 'scale(1) translate(50%, -50%)',
-                          }
-                        }}
-                      />
                     </Box>
-                  </TableCell>
-                  <TableCell aling="center">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleResponderConsulta(consulta.id);
-                      }}
-                      variant="contained"
-                      sx={{
-                        backgroundColor: "#1B5C94",
-                        color: "white",
-                        borderRadius: "8px",
-                        padding: "6px 12px",
-                        textTransform: "none",
-                        fontWeight: "bold",
-                        minWidth: "100px",
-                        "&:hover": {
-                          backgroundColor: "#145a8c",
-                        },
-                      }}
-                    >
-                      Responder
-                    </Button>
                   </TableCell>
                   {/* Para la celda de encabezado */}
                   <TableCell align="center">
@@ -1699,20 +1686,20 @@ const VistaAsesorFormulario = () => {
 
                   </TableCell>
 
-                  <TableCell align="center"> 
-                    <Checkbox
-                      checked={consulta.status === "Resuelta"}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleMarcarResuelta(consulta.id);
-                      }}
-                      sx={{
-                        color: consulta.status === "Resuelta" ? "#4CAF50" : "#1B5C94",
-                        '&.Mui-checked': {
-                          color: "#4CAF50",
-                        },
-                      }}
-                    />
+                  <TableCell align="center">
+                    <Box display="flex" justifyContent="center" alignItems="center">
+                      <Checkbox
+                        checked={consulta.status === "Resuelta"}
+                        onChange={() => handleMarcarResuelta(consulta.id, consulta.status)}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                          color: "#1B5C94",
+                          '&.Mui-checked': {
+                            color: "#4CAF50",
+                          },
+                        }}
+                      />
+                    </Box>
                   </TableCell>
                 </TableRow>
                 <AnimatePresence>
