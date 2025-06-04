@@ -29,8 +29,12 @@ import {
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
   TableChart as ExcelIcon,
-  Sort as SortIcon,
+  CalendarToday as CalendarIcon,
+  Clear as ClearIcon,
 } from "@mui/icons-material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 const VistaClienteConsulta = () => {
   const { consultaId } = useParams();
@@ -52,6 +56,7 @@ const VistaClienteConsulta = () => {
   const { respuestas: respuestasAsesor } = useRespuestaController(consultaId);
 
   const [allResponses, setAllResponses] = useState([]);
+  const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
     const respuestas1 = [...respuestas];
@@ -69,13 +74,11 @@ const VistaClienteConsulta = () => {
 
     const mergedArray = respuestas1.concat(respuestas2);
     mergedArray.sort((a, b) => {
-      return a.timestamp.seconds - b.timestamp.seconds;
+      return b.timestamp.seconds - a.timestamp.seconds;
     });
 
     setAllResponses(mergedArray);
   }, [respuestasAsesor, respuestas]);
-
-  const [sortOrder, setSortOrder] = useState("desc");
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -96,6 +99,36 @@ const VistaClienteConsulta = () => {
       default:
         return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
     }
+  };
+
+  const filteredResponses = filterDate
+    ? allResponses.filter((response) => {
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
+    : allResponses;
+
+  const clearDateFilter = () => {
+    setFilterDate(null);
+  };
+
+  // Función para extraer el nombre del archivo de una URL de Firebase
+  const getFileNameFromUrl = (url) => {
+    if (!url) return "Archivo adjunto";
+
+    // Firebase URLs typically have the filename at the end after the last slash
+    const urlParts = url.split('/');
+    const lastPart = urlParts[urlParts.length - 1];
+
+    // Remove query parameters if any
+    const fileName = lastPart.split('?')[0];
+
+    // Decode URI encoded characters
+    return decodeURIComponent(fileName);
   };
 
   if (!consultaData) {
@@ -127,10 +160,6 @@ const VistaClienteConsulta = () => {
         footer: result.error?.message || "",
       });
     }
-  };
-
-  const handleSortChange = (event) => {
-    setSortOrder(event.target.value);
   };
 
   return (
@@ -205,6 +234,7 @@ const VistaClienteConsulta = () => {
               </Typography>
               {consultaData.attachment.split(", ").map((fileName, index) => {
                 const fileUrl = fileDownloadUrls[fileName];
+                const displayName = fileName; // Usamos directamente el nombre del archivo
                 const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                   fileName.split(".").pop().toLowerCase()
                 );
@@ -223,13 +253,13 @@ const VistaClienteConsulta = () => {
                       "&:hover": { backgroundColor: "#f5f5f5" },
                     }}
                   >
-                    {fileUrl && (
+                    {fileUrl ? (
                       <IconButton
                         component="a"
                         href={fileUrl}
-                        download
+                        download={displayName}
                         rel="noopener noreferrer"
-                        aria-label={`Descargar archivo ${fileName}`}
+                        aria-label={`Descargar archivo ${displayName}`}
                         sx={{
                           padding: 0,
                           "&:hover": {
@@ -240,7 +270,7 @@ const VistaClienteConsulta = () => {
                         {isImage ? (
                           <img
                             src={fileUrl}
-                            alt={fileName}
+                            alt={displayName}
                             style={{
                               maxWidth: "50px",
                               maxHeight: "50px",
@@ -248,14 +278,31 @@ const VistaClienteConsulta = () => {
                             }}
                           />
                         ) : (
-                          getFileIcon(fileName)
+                          getFileIcon(displayName)
                         )}
                       </IconButton>
+                    ) : (
+                      getFileIcon(displayName)
                     )}
 
                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                      {fileName}
+                      {displayName}
                     </Typography>
+
+                    {fileUrl && (
+                      <IconButton
+                        component="a"
+                        href={fileUrl}
+                        download={displayName}
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": { backgroundColor: "#e3f2fd" },
+                        }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
                   </Box>
                 );
               })}
@@ -263,7 +310,7 @@ const VistaClienteConsulta = () => {
           )}
         </Card>
 
-        {/* Sección de historial de respuestas movida aquí */}
+        {/* Sección de historial de respuestas */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Box
             display="flex"
@@ -274,138 +321,153 @@ const VistaClienteConsulta = () => {
             <Typography variant="h6" fontWeight="bold">
               Historial de Respuestas
             </Typography>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="sort-order-label">Ordenar por fecha</InputLabel>
-              <Select
-                labelId="sort-order-label"
-                id="sort-order"
-                value={sortOrder}
-                label="Ordenar por fecha"
-                onChange={handleSortChange}
-                startAdornment={<SortIcon sx={{ mr: 1 }} />}
-              >
-                <MenuItem value="asc">De menor a mayor</MenuItem>
-                <MenuItem value="desc">De mayor a menor</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-          {allResponses.length > 0 ? (
-            allResponses
-              .slice()
-              .sort((a, b) =>
-                sortOrder === "asc"
-                  ? a.timestamp.seconds - b.timestamp.seconds
-                  : b.timestamp.seconds - a.timestamp.seconds
-              )
-              .map((respuesta, index) => (
-                <Box
-                  key={index}
-                  backgroundColor={
-                    respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
-                  }
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
-                  }}
+            <Box display="flex" alignItems="center" gap={1}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Filtrar por fecha"
+                  value={filterDate}
+                  onChange={(newValue) => setFilterDate(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      sx={{ width: 180 }}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <CalendarIcon sx={{ mr: 1 }} />,
+                      }}
+                    />
+                  )}
+                />
+              </LocalizationProvider>
+              {filterDate && (
+                <IconButton
+                  onClick={clearDateFilter}
+                  sx={{ color: "error.main" }}
                 >
-                  <Typography variant="body1">
-                    <strong>{respuesta.sender}:</strong> {respuesta.content}
+                  <ClearIcon />
+                </IconButton>
+              )}
+            </Box>
+          </Box>
+          {filteredResponses.length > 0 ? (
+            filteredResponses.map((respuesta, index) => (
+              <Box
+                key={index}
+                backgroundColor={
+                  respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
+                }
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  border: "1px solid #e0e0e0",
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body1">
+                  <strong>{respuesta.sender}:</strong> {respuesta.content}
+                </Typography>
+                {respuesta.timestamp && (
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 1, color: "text.secondary" }}
+                  >
+                    Enviado el:{" "}
+                    {new Date(
+                      respuesta.timestamp.seconds * 1000
+                    ).toLocaleString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </Typography>
-                  {respuesta.timestamp && (
-                    <Typography
-                      variant="body2"
-                      sx={{ mt: 1, color: "text.secondary" }}
-                    >
-                      Enviado el:{" "}
-                      {new Date(
-                        respuesta.timestamp.seconds * 1000
-                      ).toLocaleString()}
+                )}
+                {respuesta.attachment && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body1" fontWeight="bold" gutterBottom>
+                      Archivo Adjunto
                     </Typography>
-                  )}
-                  {respuesta.attachment && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" fontWeight="bold" gutterBottom>
-                        Archivo Adjunto
-                      </Typography>
-                      {respuesta.attachment.split(", ").map((fileName, index) => {
-                        const fileUrl = fileDownloadUrls[fileName]?.url || null;
-                        const displayName = fileDownloadUrls[fileName]?.displayName || fileName;
-                        const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                          displayName.split(".").pop().toLowerCase()
-                        );
+                    {respuesta.attachment.split(", ").map((fileName, index) => {
+                      const fileUrl = fileDownloadUrls[fileName];
+                      const displayName = fileName; // Usamos directamente el nombre del archivo
+                      const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                        fileName.split(".").pop().toLowerCase()
+                      );
 
-                        return (
-                          <Box
-                            key={index}
-                            display="flex"
-                            alignItems="center"
-                            gap={1}
-                            sx={{
-                              p: 1,
-                              border: "1px solid #e0e0e0",
-                              borderRadius: 1,
-                              "&:hover": { backgroundColor: "#f5f5f5" },
-                            }}
-                          >
-                            {fileUrl ? (
-                              <IconButton
-                                component="a"
-                                href={fileUrl}
-                                download={displayName}
-                                rel="noopener noreferrer"
-                                aria-label={`Descargar archivo ${displayName}`}
-                                sx={{
-                                  padding: 0,
-                                  "&:hover": { opacity: 0.8 },
-                                }}
-                              >
-                                {isImage ? (
-                                  <img
-                                    src={fileUrl}
-                                    alt={displayName}
-                                    style={{
-                                      maxWidth: "50px",
-                                      maxHeight: "50px",
-                                      borderRadius: "4px",
-                                    }}
-                                  />
-                                ) : (
-                                  getFileIcon(displayName)
-                                )}
-                              </IconButton>
-                            ) : (
-                              getFileIcon(displayName)
-                            )}
+                      return (
+                        <Box
+                          key={index}
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          sx={{
+                            p: 1,
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 1,
+                            "&:hover": { backgroundColor: "#f5f5f5" },
+                          }}
+                        >
+                          {fileUrl ? (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={displayName}
+                              rel="noopener noreferrer"
+                              aria-label={`Descargar archivo ${displayName}`}
+                              sx={{
+                                padding: 0,
+                                "&:hover": { opacity: 0.8 },
+                              }}
+                            >
+                              {isImage ? (
+                                <img
+                                  src={fileUrl}
+                                  alt={displayName}
+                                  style={{
+                                    maxWidth: "50px",
+                                    maxHeight: "50px",
+                                    borderRadius: "4px",
+                                  }}
+                                />
+                              ) : (
+                                getFileIcon(displayName)
+                              )}
+                            </IconButton>
+                          ) : (
+                            getFileIcon(displayName)
+                          )}
 
-                            <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                              {displayName}
-                            </Typography>
+                          <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                            {displayName}
+                          </Typography>
 
-                            {fileUrl && (
-                              <IconButton
-                                component="a"
-                                href={fileUrl}
-                                download={displayName}
-                                rel="noopener noreferrer"
-                                sx={{
-                                  color: "#1B5C94",
-                                  "&:hover": { backgroundColor: "#e3f2fd" },
-                                }}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            )}
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
-                </Box>
-              ))
+                          {fileUrl && (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={displayName}
+                              rel="noopener noreferrer"
+                              sx={{
+                                color: "#1B5C94",
+                                "&:hover": { backgroundColor: "#e3f2fd" },
+                              }}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Box>
+            ))
           ) : (
-            <Typography variant="body1">No hay respuestas aún.</Typography>
+            <Typography variant="body1">
+              {filterDate ? "No hay respuestas en esta fecha" : "No hay respuestas aún."}
+            </Typography>
           )}
         </Card>
 

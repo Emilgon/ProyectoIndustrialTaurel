@@ -199,20 +199,25 @@ const VistaCliente = () => {
 
   const fetchDownloadUrl = async (consultaId, fileName) => {
     try {
-      // Si es una URL de Firebase Storage, extraemos solo el nombre del archivo
-      if (fileName.includes('firebasestorage.googleapis.com')) {
-        // Extraemos el nombre codificado de la URL
-        const encodedFileName = fileName.split('%2F').pop().split('?')[0];
-        // Decodificamos el nombre (por ejemplo, reemplaza %20 con espacios)
-        const decodedFileName = decodeURIComponent(encodedFileName);
-        // Usamos el nombre decodificado para crear la referencia
-        const storageRef = ref(storage, `${decodedFileName}`);
+      // Si es una URL completa de Firebase Storage (gs://)
+      if (fileName.startsWith('gs://')) {
+        const path = fileName.split('/').slice(3).join('/');
+        const storageRef = ref(storage, path);
         const url = await getDownloadURL(storageRef);
-        return { url, displayName: decodedFileName };
+        return { url, displayName: path.split('/').pop() };
+      }
+      
+      // Si es una URL HTTP de Firebase Storage
+      if (fileName.includes('firebasestorage.googleapis.com')) {
+        const urlObj = new URL(fileName);
+        const path = decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
+        const storageRef = ref(storage, path);
+        const url = await getDownloadURL(storageRef);
+        return { url, displayName: path.split('/').pop() };
       }
 
-      // Si no es una URL completa, asumimos que es solo el nombre del archivo
-      const storageRef = ref(storage, `${fileName}`);
+      // Si es solo un nombre de archivo (formato antiguo)
+      const storageRef = ref(storage, `consultas/${consultaId}/${fileName}`);
       const url = await getDownloadURL(storageRef);
       return { url, displayName: fileName };
     } catch (error) {
@@ -221,38 +226,54 @@ const VistaCliente = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchAllUrls = async () => {
-      const urls = {};
-      for (const consulta of respuestas) {
-        if (consulta.attachment) {
-          for (const fileName of consulta.attachment.split(", ")) {
-            if (!fileUrls[fileName]) {
-              const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
-              if (fileInfo) {
-                urls[fileName] = fileInfo;
-              }
+  const fetchAllUrls = async () => {
+    const newUrls = {};
+    
+    for (const consulta of respuestas) {
+      // Procesar archivos adjuntos de la consulta
+      if (consulta.attachment) {
+        // Manejar tanto strings como arrays
+        const attachments = Array.isArray(consulta.attachment) 
+          ? consulta.attachment 
+          : consulta.attachment.split(',').map(f => f.trim());
+        
+        for (const fileName of attachments) {
+          if (fileName && !fileUrls[fileName]) {
+            const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
+            if (fileInfo) {
+              newUrls[fileName] = fileInfo;
             }
           }
         }
-        if (consulta.respuestas) {
-          for (const respuesta of consulta.respuestas) {
-            if (respuesta.attachment) {
-              for (const fileName of respuesta.attachment.split(", ")) {
-                if (!fileUrls[fileName]) {
-                  const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
-                  if (fileInfo) {
-                    urls[fileName] = fileInfo;
-                  }
+      }
+
+      // Procesar archivos adjuntos de las respuestas
+      if (consulta.respuestas) {
+        for (const respuesta of consulta.respuestas) {
+          if (respuesta.attachment) {
+            const attachments = Array.isArray(respuesta.attachment) 
+              ? respuesta.attachment 
+              : respuesta.attachment.split(',').map(f => f.trim());
+            
+            for (const fileName of attachments) {
+              if (fileName && !fileUrls[fileName]) {
+                const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
+                if (fileInfo) {
+                  newUrls[fileName] = fileInfo;
                 }
               }
             }
           }
         }
       }
-      setFileUrls((prevUrls) => ({ ...prevUrls, ...urls }));
-    };
+    }
 
+    if (Object.keys(newUrls).length > 0) {
+      setFileUrls(prev => ({ ...prev, ...newUrls }));
+    }
+  };
+
+  useEffect(() => {
     if (respuestas.length > 0) {
       fetchAllUrls();
     }
@@ -438,24 +459,40 @@ const VistaCliente = () => {
                           <strong>Archivo Adjunto:</strong>
                         </Typography>
                         <List>
-                          {consulta.attachment.split(", ").map((file) => {
+                          {(Array.isArray(consulta.attachment) 
+                            ? consulta.attachment 
+                            : consulta.attachment.split(',').map(f => f.trim())
+                          ).map((file) => {
                             const fileInfo = fileUrls[file];
-                            if (!fileInfo) return null;
+                            if (!fileInfo) return (
+                              <ListItem key={file}>
+                                <ListItemIcon>
+                                  <InsertDriveFileIcon />
+                                </ListItemIcon>
+                                <ListItemText primary={`Cargando ${file}...`} />
+                              </ListItem>
+                            );
 
                             return (
                               <ListItem key={file}>
                                 <ListItemIcon>
                                   {getFileIcon(fileInfo.displayName)}
                                 </ListItemIcon>
-                                <ListItemText primary={fileInfo.displayName} />
-                                <IconButton
-                                  component="a"
-                                  href={fileInfo.url}
-                                  download={fileInfo.displayName}
-                                  rel="noopener noreferrer"
-                                >
-                                  <GetAppIcon />
-                                </IconButton>
+                                <ListItemText 
+                                  primary={fileInfo.displayName} 
+                                  secondary={fileInfo.url ? "" : "Error al cargar archivo"} 
+                                />
+                                {fileInfo.url && (
+                                  <IconButton
+                                    component="a"
+                                    href={fileInfo.url}
+                                    download={fileInfo.displayName}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <GetAppIcon />
+                                  </IconButton>
+                                )}
                               </ListItem>
                             );
                           })}

@@ -11,10 +11,6 @@ import {
   Avatar,
   IconButton,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import Swal from "sweetalert2";
 import {
@@ -31,8 +27,12 @@ import {
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
   TableChart as ExcelIcon,
-  Sort as SortIcon,
+  CalendarToday as CalendarIcon,
+  Clear as ClearIcon,
 } from "@mui/icons-material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 const Respuesta = () => {
   const { consultaId } = useParams();
@@ -55,6 +55,7 @@ const Respuesta = () => {
     useRespuestaClienteController(consultaId);
 
   const [allResponses, setAllResponses] = useState([]);
+  const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
     const respuestas1 = [...respuestasCliente];
@@ -72,13 +73,11 @@ const Respuesta = () => {
 
     const mergedArray = respuestas1.concat(respuestas2);
     mergedArray.sort((a, b) => {
-      return a.timestamp.seconds - b.timestamp.seconds;
+      return b.timestamp.seconds - a.timestamp.seconds;
     });
 
     setAllResponses(mergedArray);
   }, [respuestasCliente, respuestas]);
-
-  const [sortOrder, setSortOrder] = useState("desc");
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -99,6 +98,21 @@ const Respuesta = () => {
       default:
         return <FileIcon sx={{ color: "#9E9E9E", fontSize: 30 }} />;
     }
+  };
+
+  const filteredResponses = filterDate
+    ? allResponses.filter((response) => {
+        const responseDate = new Date(response.timestamp.seconds * 1000);
+        return (
+          responseDate.getDate() === filterDate.getDate() &&
+          responseDate.getMonth() === filterDate.getMonth() &&
+          responseDate.getFullYear() === filterDate.getFullYear()
+        );
+      })
+    : allResponses;
+
+  const clearDateFilter = () => {
+    setFilterDate(null);
   };
 
   if (!consultaData) {
@@ -130,10 +144,6 @@ const Respuesta = () => {
         footer: result.error?.message || "",
       });
     }
-  };
-
-  const handleSortChange = (event) => {
-    setSortOrder(event.target.value);
   };
 
   return (
@@ -293,98 +303,113 @@ const Respuesta = () => {
             <Typography variant="h6" fontWeight="bold">
               Historial de Respuestas
             </Typography>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="sort-order-label">Ordenar por fecha</InputLabel>
-              <Select
-                labelId="sort-order-label"
-                id="sort-order"
-                value={sortOrder}
-                label="Ordenar por fecha"
-                onChange={handleSortChange}
-                startAdornment={<SortIcon sx={{ mr: 1 }} />}
-              >
-                <MenuItem value="asc">De menor a mayor</MenuItem>
-                <MenuItem value="desc">De mayor a menor</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-          {allResponses.length > 0 ? (
-            allResponses
-              .slice()
-              .sort((a, b) =>
-                sortOrder === "asc"
-                  ? a.timestamp.seconds - b.timestamp.seconds
-                  : b.timestamp.seconds - a.timestamp.seconds
-              )
-              .map((respuesta, index) => (
-                <Box
-                  key={index}
-                  backgroundColor={
-                    respuesta.sender === "Cliente" ? "#DDDDDD33" : "#C4E4FF88"
-                  }
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="body1">
-                    <strong>{respuesta.sender}:</strong> {respuesta.content}
-                  </Typography>
-                  {respuesta.timestamp && (
-                    <Typography
-                      variant="body2"
-                      sx={{ mt: 1, color: "text.secondary" }}
-                    >
-                      Enviado el:{" "}
-                      {new Date(
-                        respuesta.timestamp.seconds * 1000
-                      ).toLocaleString()}
-                    </Typography>
+            <Box display="flex" alignItems="center" gap={1}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Filtrar por fecha"
+                  value={filterDate}
+                  onChange={(newValue) => setFilterDate(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      sx={{ width: 180 }}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <CalendarIcon sx={{ mr: 1 }} />,
+                      }}
+                    />
                   )}
+                />
+              </LocalizationProvider>
+              {filterDate && (
+                <IconButton
+                  onClick={clearDateFilter}
+                  sx={{ color: "error.main" }}
+                >
+                  <ClearIcon />
+                </IconButton>
+              )}
+            </Box>
+          </Box>
+          {filteredResponses.length > 0 ? (
+            filteredResponses.map((respuesta, index) => (
+              <Box
+                key={index}
+                backgroundColor={
+                  respuesta.sender === "Cliente" ? "#DDDDDD33" : "#C4E4FF88"
+                }
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  border: "1px solid #e0e0e0",
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body1">
+                  <strong>{respuesta.sender}:</strong> {respuesta.content}
+                </Typography>
+                {respuesta.timestamp && (
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 1, color: "text.secondary" }}
+                  >
+                    Enviado el:{" "}
+                    {new Date(
+                      respuesta.timestamp.seconds * 1000
+                    ).toLocaleString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Typography>
+                )}
 
-                  {respuesta.attachment && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" fontWeight="bold" gutterBottom>
-                        Archivo Adjunto
+                {respuesta.attachment && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body1" fontWeight="bold" gutterBottom>
+                      Archivo Adjunto
+                    </Typography>
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={1}
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
+                    >
+                      {getFileIcon(respuesta.attachment)}
+                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                        {respuesta.attachment}
                       </Typography>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        gap={1}
+                      <IconButton
+                        component="a"
+                        href={`respuestas/${consultaId}/${respuesta.attachment}`}
+                        download
+                        rel="noopener noreferrer"
                         sx={{
-                          p: 1,
-                          border: "1px solid #e0e0e0",
-                          borderRadius: 1,
-                          "&:hover": { backgroundColor: "#f5f5f5" },
+                          color: "#1B5C94",
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
                         }}
                       >
-                        {getFileIcon(respuesta.attachment)}
-                        <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                          {respuesta.attachment}
-                        </Typography>
-                        <IconButton
-                          component="a"
-                          href={`respuestas/${consultaId}/${respuesta.attachment}`}
-                          download
-                          rel="noopener noreferrer"
-                          sx={{
-                            color: "#1B5C94",
-                            "&:hover": {
-                              backgroundColor: "#e3f2fd",
-                            },
-                          }}
-                        >
-                          <DownloadIcon />
-                        </IconButton>
-                      </Box>
+                        <DownloadIcon />
+                      </IconButton>
                     </Box>
-                  )}
-                </Box>
-              ))
+                  </Box>
+                )}
+              </Box>
+            ))
           ) : (
-            <Typography variant="body1">No hay respuestas aún.</Typography>
+            <Typography variant="body1">
+              {filterDate ? "No hay respuestas en esta fecha" : "No hay respuestas aún."}
+            </Typography>
           )}
         </Card>
 

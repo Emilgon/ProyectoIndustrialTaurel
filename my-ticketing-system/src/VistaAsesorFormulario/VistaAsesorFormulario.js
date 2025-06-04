@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+
 import {
   Table,
   TableBody,
@@ -85,6 +87,7 @@ import { blue } from "@mui/material/colors";
 
 const VistaAsesorFormulario = () => {
   const [consultas, setConsultas] = useState([]);
+  const [filterDate, setFilterDate] = useState(null);
   const [expandedRow, setExpandedRow] = useState(null);
   const [historialAbierto, setHistorialAbierto] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
@@ -118,6 +121,9 @@ const VistaAsesorFormulario = () => {
 
   const navigate = useNavigate();
   const storage = getStorage();
+  const clearDateFilter = () => {
+    setFilterDate(null);
+  };
 
   const calculateRemainingDays = (startDate, indicadorOriginal) => {
     if (!startDate || typeof startDate.toDate !== "function") {
@@ -870,6 +876,22 @@ const VistaAsesorFormulario = () => {
       transform: "translateY(0)",
     }
   };
+  const filteredResponses = filterDate
+    ? respuestas.filter((response) => {
+      if (!response.timestamp?.seconds) return false;
+
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      const filterDay = filterDate ? filterDate.toDate() : null;
+
+      if (!filterDay) return true;
+
+      return (
+        responseDate.getDate() === filterDay.getDate() &&
+        responseDate.getMonth() === filterDay.getMonth() &&
+        responseDate.getFullYear() === filterDay.getFullYear()
+      );
+    })
+    : respuestas;
 
   const renderExpandedDetails = (consulta) => {
     return (
@@ -1728,16 +1750,48 @@ const VistaAsesorFormulario = () => {
                         >
                           <Card sx={{ m: 2, boxShadow: 3, borderRadius: 2 }}>
                             <CardContent>
-                              <Typography
-                                variant="h6"
-                                fontWeight="bold"
-                                gutterBottom
-                                sx={{ color: "#1B5C94", mb: 3 }}
+                              <Box
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                                mb={3}
                               >
-                                Historial de Respuestas
-                              </Typography>
-                              {respuestas.length > 0 ? (
-                                respuestas.map((respuesta) => (
+                                <Typography
+                                  variant="h6"
+                                  fontWeight="bold"
+                                  sx={{ color: "#1B5C94" }}
+                                >
+                                  Historial de Respuestas
+                                </Typography>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <DatePicker
+                                      label="Filtrar por fecha"
+                                      value={filterDate}
+                                      onChange={(newValue) => setFilterDate(newValue)}
+                                      slotProps={{
+                                        textField: {
+                                          size: "small",
+                                          sx: { width: 180 },
+                                          InputProps: {
+                                            startAdornment: <CalendarIcon sx={{ mr: 1 }} />,
+                                          },
+                                        },
+                                      }}
+                                    />
+                                  </LocalizationProvider>
+                                  {filterDate && (
+                                    <IconButton
+                                      onClick={clearDateFilter}
+                                      sx={{ color: "error.main" }}
+                                    >
+                                      <ClearIcon />
+                                    </IconButton>
+                                  )}
+                                </Box>
+                              </Box>
+                              {filteredResponses.length > 0 ? (
+                                filteredResponses.map((respuesta) => (
                                   <Box
                                     key={respuesta.id}
                                     backgroundColor={
@@ -1752,10 +1806,7 @@ const VistaAsesorFormulario = () => {
                                       borderRadius: 2,
                                     }}
                                   >
-                                    <TableContainer
-                                      component={Paper}
-                                      sx={{ mb: 2 }}
-                                    >
+                                    <TableContainer component={Paper} sx={{ mb: 2 }}>
                                       <Table>
                                         <TableBody>
                                           <TableRow>
@@ -1771,8 +1822,7 @@ const VistaAsesorFormulario = () => {
                                             <TableCell>
                                               {respuesta.timestamp?.seconds
                                                 ? new Date(
-                                                  respuesta.timestamp
-                                                    .seconds * 1000
+                                                  respuesta.timestamp.seconds * 1000
                                                 ).toLocaleString()
                                                 : "Fecha no disponible"}
                                             </TableCell>
@@ -1785,12 +1835,10 @@ const VistaAsesorFormulario = () => {
                                               }}
                                             >
                                               {respuesta.sender === "Cliente"
-                                                ? "Tu respuesta"
-                                                : "Respuesta del cliente"}
+                                                ? "Respuesta del cliente"
+                                                : "Tu respuesta"}
                                             </TableCell>
-                                            <TableCell>
-                                              {respuesta.content}
-                                            </TableCell>
+                                            <TableCell>{respuesta.content}</TableCell>
                                           </TableRow>
                                           {respuesta.attachment && (
                                             <TableRow>
@@ -1803,9 +1851,7 @@ const VistaAsesorFormulario = () => {
                                                 Archivo adjunto
                                               </TableCell>
                                               <TableCell>
-                                                {renderAttachments(
-                                                  respuesta.attachment
-                                                )}
+                                                {renderAttachments(respuesta.attachment)}
                                               </TableCell>
                                             </TableRow>
                                           )}
@@ -1815,12 +1861,10 @@ const VistaAsesorFormulario = () => {
                                   </Box>
                                 ))
                               ) : (
-                                <Typography
-                                  variant="body1"
-                                  sx={{ fontStyle: "italic" }}
-                                >
-                                  No hay respuestas registradas para esta
-                                  consulta.
+                                <Typography variant="body1" sx={{ fontStyle: "italic" }}>
+                                  {filterDate
+                                    ? "No hay respuestas en esta fecha"
+                                    : "No hay respuestas registradas para esta consulta."}
                                 </Typography>
                               )}
                             </CardContent>

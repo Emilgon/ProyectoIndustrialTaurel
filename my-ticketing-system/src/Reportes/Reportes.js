@@ -727,11 +727,6 @@ const Reports = () => {
             >
               Exportar a Excel
             </Button>
-            <Tooltip title="Salir al menú" arrow>
-              <IconButton onClick={() => navigate('/asesor-control')} sx={{ color: "#1B5C94" }}>
-                <LogoutIcon fontSize="medium" />
-              </IconButton>
-            </Tooltip>
           </Box>
         </Box>
         <Popover

@@ -47,19 +47,6 @@ const ClientsInfo = () => {
         <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
           Información de Clientes
         </Typography>
-        <Tooltip title="Salir al panel de control" arrow>
-          <IconButton
-            onClick={() => window.location.href = "/asesor-control"}
-            sx={{
-              color: "#1B5C94",
-              "&:hover": {
-                backgroundColor: "rgba(27, 92, 148, 0.1)"
-              }
-            }}
-          >
-            <LogoutIcon fontSize="medium" />
-          </IconButton>
-        </Tooltip>
       </Box>
 
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
