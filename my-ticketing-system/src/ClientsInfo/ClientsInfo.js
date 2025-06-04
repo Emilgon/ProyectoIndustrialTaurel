@@ -134,22 +134,33 @@ const ClientsInfo = () => {
           <TableBody>
             {clients.map((client) => (
               <React.Fragment key={client.id}>
-                <TableRow 
-                  hover 
+                <TableRow
+                  hover
                   onClick={() => handleRowClick(client.id, client.name)}
                   sx={{ cursor: 'pointer' }}
                 >
                   <TableCell>{client.company}</TableCell>
                   <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.numConsultas}</TableCell>
+                  <TableCell>
+                    {client.numConsultas > 0 ? (
+                      <Chip
+                        label={client.numConsultas}
+                        color="primary"
+                        size="small"
+                        sx={{ fontWeight: 'bold' }}
+                      />
+                    ) : (
+                      "0"
+                    )}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                     <Collapse in={expandedClientId === client.id} timeout="auto" unmountOnExit>
                       <Box sx={{ margin: 1, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          gap: 2, 
+                        <Box sx={{
+                          display: 'flex',
+                          gap: 2,
                           mb: 2,
                           '& .MuiButton-root': {
                             minWidth: 180,
@@ -213,8 +224,19 @@ const ClientsInfo = () => {
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{formatDate(consulta.timestamp)}</TableCell>
                                     <TableCell>{consulta.name}</TableCell>
+                                    <TableCell>
+                                      <Chip
+                                        label={consulta.status || "Sin estado"}
+                                        color={
+                                          consulta.status === "En proceso" ? "primary" :
+                                            consulta.status === "Completado" ? "success" :
+                                              "default"
+                                        }
+                                        size="small"
+                                      />
+                                    </TableCell>
                                     <TableCell sx={{ maxWidth: 300 }}>
-                                      <Box sx={{ 
+                                      <Box sx={{
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap'
@@ -234,7 +256,7 @@ const ClientsInfo = () => {
                                               deleteIcon={<GetAppIcon />}
                                               onDelete={fileDownloadUrls[fileName] ? () => window.open(fileDownloadUrls[fileName], '_blank') : undefined}
                                               variant="outlined"
-                                              sx={{ 
+                                              sx={{
                                                 maxWidth: 200,
                                                 '& .MuiChip-label': {
                                                   overflow: 'hidden',

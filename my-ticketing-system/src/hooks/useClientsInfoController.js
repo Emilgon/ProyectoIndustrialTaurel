@@ -17,7 +17,16 @@ const useClientsInfoController = () => {
   useEffect(() => {
     const loadClients = async () => {
       const data = await fetchClients();
-      setClients(data);
+      // Procesamos los clientes para contar consultas activas
+      const processedClients = await Promise.all(data.map(async (client) => {
+        const consultasData = await fetchConsultasByClientName(client.name, 5); // Obtenemos las últimas 5 consultas
+        const activeConsultas = consultasData.filter(consulta => consulta.status === "En proceso").length;
+        return {
+          ...client,
+          numConsultas: activeConsultas
+        };
+      }));
+      setClients(processedClients);
     };
     loadClients();
   }, []);
