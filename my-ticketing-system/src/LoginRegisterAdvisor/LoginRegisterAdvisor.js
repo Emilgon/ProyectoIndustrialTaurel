@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { db, collection, getDocs, query, where } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, TextField, Typography, Card, IconButton } from "@mui/material";
+import { Box, Button, TextField, Typography, Card, IconButton, Link } from "@mui/material";
 import Swal from "sweetalert2";
-import { ArrowBack as ArrowBackIcon, Email as EmailIcon, Lock as LockIcon } from "@mui/icons-material";
+import { ArrowBack as ArrowBackIcon, Email as EmailIcon, Lock as LockIcon, Person as PersonIcon } from "@mui/icons-material";
 import "./LoginRegisterAdvisor.css";
 
 const LoginRegisterAdvisor = () => {
@@ -17,31 +17,26 @@ const LoginRegisterAdvisor = () => {
 
   const handleLogin = async () => {
     try {
-      // Iniciar sesión con Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Asesor logueado con éxito:", userCredential.user);
 
-      // Verificar si el asesor está registrado en Firestore
       const advisorsRef = collection(db, "Advisors");
       const q = query(advisorsRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // Si no hay resultados, el asesor no está registrado
         Swal.fire({
           icon: "error",
           title: "Error",
           text: "El correo electrónico no está registrado o la contraseña es incorrecta.",
         });
-        return; // Detener la ejecución
+        return;
       }
 
-      // Si el asesor está registrado, redirigir a /asesor-control
       navigate("/asesor-control");
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
 
-      // Manejo de errores específicos
       if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
         Swal.fire({
           icon: "error",
@@ -49,7 +44,6 @@ const LoginRegisterAdvisor = () => {
           text: "El correo electrónico no está registrado o la contraseña es incorrecta.",
         });
       } else {
-        // Manejo de otros errores
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -62,7 +56,8 @@ const LoginRegisterAdvisor = () => {
   return (
     <Box sx={{ 
       display: "flex", 
-      minHeight: "100vh"
+      minHeight: "100vh",
+      backgroundColor: "#f5f5f5"
     }}>
       {/* Sección de la imagen (40%) - Izquierda */}
       <Box sx={{ 
@@ -70,7 +65,8 @@ const LoginRegisterAdvisor = () => {
         display: { xs: "none", md: "flex" },
         backgroundColor: "#1B5C94",
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
+        overflow: "hidden"
       }}>
         <img 
           src="/images/imagenloginasesor.png"
@@ -78,7 +74,8 @@ const LoginRegisterAdvisor = () => {
           style={{ 
             width: "100%",
             height: "100%",
-            objectFit: "cover"
+            objectFit: "cover",
+            objectPosition: "center"
           }} 
         />
       </Box>
@@ -89,59 +86,95 @@ const LoginRegisterAdvisor = () => {
         display: "flex", 
         justifyContent: "center", 
         alignItems: "center",
-        backgroundColor: "#FFFFFF"  // Cambiado a blanco
+        padding: 4,
+        backgroundColor: "white"
       }}>
         <Card sx={{ 
-          p: 4, 
+          p: 6,
           boxShadow: 3, 
-          borderRadius: 2, 
-          width: "100%", 
-          maxWidth: 400,
-          margin: "0 auto"
+          borderRadius: 3, 
+          width: "100%",
+          height: "100%", 
+          maxWidth: 500,
+          maxHeight: 390, // Ajusté la altura máxima
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff"
         }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-            <IconButton onClick={() => navigate("/menu")}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h5" fontWeight="bold">
-              Inicio de sesión Asesor
+          {/* Header */}
+          <Box sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            mb: 4,
+            px: 0
+          }}>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              sx={{ 
+                color: "black",
+                fontSize: "2rem",
+                flexGrow: 1,
+                textAlign: 'center'
+              }}
+            >
+              Inicio de sesión asesor
             </Typography>
-            <Box sx={{ width: 40 }} />
+            <Box sx={{ width: 48 }} />
           </Box>
 
-          <Box sx={{ mb: 3 }}>
+          {/* Formulario */}
+          <Box sx={{ 
+            mb: 4
+          }}>
             <TextField
-              label="Correo electrónico"
-              name="email"
+              label="E-MAIL"
+              type="email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailError("");
               }}
-              variant="outlined"
               fullWidth
               margin="normal"
-              error={emailError !== ""}
-              helperText={emailError}
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '1.1rem',
+                  padding: '14px 14px 14px 0',
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1.1rem',
+                }
+              }}
               InputProps={{
-                startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1 }} />,
+                startAdornment: <EmailIcon sx={{ color: "#1B5C94", mr: 1.5, fontSize: "1.5rem" }} />,
               }}
             />
             <TextField
-              label="Contraseña"
-              name="password"
+              label="PASSWORD"
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              variant="outlined"
               fullWidth
               margin="normal"
-              type="password"
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '1.1rem',
+                  padding: '14px 14px 14px 0',
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1.1rem',
+                }
+              }}
               InputProps={{
-                startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1 }} />,
+                startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1.5, fontSize: "1.5rem" }} />,
               }}
             />
           </Box>
 
+          {/* Botón de Iniciar Sesión */}
           <Button
             variant="contained"
             onClick={handleLogin}
@@ -150,13 +183,41 @@ const LoginRegisterAdvisor = () => {
               backgroundColor: "#1B5C94",
               color: "white",
               borderRadius: "12px",
+              fontSize: "1.2rem",
+              height: "56px",
               "&:hover": {
                 backgroundColor: "#145a8c",
               },
+              mb: 2
             }}
           >
             Iniciar Sesión
           </Button>
+
+          {/* Enlace "Soy Cliente" */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            mt: 3
+          }}>
+            <PersonIcon sx={{ color: "#1B5C94", mr: 1, fontSize: "1.2rem" }} />
+            <Link 
+              component="button"
+              variant="body1"
+              onClick={() => navigate('/menu')}
+              sx={{
+                color: "#1B5C94",
+                fontSize: '1.1rem',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                }
+              }}
+            >
+              SOY CLIENTE
+            </Link>
+          </Box>
         </Card>
       </Box>
     </Box>

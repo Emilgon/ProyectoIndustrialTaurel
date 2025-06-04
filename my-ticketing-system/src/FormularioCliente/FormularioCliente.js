@@ -26,6 +26,7 @@ const FormularioCliente = () => {
     phone: '',
     password: '',
   });
+  const [passwordStrength, setPasswordStrength] = useState('');
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -83,10 +84,81 @@ const FormularioCliente = () => {
     return !publicDomains.includes(domain);
   };
 
+  const validatePassword = (password) => {
+    // Mínimo 8 caracteres
+    if (password.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
+    }
+    
+    // Al menos una letra mayúscula
+    if (!/[A-Z]/.test(password)) {
+      return 'La contraseña debe contener al menos una letra mayúscula';
+    }
+    
+    // Al menos una letra minúscula
+    if (!/[a-z]/.test(password)) {
+      return 'La contraseña debe contener al menos una letra minúscula';
+    }
+    
+    // Al menos un número
+    if (!/[0-9]/.test(password)) {
+      return 'La contraseña debe contener al menos un número';
+    }
+    
+    // Al menos un carácter especial
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return 'La contraseña debe contener al menos un carácter especial';
+    }
+    
+    return '';
+  };
+
+  const checkPasswordStrength = (password) => {
+    if (password.length === 0) {
+      setPasswordStrength('');
+      return;
+    }
+
+    let strength = 0;
+    
+    // Longitud
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    
+    // Complejidad
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+    
+    // Determinar fuerza
+    if (strength <= 3) {
+      setPasswordStrength('Débil');
+    } else if (strength <= 5) {
+      setPasswordStrength('Moderada');
+    } else {
+      setPasswordStrength('Fuerte');
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({ ...prevState, [name]: value }));
     setErrors(prevState => ({ ...prevState, [name]: '' })); // Limpiar el error al escribir
+    
+    // Validar contraseña en tiempo real
+    if (name === 'password') {
+      checkPasswordStrength(value);
+    }
+  };
+
+  const getPasswordStrengthColor = () => {
+    switch (passwordStrength) {
+      case 'Débil': return 'error.main';
+      case 'Moderada': return 'warning.main';
+      case 'Fuerte': return 'success.main';
+      default: return 'text.secondary';
+    }
   };
 
   const handleSubmit = async () => {
@@ -95,6 +167,10 @@ const FormularioCliente = () => {
     if (formData.email.trim() === '') newErrors.email = 'El campo correo electrónico no puede estar vacío.';
     else if (!isBusinessEmail(formData.email.trim())) newErrors.email = 'Por favor ingrese un correo electrónico empresarial.';
     if (formData.password.trim() === '') newErrors.password = 'El campo contraseña no puede estar vacío.';
+    else {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) newErrors.password = passwordError;
+    }
     if (String(formData.phone).trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
     if (formData.address.trim() === '') newErrors.address = 'El campo dirección no puede estar vacío.';
     if (formData.company.trim() === '') newErrors.company = 'El campo empresa/compañía no puede estar vacío.';
@@ -238,11 +314,37 @@ const FormularioCliente = () => {
             fullWidth
             type="password"
             error={errors.password !== ''}
-            helperText={errors.password}
+            helperText={errors.password || (
+              <Typography variant="caption" color={getPasswordStrengthColor()}>
+                {passwordStrength && `Seguridad: ${passwordStrength}`}
+              </Typography>
+            )}
             InputProps={{
               startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
           />
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              La contraseña debe contener:
+            </Typography>
+            <Box component="ul" sx={{ pl: 2, mt: 0.5, mb: 0 }}>
+              <Box component="li" sx={{ fontSize: '0.75rem', color: formData.password.length >= 8 ? 'success.main' : 'text.secondary' }}>
+                Mínimo 8 caracteres
+              </Box>
+              <Box component="li" sx={{ fontSize: '0.75rem', color: /[A-Z]/.test(formData.password) ? 'success.main' : 'text.secondary' }}>
+                Al menos una mayúscula
+              </Box>
+              <Box component="li" sx={{ fontSize: '0.75rem', color: /[a-z]/.test(formData.password) ? 'success.main' : 'text.secondary' }}>
+                Al menos una minúscula
+              </Box>
+              <Box component="li" sx={{ fontSize: '0.75rem', color: /[0-9]/.test(formData.password) ? 'success.main' : 'text.secondary' }}>
+                Al menos un número
+              </Box>
+              <Box component="li" sx={{ fontSize: '0.75rem', color: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'success.main' : 'text.secondary' }}>
+                Al menos un carácter especial
+              </Box>
+            </Box>
+          </Box>
           <Button
             variant="contained"
             onClick={handleSubmit}

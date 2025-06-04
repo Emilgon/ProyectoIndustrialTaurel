@@ -32,34 +32,48 @@ function Header() {
     location.pathname === "/vista-asesor-formulario";
   const isReportes = location.pathname === "/reportes";
   const isClientsInfo = location.pathname === "/clients-info";
+  const isMenu = location.pathname === "/menu";
   const showAdminIcon =
     !isVistaAsesorFormulario && !isReportes && !isClientsInfo;
+
+  // Tamaño aumentado para todos los íconos
+  const iconStyle = {
+    fontSize: "50px", // Aumentado de 32px a 40px
+    color: "white",
+  };
 
   return (
     <header className="App-header">
       <div className="header-wrapper">
         {/* Logo centrado */}
         <div className="logo-center">
-          <Link to="/menu" aria-label="Taurel Logo">
+          <a 
+            href="https://taurel.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            aria-label="Taurel Website"
+          >
             <img
               src="/images/taurel-logo-completo.png"
               alt="Logo Taurel"
               className="App-logo"
             />
-          </Link>
+          </a>
         </div>
 
         {/* Íconos a la derecha con tooltips */}
         <div className="header-icons">
-          {/* Ícono Home - Siempre visible */}
-          <div className="icon-tooltip">
-            <Link to="/menu" className="icon-link" aria-label="Home">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-              </svg>
-            </Link>
-            <span className="tooltip-text">Ir a menú principal</span>
-          </div>
+          {/* Ícono Home - Solo visible cuando NO estamos en /menu */}
+          {!isMenu && (
+            <div className="icon-tooltip">
+              <Link to="/menu" className="icon-link" aria-label="Home">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="white">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
+              </Link>
+              <span className="tooltip-text">Ir a menú principal</span>
+            </div>
+          )}
 
           {/* Íconos para /vista-asesor-formulario */}
           {isVistaAsesorFormulario && (
@@ -70,7 +84,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Clientes"
                 >
-                  <PeopleIcon style={{ fontSize: "32px", color: "white" }} />
+                  <PeopleIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Ver clientes</span>
               </div>
@@ -81,9 +95,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Reportes"
                 >
-                  <AssessmentIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <AssessmentIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Ver reportes</span>
               </div>
@@ -94,9 +106,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Control Asesor"
                 >
-                  <AccountTreeIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <AccountTreeIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -112,9 +122,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Consultas"
                 >
-                  <QuestionAnswerIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <QuestionAnswerIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Volver a consultas</span>
               </div>
@@ -125,9 +133,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Reportes"
                 >
-                  <AssessmentIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <AssessmentIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Ver reportes</span>
               </div>
@@ -138,9 +144,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Control Asesor"
                 >
-                  <AccountTreeIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <AccountTreeIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -156,9 +160,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Consultas"
                 >
-                  <QuestionAnswerIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <QuestionAnswerIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Volver a consultas</span>
               </div>
@@ -169,7 +171,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Clientes"
                 >
-                  <PeopleIcon style={{ fontSize: "32px", color: "white" }} />
+                  <PeopleIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Ver clientes</span>
               </div>
@@ -180,9 +182,7 @@ function Header() {
                   className="icon-link"
                   aria-label="Control Asesor"
                 >
-                  <AccountTreeIcon
-                    style={{ fontSize: "32px", color: "white" }}
-                  />
+                  <AccountTreeIcon style={iconStyle} />
                 </Link>
                 <span className="tooltip-text">Panel de control</span>
               </div>
@@ -197,9 +197,7 @@ function Header() {
                 className="icon-link"
                 aria-label="Administrador"
               >
-                <AdminPanelSettingsIcon
-                  style={{ fontSize: "32px", color: "white" }}
-                />
+                <AdminPanelSettingsIcon style={iconStyle} />
               </Link>
               <span className="tooltip-text">Iniciar sesión como asesor</span>
             </div>

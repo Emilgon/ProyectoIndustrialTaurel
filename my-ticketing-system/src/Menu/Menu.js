@@ -28,7 +28,7 @@ const Menu = () => {
           }}
         >
           <img
-            src="/images/imagenlogin.png"
+            src="/images/imagenlogincliente.png"
             alt="Imagen de login"
             style={{
               position: "absolute",

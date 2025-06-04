@@ -25,6 +25,7 @@ import {
   Tooltip,
   TextField,
   Badge,
+  Checkbox,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
@@ -1101,7 +1102,7 @@ const VistaAsesorFormulario = () => {
       </Box>
       <Grid container spacing={2} mt={.5} mb={2}>
         <Grid item xs={12} md={4}>
-          <Card sx={{ boxShadow: 3 , color: "#1B5C94" }} >
+          <Card sx={{ boxShadow: 3, color: "#1B5C94" }} >
             <CardContent>
               <Typography variant="h6" fontWeight="bold" >
                 CONSULTAS PENDIENTES:
@@ -1515,7 +1516,7 @@ const VistaAsesorFormulario = () => {
                   <MuiMenuItem onClick={() => handleSelectState("En proceso")}>
                     En proceso
                   </MuiMenuItem>
-                  <MuiMenuItem onClick={() => handleSelectState("REsuelta")}>
+                  <MuiMenuItem onClick={() => handleSelectState("Resuelta")}>
                     Resuelta
                   </MuiMenuItem>
                 </Menu>
@@ -1532,7 +1533,7 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <HistoryIcon sx={{ fontSize: 20 }} />
-                  Historial
+                  HISTORIAL
                 </Button>
               </TableCell>
 
@@ -1548,7 +1549,7 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <CheckIcon sx={{ fontSize: 20 }} />
-                  Responder
+                  RESPONDER
                 </Button>
               </TableCell>
               <TableCell>
@@ -1563,7 +1564,7 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <ChatIcon sx={{ fontSize: 20 }} />
-                  Comentario
+                  COMENTARIO
                 </Button>
               </TableCell>
 
@@ -1579,7 +1580,7 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <CheckIcon sx={{ fontSize: 20 }} />
-                  Resuelta
+                  RESUELTA
                 </Button>
               </TableCell>
             </TableRow>
@@ -1650,7 +1651,7 @@ const VistaAsesorFormulario = () => {
                       />
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell aling="center">
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1673,42 +1674,45 @@ const VistaAsesorFormulario = () => {
                       Responder
                     </Button>
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCommentClick(consulta.id);
-                      }}
-                      sx={{ minWidth: 0, p: 0 }}
-                    >
-                      <ChatIcon sx={{ color: "#1B5C94" }} />
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewComment(consulta.id);
-                      }}
-                      sx={{ minWidth: 0, p: 0, ml: 1 }}
-                    >
-                      <VisibilityIcon sx={{ color: "#1B5C94" }} />
-                    </Button>
+                  {/* Para la celda de encabezado */}
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCommentClick(consulta.id);
+                        }}
+                        sx={{ minWidth: 0, p: 0 }}
+                      >
+                        <ChatIcon sx={{ color: "#1B5C94" }} />
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewComment(consulta.id);
+                        }}
+                        sx={{ minWidth: 0, p: 0 }}
+                      >
+                        <VisibilityIcon sx={{ color: "#1B5C94" }} />
+                      </Button>
+                    </Box>
+
                   </TableCell>
 
-                  <TableCell>
-                    <IconButton
-                      onClick={(e) => {
+                  <TableCell align="center"> 
+                    <Checkbox
+                      checked={consulta.status === "Resuelta"}
+                      onChange={(e) => {
                         e.stopPropagation();
                         handleMarcarResuelta(consulta.id);
                       }}
                       sx={{
                         color: consulta.status === "Resuelta" ? "#4CAF50" : "#1B5C94",
-                        "&:hover": {
-                          backgroundColor: "rgba(76, 175, 80, 0.1)",
-                        }
+                        '&.Mui-checked': {
+                          color: "#4CAF50",
+                        },
                       }}
-                    >
-                      <CheckIcon />
-                    </IconButton>
+                    />
                   </TableCell>
                 </TableRow>
                 <AnimatePresence>
