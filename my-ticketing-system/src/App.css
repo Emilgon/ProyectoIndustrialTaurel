@@ -22,7 +22,7 @@
 
 .header-wrapper {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1700px;
   margin: 0 auto;
   display: flex;
   justify-content: flex-end; /* Cambiado a flex-end para alinear todo a la derecha */
