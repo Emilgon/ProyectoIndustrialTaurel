@@ -58,7 +58,8 @@ const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBa
       borderRadius: 3, // Aumentado ligeramente
       width: '100%', 
       maxWidth: 500, // Aumentado de 400 a 500
-      margin: 'auto'
+      margin: 'auto',
+      backgroundColor: '#f5f5f5', // Color de fondo más claro
     }}>
       <Box sx={{ 
         display: 'flex', 

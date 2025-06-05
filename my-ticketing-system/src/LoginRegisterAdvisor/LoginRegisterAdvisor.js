@@ -100,7 +100,7 @@ const LoginRegisterAdvisor = () => {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "#ffffff"
+          backgroundColor: '#f5f5f5',
         }}>
           {/* Header */}
           <Box sx={{ 
