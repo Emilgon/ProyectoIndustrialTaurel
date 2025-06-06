@@ -74,9 +74,9 @@ const Consulta = () => {
       }}
     >
       <Card sx={{
-        width: "80%",
-        maxWidth: 700,
-        minHeight: 500,
+        width: "90%", // Aumentado de 80% a 90%
+        maxWidth: 1000, // Aumentado de 700 a 1000
+        minHeight: 700, // Aumentado de 500 a 700
         boxShadow: 6,
         borderRadius: 3,
         display: "flex",
@@ -85,7 +85,7 @@ const Consulta = () => {
         <Box
           sx={{
             backgroundColor: "#1B5C94",
-            padding: 2,
+            padding: 3, // Aumentado de 2 a 3
             borderTopLeftRadius: 12,
             borderTopRightRadius: 12,
             color: "white",
@@ -101,11 +101,11 @@ const Consulta = () => {
           >
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" fontWeight="bold" sx={{ flexGrow: 1, textAlign: "center" }}>
+          <Typography variant="h4" fontWeight="bold" sx={{ flexGrow: 1, textAlign: "center" }}> {/* Cambiado de h5 a h4 */}
             TAUREL CONSULTAS
           </Typography>
         </Box>
-        <CardContent sx={{ padding: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <CardContent sx={{ padding: 4, flexGrow: 1, display: "flex", flexDirection: "column" }}> {/* Aumentado padding de 3 a 4 */}
           <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyContent: "space-between" }}>
             <Box sx={{ flexGrow: 1 }}>
               <TextField
@@ -114,8 +114,18 @@ const Consulta = () => {
                 onChange={(e) => setAffair(e.target.value)}
                 variant="outlined"
                 fullWidth
-                sx={{ mb: 3 }}
+                sx={{ mb: 4, fontSize: "1.2rem" }} // Aumentado mb de 3 a 4
                 required
+                InputProps={{
+                  style: {
+                    fontSize: "1.2rem" // Tamaño de fuente aumentado
+                  }
+                }}
+                InputLabelProps={{
+                  style: {
+                    fontSize: "1.2rem" // Tamaño de etiqueta aumentado
+                  }
+                }}
               />
               <TextField
                 label="Mensaje"
@@ -123,10 +133,20 @@ const Consulta = () => {
                 onChange={(e) => setMensaje(e.target.value)}
                 variant="outlined"
                 multiline
-                rows={5}
+                rows={8} // Aumentado de 5 a 8
                 fullWidth
-                sx={{ mb: 3 }}
+                sx={{ mb: 4, fontSize: "1.2rem" }} // Aumentado mb de 3 a 4
                 required
+                InputProps={{
+                  style: {
+                    fontSize: "1.2rem" // Tamaño de fuente aumentado
+                  }
+                }}
+                InputLabelProps={{
+                  style: {
+                    fontSize: "1.2rem" // Tamaño de etiqueta aumentado
+                  }
+                }}
               />
               <Input
                 type="file"
@@ -138,9 +158,9 @@ const Consulta = () => {
                 <Button
                   variant="outlined"
                   component="span"
-                  startIcon={<AttachFileIcon />}
+                  startIcon={<AttachFileIcon fontSize="large" />} // Aumentado tamaño del icono
                   sx={{
-                    mb: 3,
+                    mb: 4, // Aumentado de 3 a 4
                     borderColor: "#1B5C94",
                     color: "#1B5C94",
                     "&:hover": {
@@ -148,6 +168,8 @@ const Consulta = () => {
                       backgroundColor: "#e3f2fd",
                     },
                     transition: "all 0.3s ease",
+                    fontSize: "1.2rem", // Tamaño de fuente aumentado
+                    padding: "12px 24px" // Aumentado padding
                   }}
                 >
                   Adjuntar archivo
@@ -158,9 +180,9 @@ const Consulta = () => {
                   sx={{
                     border: "1px solid #1B5C94",
                     borderRadius: 2,
-                    mb: 3,
-                    maxWidth: 400,
-                    padding: 1,
+                    mb: 4, // Aumentado de 3 a 4
+                    maxWidth: 600, // Aumentado de 400 a 600
+                    padding: 2, // Aumentado de 1 a 2
                   }}
                 >
                   <ListItem
@@ -172,18 +194,21 @@ const Consulta = () => {
                       borderRadius: 1,
                     }}
                   >
-                    <ListItemIcon sx={{ color: "#1B5C94" }}>
+                    <ListItemIcon sx={{ color: "#1B5C94", fontSize: "2rem" }}> {/* Tamaño de icono aumentado */}
                       {getFileIcon(archivo.name)}
                     </ListItemIcon>
-                    <ListItemText primary={archivo.name} />
+                    <ListItemText 
+                      primary={archivo.name} 
+                      primaryTypographyProps={{ style: { fontSize: "1.2rem" } }} // Tamaño de texto aumentado
+                    />
                     <IconButton
                       component="a"
                       href={preview}
                       download={archivo.name}
                       rel="noopener noreferrer"
-                      sx={{ color: "#1B5C94" }}
+                      sx={{ color: "#1B5C94", fontSize: "2rem" }} // Tamaño de icono aumentado
                     >
-                      <GetAppIcon />
+                      <GetAppIcon fontSize="large" /> {/* Tamaño de icono aumentado */}
                     </IconButton>
                   </ListItem>
                 </List>
@@ -193,14 +218,14 @@ const Consulta = () => {
               variant="contained"
               type="submit"
               fullWidth
-              startIcon={<SendIcon />}
+              startIcon={<SendIcon fontSize="large" />} // Aumentado tamaño del icono
               sx={{
                 backgroundColor: "#1B5C94",
                 color: "white",
                 borderRadius: 2,
                 fontWeight: "bold",
-                fontSize: "1rem",
-                padding: "12px 0",
+                fontSize: "1.3rem", // Aumentado de 1rem a 1.3rem
+                padding: "16px 0", // Aumentado padding
                 transition: "background-color 0.3s ease",
                 "&:hover": {
                   backgroundColor: "#145a8c",
