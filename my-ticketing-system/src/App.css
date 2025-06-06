@@ -147,6 +147,17 @@
 }
 
 /* Media queries para responsividad */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 15px;
+  }
+
+  .asesor-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+}
+
 @media (max-width: 768px) {
   .header-wrapper {
     padding: 0 20px;
@@ -183,6 +194,15 @@
   .logo-center {
     transform: translateX(-50%) scale(0.9);
   }
+
+  .main-content {
+    padding: 10px;
+  }
+
+  .asesor-button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -208,6 +228,15 @@
 
   .tooltip-text {
     display: none;
+  }
+
+  .main-content {
+    padding: 8px;
+  }
+
+  .asesor-button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
   }
 }
 
