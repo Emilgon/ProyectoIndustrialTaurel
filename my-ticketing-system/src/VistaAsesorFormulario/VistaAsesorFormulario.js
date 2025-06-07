@@ -646,12 +646,27 @@ const VistaAsesorFormulario = () => {
         }
       },
     });
+
     if (comment) {
-      const consultaRef = doc(db, "Consults", id);
-      await updateDoc(consultaRef, { comentario: comment });
-      setConsultas(
-        consultas.map((c) => (c.id === id ? { ...c, comentario: comment } : c))
-      );
+      try {
+        const consultaRef = doc(db, "Consults", id);
+        await updateDoc(consultaRef, { comentario: comment });
+
+        // Actualizar el estado local inmediatamente
+        setConsultas(consultas.map((c) =>
+          c.id === id ? { ...c, comentario: comment } : c
+        ));
+
+        Swal.fire({
+          title: "¡Comentario guardado!",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        console.error("Error al guardar el comentario:", error);
+        Swal.fire("Error", "No se pudo guardar el comentario", "error");
+      }
     }
   };
 
@@ -1721,7 +1736,8 @@ const VistaAsesorFormulario = () => {
                   </TableCell>
                   {/* Para la celda de encabezado */}
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                      {/* Botón para agregar comentario */}
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1731,17 +1747,34 @@ const VistaAsesorFormulario = () => {
                       >
                         <ChatIcon sx={{ color: "#1B5C94" }} />
                       </Button>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewComment(consulta.id);
-                        }}
-                        sx={{ minWidth: 0, p: 0 }}
-                      >
-                        <VisibilityIcon sx={{ color: "#1B5C94" }} />
-                      </Button>
-                    </Box>
 
+                      {/* Botón para ver comentario con notificación */}
+                      <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewComment(consulta.id);
+                          }}
+                          sx={{ minWidth: 0, p: 0 }}
+                        >
+                          <VisibilityIcon sx={{ color: "#1B5C94" }} />
+                        </Button>
+                        {consulta.comentario && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: -4,
+                              right: -4,
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              backgroundColor: 'red',
+                              border: '2px solid white'
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
                   </TableCell>
 
                   <TableCell align="center">
