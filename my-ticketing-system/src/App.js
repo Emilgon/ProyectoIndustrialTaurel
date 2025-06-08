@@ -38,26 +38,40 @@ function Header() {
 
   // Tamaño aumentado para todos los íconos
   const iconStyle = {
-    fontSize: "45px", // Aumentado de 32px a 40px
+    fontSize: "45px",
     color: "white",
+  };
 
+  // Función para manejar el clic en el logo
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    window.open("https://taurel.com", "_blank");
   };
 
   return (
     <header className="App-header">
       <div className="header-wrapper">
-        {/* Logo centrado */}
+        {/* Logo centrado con solución definitiva */}
         <div className="logo-center">
           <a 
             href="https://taurel.com" 
+            onClick={handleLogoClick}
             target="_blank" 
             rel="noopener noreferrer"
             aria-label="Taurel Website"
+            style={{
+              display: "inline-block",
+              textDecoration: "none",
+              cursor: "pointer",
+            }}
           >
             <img
               src="/images/taurel-logo-completo.png"
               alt="Logo Taurel"
               className="App-logo"
+              style={{
+                pointerEvents: "none",
+              }}
             />
           </a>
         </div>

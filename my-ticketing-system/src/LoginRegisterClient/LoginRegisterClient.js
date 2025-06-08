@@ -2,16 +2,21 @@ import React, { useState } from 'react';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { db, collection, query, where, getDocs } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Card, IconButton } from '@mui/material';
+import { Box, Button, TextField, Typography, Card, IconButton, InputAdornment } from '@mui/material';
 import Swal from 'sweetalert2';
-import { ArrowBack as ArrowBackIcon, Lock as LockIcon, Email as EmailIcon, AdminPanelSettings as AdminPanelSettingsIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Lock as LockIcon, Email as EmailIcon, AdminPanelSettings as AdminPanelSettingsIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import './LoginRegisterClient.css';
 
 const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBackButton = false }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const auth = getAuth();
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleLogin = async () => {
     try {
@@ -53,43 +58,43 @@ const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBa
 
   return (
     <Card sx={{ 
-      p: 6, // Aumentado de p:4 a p:6
+      p: 6,
       boxShadow: 3, 
-      borderRadius: 3, // Aumentado ligeramente
+      borderRadius: 3,
       width: '100%', 
-      maxWidth: 500, // Aumentado de 400 a 500
+      maxWidth: 500,
       margin: 'auto',
-      backgroundColor: '#f5f5f5', // Color de fondo más claro
+      backgroundColor: '#f5f5f5',
     }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        mb: 4 // Aumentado de mb:3 a mb:4
+        mb: 4
       }}>
         {!hideBackButton && (
           <IconButton 
             onClick={() => navigate('/menu')}
-            sx={{ fontSize: '1.5rem' }} // Tamaño aumentado del icono
+            sx={{ fontSize: '1.5rem' }}
           >
             <ArrowBackIcon fontSize="inherit" />
           </IconButton>
         )}
         <Typography 
-          variant="h4" // Cambiado de h5 a h4
+          variant="h4"
           fontWeight="bold" 
           sx={{ 
             flexGrow: 1, 
             textAlign: 'center',
-            fontSize: '2rem' // Tamaño de fuente aumentado
+            fontSize: '2rem'
           }}
         >
           Inicio de sesión cliente
         </Typography>
-        {!hideBackButton && <Box sx={{ width: 48 }} />} {/* Aumentado de 40 a 48 */}
+        {!hideBackButton && <Box sx={{ width: 48 }} />}
       </Box>
 
-      <Box sx={{ mb: 4 }}> {/* Aumentado de mb:3 a mb:4 */}
+      <Box sx={{ mb: 4 }}>
         <TextField
           label="E-MAIL"
           type="email"
@@ -99,35 +104,46 @@ const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBa
           margin="normal"
           sx={{
             '& .MuiInputBase-input': {
-              fontSize: '1.1rem', // Tamaño de fuente aumentado
-              padding: '14px 14px 14px 0', // Padding ajustado
+              fontSize: '1.1rem',
+              padding: '14px 14px 14px 0',
             },
             '& .MuiInputLabel-root': {
-              fontSize: '1.1rem', // Tamaño de etiqueta aumentado
+              fontSize: '1.1rem',
             }
           }}
           InputProps={{
-            startAdornment: <EmailIcon sx={{ color: '#1B5C94', mr: 1.5, fontSize: '1.5rem' }} />, // Icono aumentado
+            startAdornment: <EmailIcon sx={{ color: '#1B5C94', mr: 1.5, fontSize: '1.5rem' }} />,
           }}
         />
         <TextField
           label="PASSWORD"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           fullWidth
           margin="normal"
           sx={{
             '& .MuiInputBase-input': {
-              fontSize: '1.1rem', // Tamaño de fuente aumentado
-              padding: '14px 14px 14px 0', // Padding ajustado
+              fontSize: '1.1rem',
+              padding: '14px 14px 14px 0',
             },
             '& .MuiInputLabel-root': {
-              fontSize: '1.1rem', // Tamaño de etiqueta aumentado
+              fontSize: '1.1rem',
             }
           }}
           InputProps={{
-            startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1.5, fontSize: '1.5rem' }} />, // Icono aumentado
+            startAdornment: <LockIcon sx={{ color: '#1B5C94', mr: 1.5, fontSize: '1.5rem' }} />,
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={handleClickShowPassword}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
         />
       </Box>
@@ -143,21 +159,21 @@ const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBa
           '&:hover': {
             backgroundColor: '#145a8c',
           },
-          height: '56px', // Aumentado de 50px a 56px
-          fontSize: '1.2rem', // Aumentado de 1.1rem a 1.2rem
-          mb: 2 // Margen inferior añadido
+          height: '56px',
+          fontSize: '1.2rem',
+          mb: 2
         }}
       >
         Iniciar Sesión
       </Button>
 
-      <Box sx={{ mt: 3, textAlign: 'center' }}> {/* Aumentado de mt:2 a mt:3 */}
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Button
           variant="text"
           onClick={() => navigate('/formulario-cliente')}
           sx={{ 
             color: '#1B5C94',
-            fontSize: '1.1rem' // Tamaño de fuente aumentado
+            fontSize: '1.1rem'
           }}
         >
           ¿No tienes cuenta? Regístrate
@@ -165,15 +181,15 @@ const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBa
       </Box>
 
       {showAdvisorOption && (
-        <Box sx={{ mt: 3, textAlign: 'center' }}> {/* Aumentado de mt:2 a mt:3 */}
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Button
             variant="text"
             onClick={onAdvisorClick}
             sx={{ 
               color: '#1B5C94',
-              fontSize: '1.1rem' // Tamaño de fuente aumentado
+              fontSize: '1.1rem'
             }}
-            startIcon={<AdminPanelSettingsIcon sx={{ fontSize: '1.5rem' }} />} // Icono aumentado
+            startIcon={<AdminPanelSettingsIcon sx={{ fontSize: '1.5rem' }} />}
           >
             Soy asesor
           </Button>

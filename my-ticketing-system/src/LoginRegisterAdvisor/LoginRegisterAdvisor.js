@@ -2,18 +2,23 @@ import React, { useState } from "react";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { db, collection, getDocs, query, where } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, TextField, Typography, Card, IconButton, Link } from "@mui/material";
+import { Box, Button, TextField, Typography, Card, IconButton, Link, InputAdornment } from "@mui/material";
 import Swal from "sweetalert2";
-import { ArrowBack as ArrowBackIcon, Email as EmailIcon, Lock as LockIcon, Person as PersonIcon } from "@mui/icons-material";
+import { ArrowBack as ArrowBackIcon, Email as EmailIcon, Lock as LockIcon, Person as PersonIcon, Visibility, VisibilityOff } from "@mui/icons-material";
 import "./LoginRegisterAdvisor.css";
 
 const LoginRegisterAdvisor = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const auth = getAuth();
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleLogin = async () => {
     try {
@@ -96,7 +101,7 @@ const LoginRegisterAdvisor = () => {
           width: "100%",
           height: "100%", 
           maxWidth: 500,
-          maxHeight: 390, // Ajusté la altura máxima
+          maxHeight: 390,
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
@@ -154,7 +159,7 @@ const LoginRegisterAdvisor = () => {
             />
             <TextField
               label="PASSWORD"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               fullWidth
@@ -170,6 +175,17 @@ const LoginRegisterAdvisor = () => {
               }}
               InputProps={{
                 startAdornment: <LockIcon sx={{ color: "#1B5C94", mr: 1.5, fontSize: "1.5rem" }} />,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
             />
           </Box>

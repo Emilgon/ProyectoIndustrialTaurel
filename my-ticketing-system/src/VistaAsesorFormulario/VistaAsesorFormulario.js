@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { getAuth } from "firebase/auth"; // Asegúrate de importar getAuth
 
-
 import {
   Table,
   TableBody,
@@ -118,7 +117,6 @@ const VistaAsesorFormulario = () => {
   const [tipoAsesoria, setTipoAsesoria] = useState("");
   const [advisorName, setAdvisorName] = useState("");
   const auth = getAuth();
-
   const [newResponsesCount, setNewResponsesCount] = useState(() => {
     const savedCounts = localStorage.getItem('responseCounts');
     return savedCounts ? JSON.parse(savedCounts) : {};
