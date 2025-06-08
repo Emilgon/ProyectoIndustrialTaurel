@@ -54,4 +54,5 @@ export {
   where, // Exportar where
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  getFirestore
 };

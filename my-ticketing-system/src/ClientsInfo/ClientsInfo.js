@@ -1,10 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box, Button, TextField, Typography, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Paper, Collapse,
   Chip, IconButton, InputAdornment, Menu, MenuItem, Avatar, Divider, Tabs, Tab,
   Popover
 } from "@mui/material";
+import {
+  db,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "../firebaseConfig";
+import { getAuth } from "firebase/auth"; // Asegúrate de importar getAuth
 import {
   Attachment, GetApp, Search, Clear,
   StarBorder, Star, Sort, DateRange
@@ -39,6 +47,8 @@ const ClientsInfo = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [datePickerAnchorEl, setDatePickerAnchorEl] = useState(null);
+  const [advisorName, setAdvisorName] = useState("");
+  const auth = getAuth();
 
   const formatDate = (timestamp) => {
     if (!timestamp || !timestamp.seconds) {
@@ -46,6 +56,27 @@ const ClientsInfo = () => {
     }
     return new Date(timestamp.seconds * 1000).toLocaleDateString();
   };
+  useEffect(() => {
+    const fetchAdvisorName = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user && user.email) {
+          const advisorsRef = collection(db, "Advisors");
+          const q = query(advisorsRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const advisorData = querySnapshot.docs[0].data();
+            setAdvisorName(advisorData.name || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener el nombre del asesor:", error);
+      }
+    };
+
+    fetchAdvisorName();
+  }, [auth]);
 
   const toggleFavorite = (clientId) => {
     setFavorites(prev =>
@@ -142,9 +173,20 @@ const ClientsInfo = () => {
           mb: 2,
           gap: 2
         }}>
-          <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
-            Información de Clientes
-          </Typography>
+          <Box sx={{ textAlign: 'left' }}>
+            {advisorName && (
+              <Typography variant="h5" fontWeight="bold" color="#1B5C94" gutterBottom>
+                Bienvenido, {advisorName}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Segunda fila: Consultas centrado */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-220} gutterBottom>
+              Clientes
+            </Typography>
+          </Box>
         </Box>
 
         {/* Barra de búsqueda y ordenación */}

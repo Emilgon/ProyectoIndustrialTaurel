@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { collection, query, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, query, getDocs, getFirestore, db, getDoc, updateDoc, doc, deleteDoc, where, onSnapshot } from "../firebaseConfig";
 import { useNavigate } from 'react-router-dom';
+import { getAuth } from "firebase/auth"; // Asegúrate de importar getAuth
+
 
 // Componentes de Material-UI
 import {
@@ -115,31 +117,28 @@ const Reports = () => {
   const [classificationChartType, setClassificationChartType] = useState('pie');
   const [classificationChartData, setClassificationChartData] = useState({ labels: [], datasets: [] });
   const [classificationTimeData, setClassificationTimeData] = useState({ labels: [], datasets: [] });
+  const [advisorName, setAdvisorName] = useState("");
+  const auth = getAuth();
 
-  // Estados para los filtros independientes de cada gráfico
+  // Estado para el filtro global de tiempo
+  const [timeFilter, setTimeFilter] = useState({
+    timeRange: 'month',
+    startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+    endDate: new Date()
+  });
+
+  // Estados para los filtros específicos de cada gráfico (sin timeRange, startDate, endDate)
   const [filters, setFilters] = useState({
     trend: {
-      timeRange: 'month',
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-      endDate: new Date(),
       consultType: 'all'
     },
     responseStatus: {
-      timeRange: 'month',
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-      endDate: new Date(),
       statusFilter: 'all'
     },
     consultTypes: {
-      timeRange: 'month',
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-      endDate: new Date(),
       typeFilter: 'all'
     },
     clients: {
-      timeRange: 'month',
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-      endDate: new Date(),
       companySearch: ''
     }
   });
@@ -187,6 +186,27 @@ const Reports = () => {
 
     fetchData();
   }, []);
+  useEffect(() => {
+    const fetchAdvisorName = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user && user.email) {
+          const advisorsRef = collection(db, "Advisors");
+          const q = query(advisorsRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const advisorData = querySnapshot.docs[0].data();
+            setAdvisorName(advisorData.name || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener el nombre del asesor:", error);
+      }
+    };
+
+    fetchAdvisorName();
+  }, [auth]);
 
   const filterConsults = (consults, { timeRange, startDate, endDate, typeFilter, statusFilter, companySearch }) => {
     let filtered = [...consults];
@@ -238,14 +258,14 @@ const Reports = () => {
     return filtered;
   };
 
-  // Efectos para actualizar cada gráfico independientemente
+  // Efectos para actualizar cada gráfico independientemente con filtro global de tiempo
   useEffect(() => {
-    const trendFiltered = filterConsults(consults, filters.trend);
+    const trendFiltered = filterConsults(consults, { ...filters.trend, ...timeFilter });
     setTrendChartData(generateTimeData(trendFiltered, () => 'Consultas'));
-  }, [consults, filters.trend]);
+  }, [consults, filters.trend, timeFilter]);
 
   useEffect(() => {
-    const responseFiltered = filterConsults(consults, filters.responseStatus);
+    const responseFiltered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     setResponseRateChartData({
       labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
       datasets: [{
@@ -268,10 +288,10 @@ const Reports = () => {
         borderWidth: 1,
       }]
     });
-  }, [consults, filters.responseStatus]);
+  }, [consults, filters.responseStatus, timeFilter]);
 
   useEffect(() => {
-    const typesFiltered = filterConsults(consults, filters.consultTypes);
+    const typesFiltered = filterConsults(consults, { ...filters.consultTypes, ...timeFilter });
 
     const consultsByType = typesFiltered.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
@@ -295,10 +315,10 @@ const Reports = () => {
     });
 
     setTypesTimeData(generateTimeData(typesFiltered, consult => classifyConsultType(consult)));
-  }, [consults, filters.consultTypes]);
+  }, [consults, filters.consultTypes, timeFilter]);
 
   useEffect(() => {
-    const clientsFiltered = filterConsults(consults, filters.clients);
+    const clientsFiltered = filterConsults(consults, { ...filters.clients, ...timeFilter });
 
     const topClients = clientsFiltered.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
@@ -337,18 +357,51 @@ const Reports = () => {
       ),
       consult => consult.company || consult.email || 'Cliente no identificado'
     ));
-  }, [consults, filters.clients]);
+  }, [consults, filters.clients, timeFilter]);
 
-  // Manejadores de filtros independientes
-  const handleTimeRangeChange = (value, chart) => {
-    setFilters(prev => ({
+  // Manejadores de filtros
+  const handleTimeRangeChange = (value) => {
+    setTimeFilter(prev => ({
       ...prev,
-      [chart]: {
-        ...prev[chart],
-        timeRange: value
-      }
+      timeRange: value
     }));
   };
+
+  // Actualizar fechas startDate y endDate cuando cambia timeRange
+  useEffect(() => {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = now;
+
+    switch (timeFilter.timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+        startDate = new Date(0);
+        break;
+      default:
+        startDate = timeFilter.startDate;
+        endDate = timeFilter.endDate;
+    }
+
+    setTimeFilter(prev => ({
+      ...prev,
+      startDate,
+      endDate
+    }));
+  }, [timeFilter.timeRange]);
+
+  // Removed duplicate declarations of handlers
   const calculateClassifiedItems = () => {
     const itemsByClient = {};
     let totalItems = 0;
@@ -405,13 +458,10 @@ const Reports = () => {
     setAnchorEl(null);
   };
 
-  const applyCustomDateRange = (chart) => {
-    setFilters(prev => ({
+  const applyCustomDateRange = () => {
+    setTimeFilter(prev => ({
       ...prev,
-      [chart]: {
-        ...prev[chart],
-        timeRange: 'custom'
-      }
+      timeRange: 'custom'
     }));
     setAnchorEl(null);
   };
@@ -844,7 +894,7 @@ const Reports = () => {
   };
 
   const getResponseData = () => {
-    const filtered = filterConsults(consults, filters.responseStatus);
+    const filtered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     const totalConsults = filtered.length;
     const answeredConsults = filtered.filter(consult =>
       responses.some(response => response.consultaId === consult.id)
@@ -927,9 +977,20 @@ const Reports = () => {
           alignItems: 'center',
           mb: 3
         }}>
-          <Typography variant="h4" component="h1" color="#1B5C94">
-            Reportes y Estadísticas
-          </Typography>
+          <Box sx={{ textAlign: 'left' }}>
+            {advisorName && (
+              <Typography variant="h5" fontWeight="bold" color="#1B5C94" gutterBottom>
+                Bienvenido, {advisorName}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Segunda fila: Consultas centrado */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-15} gutterBottom>
+              Reportes y Estadísticas
+            </Typography>
+          </Box>
           <Button
             variant="contained"
             color="success"
@@ -950,36 +1011,30 @@ const Reports = () => {
             <Typography variant="h6">Seleccionar rango de fechas</Typography>
             <DatePicker
               label="Fecha de inicio"
-              value={filters.trend.startDate}
-              onChange={(newValue) => setFilters(prev => ({
+              value={timeFilter.startDate}
+              onChange={(newValue) => setTimeFilter(prev => ({
                 ...prev,
-                trend: {
-                  ...prev.trend,
-                  startDate: newValue
-                }
+                startDate: newValue
               }))}
-              maxDate={filters.trend.endDate}
+              maxDate={timeFilter.endDate}
               inputFormat="dd/MM/yyyy"
               renderInput={(params) => <TextField {...params} />}
             />
             <DatePicker
               label="Fecha de fin"
-              value={filters.trend.endDate}
-              onChange={(newValue) => setFilters(prev => ({
+              value={timeFilter.endDate}
+              onChange={(newValue) => setTimeFilter(prev => ({
                 ...prev,
-                trend: {
-                  ...prev.trend,
-                  endDate: newValue
-                }
+                endDate: newValue
               }))}
-              minDate={filters.trend.startDate}
+              minDate={timeFilter.startDate}
               maxDate={new Date()}
               inputFormat="dd/MM/yyyy"
               renderInput={(params) => <TextField {...params} />}
             />
             <Button
               variant="contained"
-              onClick={() => applyCustomDateRange('trend')}
+              onClick={applyCustomDateRange}
               startIcon={<CalendarIcon />}
             >
               Aplicar rango
@@ -1030,24 +1085,24 @@ const Reports = () => {
                   <Typography variant="h6" gutterBottom>
                     Tendencia de consultas
                   </Typography>
-                  <ButtonGroup variant="contained" orientation="horizontal">
-                    {timeRanges.map((range) => (
-                      <Button
-                        key={range.value}
-                        onClick={() => handleTimeRangeChange(range.value, 'trend')}
-                        color={filters.trend.timeRange === range.value ? 'primary' : 'inherit'}
-                      >
-                        {range.label}
-                      </Button>
-                    ))}
-                    <Button
-                      onClick={handleDateRangeClick}
-                      startIcon={<DateRangeIcon />}
-                      color={filters.trend.timeRange === 'custom' ? 'primary' : 'inherit'}
-                    >
-                      Personalizado
-                    </Button>
-                  </ButtonGroup>
+            <ButtonGroup variant="contained" orientation="horizontal">
+              {timeRanges.map((range) => (
+                <Button
+                  key={range.value}
+                  onClick={() => handleTimeRangeChange(range.value)}
+                  color={timeFilter.timeRange === range.value ? 'primary' : 'inherit'}
+                >
+                  {range.label}
+                </Button>
+              ))}
+              <Button
+                onClick={handleDateRangeClick}
+                startIcon={<DateRangeIcon />}
+                color={timeFilter.timeRange === 'custom' ? 'primary' : 'inherit'}
+              >
+                Personalizado
+              </Button>
+            </ButtonGroup>
                 </Box>
                 <Box sx={{ height: '400px' }}>
                   {trendChartData.labels && trendChartData.labels.length > 0 ? (

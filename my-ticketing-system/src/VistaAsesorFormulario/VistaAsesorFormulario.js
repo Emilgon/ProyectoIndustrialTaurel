@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { getAuth } from "firebase/auth"; // Asegúrate de importar getAuth
+
 
 import {
   Table,
@@ -114,6 +116,9 @@ const VistaAsesorFormulario = () => {
   const [anchorElSearch, setAnchorElSearch] = useState(null);
   const [itemsCount, setItemsCount] = useState(null);
   const [tipoAsesoria, setTipoAsesoria] = useState("");
+  const [advisorName, setAdvisorName] = useState("");
+  const auth = getAuth();
+
   const [newResponsesCount, setNewResponsesCount] = useState(() => {
     const savedCounts = localStorage.getItem('responseCounts');
     return savedCounts ? JSON.parse(savedCounts) : {};
@@ -139,6 +144,27 @@ const VistaAsesorFormulario = () => {
   useEffect(() => {
     localStorage.setItem('responseCounts', JSON.stringify(newResponsesCount));
   }, [newResponsesCount]);
+  useEffect(() => {
+    const fetchAdvisorName = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user && user.email) {
+          const advisorsRef = collection(db, "Advisors");
+          const q = query(advisorsRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const advisorData = querySnapshot.docs[0].data();
+            setAdvisorName(advisorData.name || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener el nombre del asesor:", error);
+      }
+    };
+
+    fetchAdvisorName();
+  }, [auth]);
 
   useEffect(() => {
     // Replace initial fetch with real-time listener on "Consults"
@@ -1170,16 +1196,21 @@ const VistaAsesorFormulario = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="h4" fontWeight="bold" color="#1B5C94" gutterBottom>
-          Consultas
-        </Typography>
+      <Box sx={{display: "flex",justifyContent: "space-between",alignItems: "center",}}>
+          <Box sx={{ textAlign: 'left' }}>
+            {advisorName && (
+              <Typography variant="h5" fontWeight="bold" color="#1B5C94" gutterBottom>
+                Bienvenido, {advisorName}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Segunda fila: Consultas centrado */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-45} gutterBottom>
+              Consultas
+            </Typography>
+          </Box>
         <Tooltip title="Resetear filtros" arrow>
           <IconButton
             onClick={resetFilters}
