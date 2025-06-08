@@ -13,6 +13,7 @@ const useClientsInfoController = () => {
   const [searchClient, setSearchClient] = useState("");
   const [showLastQuery, setShowLastQuery] = useState(false);
   const [showLastFiveQueries, setShowLastFiveQueries] = useState(false);
+  const [showAllQueries, setShowAllQueries] = useState(false);
 
   useEffect(() => {
     const loadClients = async () => {
@@ -20,7 +21,12 @@ const useClientsInfoController = () => {
       // Procesamos los clientes para contar consultas activas y adjuntar consultas
       const processedClients = await Promise.all(data.map(async (client) => {
         const consultasData = await fetchConsultasByClientName(client.name, 5); // Obtenemos las últimas 5 consultas
-        const activeConsultas = consultasData.filter(consulta => consulta.status === "En proceso").length;
+
+        // CORRECCIÓN: Asegurarnos de contar correctamente las consultas "En proceso"
+        const activeConsultas = consultasData.filter(consulta =>
+          consulta.status && consulta.status.toLowerCase() === "en proceso"
+        ).length;
+
         return {
           ...client,
           numConsultas: activeConsultas,
@@ -38,6 +44,7 @@ const useClientsInfoController = () => {
       setConsultas([]);
       setShowLastQuery(false);
       setShowLastFiveQueries(false);
+      setShowAllQueries(false);
       return;
     }
     setExpandedClientId(clientId);
@@ -50,6 +57,7 @@ const useClientsInfoController = () => {
     setConsultas(consultasData);
     setShowLastQuery(true);
     setShowLastFiveQueries(false);
+    setShowAllQueries(false);
   };
 
   const fetchLastFiveQueries = async (clientName) => {
@@ -58,6 +66,17 @@ const useClientsInfoController = () => {
     setConsultas(consultasData);
     setShowLastQuery(false);
     setShowLastFiveQueries(true);
+    setShowAllQueries(false);
+  };
+
+  const fetchAllQueries = async (clientName) => {
+    // Usamos un número grande como límite para obtener todas las consultas
+    const consultasData = await fetchConsultasByClientName(clientName, 1000);
+    await fetchAndSetDownloadUrls(consultasData);
+    setConsultas(consultasData);
+    setShowLastQuery(false);
+    setShowLastFiveQueries(false);
+    setShowAllQueries(true);
   };
 
   const fetchAndSetDownloadUrls = async (consultasData) => {
@@ -89,9 +108,14 @@ const useClientsInfoController = () => {
     setSearchClient,
     showLastQuery,
     showLastFiveQueries,
+    showAllQueries,
     handleRowClick,
     fetchLastQuery,
-    fetchLastFiveQueries
+    fetchLastFiveQueries,
+    fetchAllQueries,
+    setShowLastQuery,
+    setShowLastFiveQueries,
+    setShowAllQueries
   };
 };
 

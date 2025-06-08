@@ -20,11 +20,15 @@ const ClientsInfo = () => {
     expandedClientId,
     consultas,
     fileDownloadUrls,
+    searchClient,
+    setSearchClient,
     handleRowClick,
     fetchLastQuery,
     fetchLastFiveQueries,
+    fetchAllQueries,
     showLastQuery,
-    showLastFiveQueries
+    showLastFiveQueries,
+    showAllQueries
   } = useClientsInfoController();
 
   const [activeTab, setActiveTab] = useState(0);
@@ -68,9 +72,9 @@ const ClientsInfo = () => {
   const filteredClients = clients
     .filter(client => {
       if (!quickSearch.trim()) return true;
-      
+
       const searchTerm = quickSearch.toLowerCase().trim();
-      
+
       if (
         (client.company && client.company.toLowerCase().includes(searchTerm)) ||
         (client.email && client.email.toLowerCase().includes(searchTerm))
@@ -79,8 +83,8 @@ const ClientsInfo = () => {
       }
 
       if (client.consultas && client.consultas.length > 0) {
-        return client.consultas.some(consulta => 
-          consulta.messageContent && 
+        return client.consultas.some(consulta =>
+          consulta.messageContent &&
           consulta.messageContent.toLowerCase().includes(searchTerm)
         );
       }
@@ -88,16 +92,14 @@ const ClientsInfo = () => {
       return false;
     })
     .filter(client => {
-      // Si no hay fechas seleccionadas, mostrar todos
       if (!startDate && !endDate) return true;
 
-      // Verificar si alguna consulta del cliente está dentro del rango de fechas
       if (client.consultas && client.consultas.length > 0) {
         return client.consultas.some(consulta => {
           if (!consulta.timestamp?.seconds) return false;
-          
+
           const consultaDate = new Date(consulta.timestamp.seconds * 1000);
-          
+
           if (startDate && endDate) {
             return consultaDate >= startDate && consultaDate <= endDate;
           } else if (startDate) {
@@ -351,13 +353,15 @@ const ClientsInfo = () => {
                             size="small"
                             sx={{ fontWeight: 'bold' }}
                           />
-                          {client.consultas?.some(c => c.status === "Pendiente") && (
-                            <Chip
-                              label="Pendiente"
-                              color="warning"
-                              size="small"
-                            />
-                          )}
+                          {client.consultas?.some(c =>
+                            c.status && c.status.toLowerCase() === "pendiente"
+                          ) && (
+                              <Chip
+                                label="Pendiente"
+                                color="warning"
+                                size="small"
+                              />
+                            )}
                         </Box>
                       ) : (
                         "0"
@@ -414,9 +418,24 @@ const ClientsInfo = () => {
                             >
                               Últimas 5 consultas
                             </Button>
+                            <Button
+                              variant={showAllQueries ? "contained" : "outlined"}
+                              sx={{
+                                backgroundColor: showAllQueries ? '#1B5C94' : 'transparent',
+                                color: showAllQueries ? 'white' : '#1B5C94',
+                                border: '2px solid #1B5C94',
+                                '&:hover': {
+                                  backgroundColor: showAllQueries ? '#14507D' : 'rgba(27, 92, 148, 0.08)',
+                                  border: '2px solid #1B5C94'
+                                }
+                              }}
+                              onClick={() => fetchAllQueries(client.name)}
+                            >
+                              Todas las consultas
+                            </Button>
                           </Box>
 
-                          {(showLastQuery || showLastFiveQueries) && consultas.length > 0 && (
+                          {(showLastQuery || showLastFiveQueries || showAllQueries) && consultas.length > 0 && (
                             <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
                               <Table size="small">
                                 <TableHead>

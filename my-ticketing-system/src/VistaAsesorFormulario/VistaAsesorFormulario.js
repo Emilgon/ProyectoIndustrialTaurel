@@ -584,6 +584,9 @@ const VistaAsesorFormulario = () => {
         ? consulta.remaining_days
         : consulta.indicator;
 
+    // Verificar si la consulta está fuera de tiempo
+    const isOverdue = remainingDays <= 0 && consulta.status !== "Resuelta";
+
     let plazoInfo = "";
     if (consulta.type === "Clasificación arancelaria" && consulta.itemsCount) {
       plazoInfo = ` (${consulta.itemsCount < 10 ? "Rápida" : "Estándar"})`;
@@ -598,8 +601,9 @@ const VistaAsesorFormulario = () => {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            backgroundColor:
-              remainingDays <= 1
+            backgroundColor: isOverdue
+              ? "red"
+              : remainingDays <= 1
                 ? "red"
                 : remainingDays <= 3
                   ? "orange"
@@ -607,9 +611,10 @@ const VistaAsesorFormulario = () => {
             mr: 1,
           }}
         />
-        <Typography>
-          {remainingDays} {remainingDays === 1 ? "Día" : "Días"}
+        <Typography sx={{ color: isOverdue ? "error.main" : "inherit" }}>
+          {isOverdue ? "0" : remainingDays} {remainingDays === 1 ? "Día" : "Días"}
           {plazoInfo}
+          {isOverdue && " (Fuera de tiempo)"}
         </Typography>
       </Box>
     );
@@ -747,6 +752,7 @@ const VistaAsesorFormulario = () => {
       );
     })
     .sort((a, b) => {
+      // Primero, mantener la lógica de ordenamiento por columnas cuando se hace click en los headers
       if (orderBy === "status") {
         const statesOrder = ["Pendiente", "En proceso", "Resuelta"];
         const aPriority =
@@ -770,12 +776,24 @@ const VistaAsesorFormulario = () => {
         const bIndex = typesOrder.indexOf(b.type || "No Asignado");
         return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
       }
-      const aValue = a[orderBy] || "";
-      const bValue = b[orderBy] || "";
-      if (aValue < bValue) return order === "asc" ? -1 : 1;
-      if (aValue > bValue) return order === "asc" ? 1 : -1;
-      return 0;
-    });
+
+      // Si no hay ordenamiento específico por columna, aplicar el ordenamiento por defecto:
+      // 1. Por estado (Pendiente > En proceso > Resuelta)
+      // 2. Por fecha (más reciente primero)
+      const statesOrder = ["Pendiente", "En proceso", "Resuelta"];
+      const aStatePriority = statesOrder.indexOf(a.status);
+      const bStatePriority = statesOrder.indexOf(b.status);
+
+      if (aStatePriority !== bStatePriority) {
+        return aStatePriority - bStatePriority;
+      }
+
+      // Ordenar por fecha descendente (más reciente primero)
+      const aDate = a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
+      const bDate = b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
+
+      return bDate - aDate;
+    })
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -1593,6 +1611,7 @@ const VistaAsesorFormulario = () => {
           <TableBody>
             {filteredConsultas.map((consulta) => (
               <React.Fragment key={consulta.id}>
+                {/* Este es el TableRow que debes modificar */}
                 <TableRow
                   onClick={(e) => {
                     if (
@@ -1609,10 +1628,18 @@ const VistaAsesorFormulario = () => {
                   sx={{
                     cursor: "pointer",
                     "&:hover": { backgroundColor: "#f5f5f5" },
+                    backgroundColor:
+                      (consulta.remaining_days <= 0 && consulta.status !== "Resuelta")
+                        ? "rgba(255, 0, 0, 0.1)"
+                        : "inherit",
+                    borderLeft:
+                      (consulta.remaining_days <= 0 && consulta.status !== "Resuelta")
+                        ? "4px solid red"
+                        : "none"
                   }}
                 >
                   <TableCell>{consulta.company}</TableCell>
-                  <TableCell >{consulta.type || "No Asignado"}</TableCell>
+                  <TableCell>{consulta.type || "No Asignado"}</TableCell>
                   <TableCell align="center">{formatDateTime(consulta.start_date)}</TableCell>
                   <TableCell align="center">{renderRemainingDays(consulta)}</TableCell>
                   <TableCell align="center">{consulta.status}</TableCell>

@@ -2,27 +2,48 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { collection, query, getDocs, getFirestore } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+
+// Componentes de Material-UI
 import {
   Grid, Card, CardContent, Typography, CircularProgress,
   ButtonGroup, Button, Box, TextField, InputAdornment,
   Select, MenuItem, FormControl, InputLabel, Popover,
-  IconButton, Tooltip, Snackbar, Alert
+  IconButton, Tooltip, Snackbar, Alert, TableBody,
+  TableCell, TableHead, Table, Paper, TableRow,
+  TableContainer
 } from '@mui/material';
+
+// Iconos de Material-UI
 import {
-  Bar, Pie, Line, Doughnut, PolarArea
-} from 'react-chartjs-2';
-import {
-  Search as SearchIcon, Logout as LogoutIcon,
-  DateRange as DateRangeIcon, CalendarToday as CalendarIcon,
-  BarChart as BarChartIcon, PieChart as PieChartIcon,
-  ShowChart as LineChartIcon, DonutLarge as DoughnutIcon,
-  Radar as PolarAreaIcon, Publish as PublishIcon,
-  GridOn as GridOnIcon
+  Search as SearchIcon,
+  Logout as LogoutIcon,
+  DateRange as DateRangeIcon,
+  CalendarToday as CalendarIcon,
+  BarChart as BarChartIcon,
+  PieChart as PieChartIcon,
+  ShowChart as LineChartIcon,
+  DonutLarge as DoughnutIcon,
+  Radar as PolarAreaIcon,
+  GridOn as GridOnIcon,
+  ArrowUpward as ArrowUpwardIcon
 } from '@mui/icons-material';
+
+// Componentes de gráficos
+import {
+  Bar as BarChart,
+  Doughnut as DoughnutChart,
+  Pie,
+  Line,
+  PolarArea
+} from 'react-chartjs-2';
+
+// Date pickers
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import esLocale from 'date-fns/locale/es';
+
+// Registro de componentes de Chart.js
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -38,6 +59,7 @@ import {
   RadialLinearScale
 } from 'chart.js';
 
+// Registrar componentes necesarios de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -52,6 +74,7 @@ ChartJS.register(
   RadialLinearScale
 );
 
+// Tipos de gráficos disponibles
 const chartTypes = [
   { value: 'bar', label: 'Barras', icon: <BarChartIcon /> },
   { value: 'pie', label: 'Circular', icon: <PieChartIcon /> },
@@ -60,6 +83,7 @@ const chartTypes = [
   { value: 'polarArea', label: 'Área polar', icon: <PolarAreaIcon /> }
 ];
 
+// Rangos de tiempo disponibles
 const timeRanges = [
   { value: 'week', label: 'Última semana' },
   { value: 'month', label: 'Último mes' },
@@ -85,10 +109,12 @@ const Reports = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  const [isUploading, setIsUploading] = useState(false);
   const [responseChartType, setResponseChartType] = useState('pie');
   const [typeChartType, setTypeChartType] = useState('pie');
   const [clientChartType, setClientChartType] = useState('bar');
+  const [classificationChartType, setClassificationChartType] = useState('pie');
+  const [classificationChartData, setClassificationChartData] = useState({ labels: [], datasets: [] });
+  const [classificationTimeData, setClassificationTimeData] = useState({ labels: [], datasets: [] });
 
   // Estados para los filtros independientes de cada gráfico
   const [filters, setFilters] = useState({
@@ -323,6 +349,23 @@ const Reports = () => {
       }
     }));
   };
+  const calculateClassifiedItems = () => {
+    const itemsByClient = {};
+    let totalItems = 0;
+
+    consults.forEach(consult => {
+      if (consult.type === 'Clasificación arancelaria' && consult.itemsCount) {
+        const clientKey = consult.company || consult.email || 'Cliente no identificado';
+        itemsByClient[clientKey] = (itemsByClient[clientKey] || 0) + consult.itemsCount;
+        totalItems += consult.itemsCount;
+      }
+    });
+
+    return {
+      itemsByClient,
+      totalItems
+    };
+  };
 
   const handleConsultTypeFilterChange = (value) => {
     setFilters(prev => ({
@@ -372,6 +415,37 @@ const Reports = () => {
     }));
     setAnchorEl(null);
   };
+  useEffect(() => {
+    const classifiedConsults = consults.filter(consult => consult.type === 'Clasificación arancelaria');
+
+    // Datos estáticos
+    const itemsByClient = classifiedConsults.reduce((acc, consult) => {
+      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      acc[clientKey] = (acc[clientKey] || 0) + (consult.itemsCount || 0);
+      return acc;
+    }, {});
+
+    setClassificationChartData({
+      labels: Object.keys(itemsByClient),
+      datasets: [{
+        label: 'Ítems Clasificados',
+        data: Object.values(itemsByClient),
+        backgroundColor: Object.keys(itemsByClient).map((_, i) =>
+          `hsl(${(i * 360 / Object.keys(itemsByClient).length)}, 70%, 50%, 0.6)`
+        ),
+        borderColor: Object.keys(itemsByClient).map((_, i) =>
+          `hsl(${(i * 360 / Object.keys(itemsByClient).length)}, 70%, 50%)`
+        ),
+        borderWidth: 1
+      }]
+    });
+
+    // Datos temporales
+    setClassificationTimeData(generateTimeData(
+      classifiedConsults,
+      consult => consult.company || consult.email || 'Cliente no identificado'
+    ));
+  }, [consults]);
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -400,10 +474,9 @@ const Reports = () => {
 
   const generateFileName = () => {
     const now = new Date();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const quincena = day <= 15 ? '115' : '215';
-    return `Reporte${month}${month}Actual${quincena}`;
+    const month = now.toLocaleDateString('es-ES', { month: 'long' });
+    const year = now.getFullYear();
+    return `INDICADORES GERENCIA TÉCNICA ${month.toUpperCase()} ${year}`;
   };
 
   const generateTimeData = (items, getKey) => {
@@ -508,47 +581,266 @@ const Reports = () => {
 
   const exportToExcel = () => {
     const fileName = generateFileName();
-    const data = [];
+    const now = new Date();
+    const monthName = now.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase();
+    const year = now.getFullYear();
 
-    // Datos generales
-    const responseData = getResponseData();
-    data.push(['Métrica', 'Valor']);
-    data.push(['Consultas recibidas', responseData.total]);
-    data.push(['Consultas respondidas', responseData.answered]);
-    data.push(['Porcentaje de respuesta', `${Math.round((responseData.answered / responseData.total) * 100)}%`]);
-    data.push(['Respondidas a tiempo', responseData.timely]);
-    data.push(['Porcentaje a tiempo', `${Math.round((responseData.timely / responseData.answered) * 100)}%`]);
-    data.push([]);
+    // Obtener el primer y último día del mes actual
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Consultas por cliente
-    const topClients = filterConsults(consults, filters.clients).reduce((acc, consult) => {
+    // Filtrar consultas del mes actual
+    const monthlyConsults = consults.filter(consult =>
+      consult.timestamp >= firstDay && consult.timestamp <= lastDay
+    );
+
+    // Obtener datos
+    const responseData = getMonthlyResponseData(monthlyConsults);
+    const classifiedItems = calculateMonthlyClassifiedItems(monthlyConsults);
+    const topClients = getTopClients(monthlyConsults, 5);
+    const consultsByType = getConsultsByType(monthlyConsults);
+
+    // Definir estilos
+    const styles = {
+      header: {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+        fill: { fgColor: { rgb: '1B5C94' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: {
+          top: { style: 'medium', color: { rgb: '1B5C94' } },
+          bottom: { style: 'medium', color: { rgb: '1B5C94' } },
+          left: { style: 'medium', color: { rgb: '1B5C94' } },
+          right: { style: 'medium', color: { rgb: '1B5C94' } }
+        }
+      },
+      subHeader: {
+        font: { bold: true, color: { rgb: '1B5C94' }, sz: 12 },
+        fill: { fgColor: { rgb: 'D9E8F5' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1B5C94' } },
+          bottom: { style: 'thin', color: { rgb: '1B5C94' } },
+          left: { style: 'thin', color: { rgb: '1B5C94' } },
+          right: { style: 'thin', color: { rgb: '1B5C94' } }
+        }
+      },
+      indicatorHeader: {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '5B9BD5' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1B5C94' } },
+          bottom: { style: 'thin', color: { rgb: '1B5C94' } },
+          left: { style: 'thin', color: { rgb: '1B5C94' } },
+          right: { style: 'thin', color: { rgb: '1B5C94' } }
+        }
+      },
+      cell: {
+        alignment: { vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1B5C94' } },
+          bottom: { style: 'thin', color: { rgb: '1B5C94' } },
+          left: { style: 'thin', color: { rgb: '1B5C94' } },
+          right: { style: 'thin', color: { rgb: '1B5C94' } }
+        }
+      },
+      percentage: {
+        numFmt: '0.00%',
+        alignment: { vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1B5C94' } },
+          bottom: { style: 'thin', color: { rgb: '1B5C94' } },
+          left: { style: 'thin', color: { rgb: '1B5C94' } },
+          right: { style: 'thin', color: { rgb: '1B5C94' } }
+        }
+      }
+    };
+
+    // Crear datos para la hoja
+    const data = [
+      // Título principal
+      [{ v: `INDICADORES GERENCIA TÉCNICA - ${monthName} ${year}`, t: 's', s: styles.header }],
+      [''], // Espacio
+
+      // Indicadores principales (en columnas)
+      [
+        { v: 'INDICADOR', t: 's', s: styles.subHeader },
+        { v: 'VALOR', t: 's', s: styles.subHeader },
+        { v: 'PORCENTAJE', t: 's', s: styles.subHeader }
+      ],
+      [
+        'Consultas recibidas',
+        responseData.total,
+        ''
+      ],
+      [
+        'Consultas respondidas',
+        responseData.answered,
+        { v: responseData.answered / responseData.total, t: 'n', s: styles.percentage }
+      ],
+      [
+        'Respondidas a tiempo',
+        responseData.timely,
+        { v: responseData.timely / responseData.answered, t: 'n', s: styles.percentage }
+      ],
+      [
+        'Ítems clasificados',
+        classifiedItems.totalItems,
+        ''
+      ],
+      [''], // Espacio
+
+      // Top 5 clientes
+      [
+        { v: 'TOP 5 CLIENTES', t: 's', s: styles.subHeader },
+        { v: 'CONSULTAS', t: 's', s: styles.subHeader },
+        { v: 'PORCENTAJE', t: 's', s: styles.subHeader }
+      ],
+      ...topClients.map(client => [
+        client.name,
+        client.count,
+        { v: client.count / responseData.total, t: 'n', s: styles.percentage }
+      ]),
+      [''], // Espacio
+
+      // Consultas por tipo
+      [
+        { v: 'TIPO DE CONSULTA', t: 's', s: styles.subHeader },
+        { v: 'CANTIDAD', t: 's', s: styles.subHeader },
+        { v: 'PORCENTAJE', t: 's', s: styles.subHeader }
+      ],
+      ...Object.entries(consultsByType).map(([type, count]) => [
+        type,
+        count,
+        { v: count / responseData.total, t: 'n', s: styles.percentage }
+      ]),
+      [''], // Espacio
+
+      // Ítems clasificados por cliente
+      [
+        { v: 'CLASIFICACIÓN ARANCELARIA', t: 's', s: styles.subHeader },
+        { v: 'ÍTEMS', t: 's', s: styles.subHeader },
+        { v: 'PORCENTAJE', t: 's', s: styles.subHeader }
+      ],
+      ...Object.entries(classifiedItems.itemsByClient)
+        .sort((a, b) => b[1] - a[1])
+        .map(([client, count]) => [
+          client,
+          count,
+          { v: count / classifiedItems.totalItems, t: 'n', s: styles.percentage }
+        ])
+    ];
+
+    // Crear hoja de cálculo
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Aplicar estilos generales
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = { c: C, r: R };
+        const cell_ref = XLSX.utils.encode_cell(cell_address);
+
+        if (!ws[cell_ref]) continue;
+
+        // Aplicar estilo de celda básico si no tiene estilo específico
+        if (!ws[cell_ref].s) {
+          ws[cell_ref].s = styles.cell;
+        }
+
+        // Combinar celdas para el título principal
+        if (R === 0) {
+          ws[cell_ref].s = styles.header;
+          ws['!merges'] = ws['!merges'] || [];
+          ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } });
+        }
+      }
+    }
+
+    // Ajustar anchos de columnas
+    ws['!cols'] = [
+      { wch: 35 }, // Columna A (nombres)
+      { wch: 15 }, // Columna B (valores)
+      { wch: 15 }  // Columna C (porcentajes)
+    ];
+
+    // Congelar primera fila
+    ws['!freeze'] = { xSplit: 0, ySplit: 2 };
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Indicadores");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+
+    setSnackbarMessage('Reporte exportado exitosamente');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+  };
+
+  // Función auxiliar para obtener top clientes
+  const getTopClients = (consults, limit) => {
+    const clients = consults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
       return acc;
     }, {});
 
-    const clientsData = Object.entries(topClients)
+    return Object.entries(clients)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .slice(0, limit)
+      .map(([name, count]) => ({ name, count }));
+  };
 
-    data.push(['Top Clientes', 'Consultas']);
-    clientsData.forEach(([client, count]) => data.push([client, count]));
-    data.push([]);
-
-    // Consultas por tipo
-    const consultsByType = filterConsults(consults, filters.consultTypes).reduce((acc, consult) => {
+  // Función auxiliar para obtener consultas por tipo
+  const getConsultsByType = (consults) => {
+    return consults.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
+  };
 
-    data.push(['Tipo de Consulta', 'Cantidad']);
-    Object.entries(consultsByType).forEach(([type, count]) => data.push([type, count]));
+  // Nueva función para calcular datos mensuales
+  const getMonthlyResponseData = (monthlyConsults) => {
+    const totalConsults = monthlyConsults.length;
+    const answeredConsults = monthlyConsults.filter(consult =>
+      responses.some(response => response.consultaId === consult.id)
+    ).length;
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-    XLSX.writeFile(wb, `${fileName}.xlsx`);
+    const timelyAnswered = monthlyConsults.filter(consult => {
+      const response = responses.find(res => res.consultaId === consult.id);
+      if (!response) return false;
+
+      const responseTime = response.timestamp.getTime() - consult.timestamp.getTime();
+      return responseTime <= 24 * 60 * 60 * 1000;
+    }).length;
+
+    return {
+      total: totalConsults,
+      answered: answeredConsults,
+      timely: timelyAnswered,
+      unanswered: totalConsults - answeredConsults,
+      late: answeredConsults - timelyAnswered
+    };
+  };
+
+
+  // Nueva función para ítems clasificados mensuales
+  const calculateMonthlyClassifiedItems = (monthlyConsults) => {
+    const itemsByClient = {};
+    let totalItems = 0;
+
+    monthlyConsults.forEach(consult => {
+      if (consult.type === 'Clasificación arancelaria' && consult.itemsCount) {
+        const clientKey = consult.company || consult.email || 'Cliente no identificado';
+        itemsByClient[clientKey] = (itemsByClient[clientKey] || 0) + consult.itemsCount;
+        totalItems += consult.itemsCount;
+      }
+    });
+
+    return {
+      itemsByClient,
+      totalItems
+    };
   };
 
   const getResponseData = () => {
@@ -585,76 +877,6 @@ const Reports = () => {
     return Array.from(types);
   };
 
-  const simulateOrchestratorCall = async (payload) => {
-    console.log("Simulando llamada a Orchestrator con:", payload);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return {
-      success: true,
-      message: "Datos recibidos correctamente (simulación)",
-      jdeResponse: {
-        status: "success",
-        table: "F55SA119",
-        rowsAffected: 1,
-        payload: payload
-      }
-    };
-  };
-
-  const uploadToIcaroTest = async () => {
-    setIsUploading(true);
-
-    try {
-      const responseData = getResponseData();
-      const topClients = filterConsults(consults, filters.clients).reduce((acc, consult) => {
-        const clientKey = consult.company || consult.email || 'Cliente no identificado';
-        acc[clientKey] = (acc[clientKey] || 0) + 1;
-        return acc;
-      }, {});
-
-      const filteredClients = Object.entries(topClients)
-        .filter(([client]) =>
-          filters.clients.companySearch === '' ||
-          client.toLowerCase().includes(filters.clients.companySearch.toLowerCase())
-        )
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-
-      const payload = {
-        totalConsultas: responseData.total,
-        consultasRespondidas: responseData.answered,
-        porcentajeRespuesta: responseData.total > 0 ? Math.round((responseData.answered / responseData.total) * 100) : 0,
-        respondidasATiempo: responseData.timely,
-        porcentajeATiempo: responseData.answered > 0 ? Math.round((responseData.timely / responseData.answered) * 100) : 0,
-        topClientes: filteredClients.map(([client, count]) => ({ cliente: client, consultas: count })),
-        fechaActualizacion: new Date().toISOString()
-      };
-
-      const response = await simulateOrchestratorCall(payload);
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      setSnackbarMessage(`Simulación exitosa: ${response.message}`);
-      setSnackbarSeverity('success');
-
-      console.log("Estructura para JDE:", {
-        table: "F55SA119",
-        company: "TU_COMPANY",
-        document: "IND" + new Date().getTime(),
-        values: payload
-      });
-
-    } catch (error) {
-      console.error('Error en simulación:', error);
-      setSnackbarMessage('Error en simulación: ' + error.message);
-      setSnackbarSeverity('error');
-    } finally {
-      setIsUploading(false);
-      setSnackbarOpen(true);
-    }
-  };
-
   const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -687,6 +909,7 @@ const Reports = () => {
       ))}
     </ButtonGroup>
   );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
@@ -707,27 +930,14 @@ const Reports = () => {
           <Typography variant="h4" component="h1" color="#1B5C94">
             Reportes y Estadísticas
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<PublishIcon />}
-              onClick={uploadToIcaroTest}
-              disabled={isUploading}
-              sx={{ ml: 2 }}
-            >
-              {isUploading ? 'Enviando...' : 'Subir a ICARO (Prueba)'}
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<GridOnIcon />}
-              onClick={exportToExcel}
-              sx={{ ml: 2 }}
-            >
-              Exportar a Excel
-            </Button>
-          </Box>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<GridOnIcon />}
+            onClick={exportToExcel}
+          >
+            Exportar a Excel
+          </Button>
         </Box>
         <Popover
           open={open}
@@ -897,7 +1107,7 @@ const Reports = () => {
                     (() => {
                       switch (responseChartType) {
                         case 'bar':
-                          return <Bar data={responseRateChartData} options={commonChartOptions} />;
+                          return <BarChart data={responseRateChartData} options={commonChartOptions} />;
                         case 'pie':
                           return <Pie data={responseRateChartData} options={commonChartOptions} />;
                         case 'line':
@@ -909,7 +1119,7 @@ const Reports = () => {
                             options={commonChartOptions}
                           />;
                         case 'doughnut':
-                          return <Doughnut data={responseRateChartData} options={commonChartOptions} />;
+                          return <DoughnutChart data={responseRateChartData} options={commonChartOptions} />;
                         case 'polarArea':
                           return <PolarArea data={responseRateChartData} options={{
                             ...commonChartOptions,
@@ -962,13 +1172,13 @@ const Reports = () => {
                     (() => {
                       switch (typeChartType) {
                         case 'bar':
-                          return <Bar data={typesStaticData} options={commonChartOptions} />;
+                          return <BarChart data={typesStaticData} options={commonChartOptions} />;
                         case 'pie':
                           return <Pie data={typesStaticData} options={commonChartOptions} />;
                         case 'line':
                           return <Line data={typesTimeData} options={commonChartOptions} />;
                         case 'doughnut':
-                          return <Doughnut data={typesStaticData} options={commonChartOptions} />;
+                          return <DoughnutChart data={typesStaticData} options={commonChartOptions} />;
                         case 'polarArea':
                           return <PolarArea data={typesStaticData} options={{
                             ...commonChartOptions,
@@ -991,7 +1201,6 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
@@ -1023,13 +1232,13 @@ const Reports = () => {
                     (() => {
                       switch (clientChartType) {
                         case 'bar':
-                          return <Bar data={clientsStaticData} options={commonChartOptions} />;
+                          return <BarChart data={clientsStaticData} options={commonChartOptions} />;
                         case 'pie':
                           return <Pie data={clientsStaticData} options={commonChartOptions} />;
                         case 'line':
                           return <Line data={clientsTimeData} options={commonChartOptions} />;
                         case 'doughnut':
-                          return <Doughnut data={clientsStaticData} options={commonChartOptions} />;
+                          return <DoughnutChart data={clientsStaticData} options={commonChartOptions} />;
                         case 'polarArea':
                           return <PolarArea data={clientsStaticData} options={{
                             ...commonChartOptions,
@@ -1040,7 +1249,7 @@ const Reports = () => {
                             }
                           }} />;
                         default:
-                          return <Bar data={clientsStaticData} options={commonChartOptions} />;
+                          return <BarChart data={clientsStaticData} options={commonChartOptions} />;
                       }
                     })()
                   ) : (
@@ -1052,8 +1261,117 @@ const Reports = () => {
               </CardContent>
             </Card>
           </Grid>
-        </Grid>
+          {/* Sección de Clasificación Arancelaria */}
+          {/* Sección de Clasificación Arancelaria */}
+          <Grid item xs={12}>
+            <Card elevation={3}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Clasificación Arancelaria
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <ChartTypeSelector
+                      value={classificationChartType}
+                      onChange={setClassificationChartType}
+                    />
+                  </Box>
+                </Box>
 
+                <Grid container spacing={3}>
+                  {/* Estadísticas principales */}
+                  <Grid item xs={12} md={4}>
+                    <Card elevation={2}>
+                      <CardContent>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Total de ítems clasificados
+                        </Typography>
+                        <Typography variant="h3" sx={{ my: 2 }}>
+                          {calculateClassifiedItems().totalItems}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {Object.keys(calculateClassifiedItems().itemsByClient).length} clientes
+                        </Typography>
+                      </CardContent>
+                    </Card>
+
+                    <TableContainer component={Paper} sx={{ mt: 2 }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Cliente</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }} align="right">Ítems</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {Object.entries(calculateClassifiedItems().itemsByClient)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5)
+                            .map(([client, count]) => (
+                              <TableRow key={client}>
+                                <TableCell>{client}</TableCell>
+                                <TableCell align="right">{count}</TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Grid>
+
+                  {/* Gráfico principal */}
+                  <Grid item xs={12} md={8}>
+                    <Box sx={{ height: '400px' }}>
+                      {classificationChartData.labels && classificationChartData.labels.length > 0 ? (
+                        (() => {
+                          const data = {
+                            labels: Object.keys(calculateClassifiedItems().itemsByClient),
+                            datasets: [{
+                              label: 'Ítems Clasificados',
+                              data: Object.values(calculateClassifiedItems().itemsByClient),
+                              backgroundColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
+                                `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%, 0.6)`
+                              ),
+                              borderColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
+                                `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%)`
+                              ),
+                              borderWidth: 1
+                            }]
+                          };
+
+                          switch (classificationChartType) {
+                            case 'bar':
+                              return <BarChart data={data} options={commonChartOptions} />;
+                            case 'pie':
+                              return <Pie data={data} options={commonChartOptions} />;
+                            case 'line':
+                              return <Line data={classificationTimeData} options={commonChartOptions} />;
+                            case 'doughnut':
+                              return <DoughnutChart data={data} options={commonChartOptions} />;
+                            case 'polarArea':
+                              return <PolarArea data={data} options={{
+                                ...commonChartOptions,
+                                scales: {
+                                  r: {
+                                    beginAtZero: true,
+                                  }
+                                }
+                              }} />;
+                            default:
+                              return <BarChart data={data} options={commonChartOptions} />;
+                          }
+                        })()
+                      ) : (
+                        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                          <Typography variant="body1">No hay datos de clasificación</Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
         <Snackbar
           open={snackbarOpen}
           autoHideDuration={6000}
