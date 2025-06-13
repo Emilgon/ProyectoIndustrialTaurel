@@ -227,6 +227,7 @@ const Respuesta = () => {
           </Typography>
           <Typography variant="body1">{consultaData.messageContent}</Typography>
 
+          // En el componente Respuesta, modifica la parte del archivo adjunto del cliente:
           {consultaData.attachment && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -254,18 +255,21 @@ const Respuesta = () => {
                       "&:hover": { backgroundColor: "#f5f5f5" },
                     }}
                   >
-                    {fileUrl && (
+                    {fileUrl ? (
                       <IconButton
-                        component="a"
-                        href={fileUrl}
-                        download={fileName}
-                        rel="noopener noreferrer"
+                        onClick={() => {
+                          // Crear un enlace temporal para la descarga
+                          const link = document.createElement('a');
+                          link.href = fileUrl;
+                          link.download = fileName;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
                         aria-label={`Descargar archivo ${fileName}`}
                         sx={{
                           padding: 0,
-                          "&:hover": {
-                            opacity: 0.8,
-                          },
+                          "&:hover": { opacity: 0.8 },
                         }}
                       >
                         {isImage ? (
@@ -282,6 +286,8 @@ const Respuesta = () => {
                           getFileIcon(fileName)
                         )}
                       </IconButton>
+                    ) : (
+                      getFileIcon(fileName)
                     )}
 
                     <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
@@ -290,10 +296,15 @@ const Respuesta = () => {
 
                     {fileUrl && (
                       <IconButton
-                        component="a"
-                        href={fileUrl}
-                        download={fileName}
-                        rel="noopener noreferrer"
+                        onClick={() => {
+                          // Crear un enlace temporal para la descarga
+                          const link = document.createElement('a');
+                          link.href = fileUrl;
+                          link.download = fileName;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
                         sx={{
                           color: "#1B5C94",
                           "&:hover": { backgroundColor: "#e3f2fd" },
@@ -412,10 +423,15 @@ const Respuesta = () => {
                         >
                           {fileUrl ? (
                             <IconButton
-                              component="a"
-                              href={fileUrl}
-                              download={fileName}
-                              rel="noopener noreferrer"
+                              onClick={() => {
+                                // Crear un enlace temporal para la descarga
+                                const link = document.createElement('a');
+                                link.href = fileUrl;
+                                link.download = fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
                               aria-label={`Descargar archivo ${fileName}`}
                               sx={{
                                 padding: 0,
@@ -446,10 +462,15 @@ const Respuesta = () => {
 
                           {fileUrl && (
                             <IconButton
-                              component="a"
-                              href={fileUrl}
-                              download={fileName}
-                              rel="noopener noreferrer"
+                              onClick={() => {
+                                // Crear un enlace temporal para la descarga
+                                const link = document.createElement('a');
+                                link.href = fileUrl;
+                                link.download = fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
                               sx={{
                                 color: "#1B5C94",
                                 "&:hover": { backgroundColor: "#e3f2fd" },

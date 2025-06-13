@@ -41,11 +41,12 @@ export const fetchDownloadUrls = async (fileReference, consultaId) => {
       const urlObj = new URL(fileReference);
       storagePath = decodeURIComponent(urlObj.pathname
         .replace('/v0/b/proyectoindustrialtaurel.firebasestorage.app/o/', '')
-        .replace(/%2F/g, '/'));
+        .replace(/%2F/g, '/')
+        .split('?')[0]); // Eliminar parámetros de consulta
       displayName = storagePath.split('/').pop();
     }
-    // Si es una ruta que comienza con "consultas/"
-    else if (fileReference.startsWith('consultas/')) {
+    // Si es una ruta de storage
+    else if (fileReference.startsWith('consultas/') || fileReference.startsWith('respuestas/')) {
       storagePath = fileReference;
       displayName = fileReference.split('/').pop();
     }
@@ -55,7 +56,7 @@ export const fetchDownloadUrls = async (fileReference, consultaId) => {
       if (consultaId) {
         storagePath = `respuestas/${consultaId}/${fileReference}`;
       } else {
-        storagePath = `archivos/${fileReference}`;
+        storagePath = `consultas/${fileReference}`; // Cambiado de 'archivos/' a 'consultas/'
       }
       displayName = fileReference;
     }
