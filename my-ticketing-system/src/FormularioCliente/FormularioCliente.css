@@ -8,6 +8,23 @@
   margin: 20px auto;
 }
 
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+  .form-box {
+    width: 90%;
+    padding: 15px;
+    margin: 15px auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-box {
+    width: 95%;
+    padding: 10px;
+    margin: 10px auto;
+  }
+}
+
 .form-input {
   margin-right: 10px;
 }

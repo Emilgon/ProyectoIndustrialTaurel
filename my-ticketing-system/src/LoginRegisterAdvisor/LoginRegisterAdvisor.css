@@ -30,3 +30,18 @@
     color: #337ab7;
     cursor: pointer;
   }
+  
+  /* Media queries para responsividad */
+  @media (max-width: 768px) {
+    .login-box {
+      width: 90%;
+      padding: 15px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .login-box {
+      width: 95%;
+      padding: 10px;
+    }
+  }

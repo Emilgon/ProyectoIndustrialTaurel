@@ -3,6 +3,55 @@
   margin: 20px auto;
 }
 
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+  .select-container {
+    min-width: 150px;
+  }
+
+  .select-type {
+    min-width: 100px;
+  }
+
+  .action-button {
+    width: 80px;
+    font-size: 14px;
+  }
+
+  .button-custom {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+
+  .vista-asesor-formulario-root {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .select-container {
+    min-width: 100px;
+  }
+
+  .select-type {
+    min-width: 80px;
+  }
+
+  .action-button {
+    width: 70px;
+    font-size: 12px;
+  }
+
+  .button-custom {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .vista-asesor-formulario-root {
+    font-size: 0.9rem;
+  }
+}
+
 .sort-button {
   display: flex;
   align-items: center;

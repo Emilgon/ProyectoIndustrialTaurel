@@ -39,3 +39,27 @@
 .link-text:hover {
   text-decoration: underline;
 }
+
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+  .login-form {
+    max-width: 90%;
+    padding: 1.5rem;
+  }
+
+  .login-button {
+    padding: 10px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-form {
+    padding: 1rem;
+  }
+
+  .login-button {
+    padding: 8px !important;
+    font-size: 0.85rem !important;
+  }
+}
