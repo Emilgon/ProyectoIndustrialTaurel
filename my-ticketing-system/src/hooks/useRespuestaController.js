@@ -22,6 +22,58 @@ const useRespuestaController = (consultaId) => {
   const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
+    const fetchAllDownloadUrls = async (attachments) => {
+      if (!attachments) return {};
+
+      const urlMap = {};
+      const files = attachments.split(", ");
+
+      for (let fileReference of files) {
+        try {
+          let storagePath;
+          let displayName;
+
+          // Si es una URL completa de Firebase Storage
+          if (fileReference.includes('firebasestorage.googleapis.com')) {
+            const urlObj = new URL(fileReference);
+            storagePath = decodeURIComponent(urlObj.pathname
+              .replace('/v0/b/proyectoindustrialtaurel.firebasestorage.app/o/', '')
+              .replace(/%2F/g, '/'));
+            displayName = storagePath.split('/').pop();
+          }
+          // Si es una ruta que comienza con "consultas/"
+          else if (fileReference.startsWith('consultas/')) {
+            storagePath = fileReference;
+            displayName = fileReference.split('/').pop();
+          }
+          // Si es solo un nombre de archivo
+          else {
+            // Primero intentamos con la ruta de respuestas si tenemos consultaId
+            if (consultaId) {
+              storagePath = `respuestas/${consultaId}/${fileReference}`;
+            } else {
+              storagePath = `archivos/${fileReference}`;
+            }
+            displayName = fileReference;
+          }
+
+          const url = await fetchDownloadUrls(storagePath, consultaId);
+          urlMap[fileReference] = { url, displayName };
+
+        } catch (error) {
+          console.error(`Error al obtener URL para ${fileReference}:`, error);
+          urlMap[fileReference] = {
+            url: null,
+            displayName: fileReference.includes('/')
+              ? fileReference.split('/').pop()
+              : fileReference
+          };
+        }
+      }
+
+      return urlMap;
+    };
+
     const fetchData = async () => {
       if (!consultaId) return;
       try {
@@ -29,12 +81,21 @@ const useRespuestaController = (consultaId) => {
         setConsultaData(consulta);
 
         if (consulta?.attachment) {
-          const urls = await fetchDownloadUrls(consulta.attachment);
+          const urls = await fetchAllDownloadUrls(consulta.attachment);
           setFileDownloadUrls(urls);
         }
 
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
+
+        const responseUrls = {};
+        for (const respuesta of respuestasData) {
+          if (respuesta.attachment) {
+            const urls = await fetchAllDownloadUrls(respuesta.attachment);
+            Object.assign(responseUrls, urls);
+          }
+        }
+        setFileDownloadUrls(prev => ({ ...prev, ...responseUrls }));
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -123,7 +184,7 @@ const useRespuestaController = (consultaId) => {
       let userFriendlyMessage = error.message;
       if (
         error.message ===
-          "El cliente no tiene un correo electrónico registrado" ||
+        "El cliente no tiene un correo electrónico registrado" ||
         error.message === "No se pudo obtener el email del cliente"
       ) {
         userFriendlyMessage =

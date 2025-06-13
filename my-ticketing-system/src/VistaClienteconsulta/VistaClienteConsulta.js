@@ -11,10 +11,6 @@ import {
   Avatar,
   IconButton,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import Swal from "sweetalert2";
 import {
@@ -103,32 +99,17 @@ const VistaClienteConsulta = () => {
 
   const filteredResponses = filterDate
     ? allResponses.filter((response) => {
-      const responseDate = new Date(response.timestamp.seconds * 1000);
-      return (
-        responseDate.getDate() === filterDate.getDate() &&
-        responseDate.getMonth() === filterDate.getMonth() &&
-        responseDate.getFullYear() === filterDate.getFullYear()
-      );
-    })
+        const responseDate = new Date(response.timestamp.seconds * 1000);
+        return (
+          responseDate.getDate() === filterDate.getDate() &&
+          responseDate.getMonth() === filterDate.getMonth() &&
+          responseDate.getFullYear() === filterDate.getFullYear()
+        );
+      })
     : allResponses;
 
   const clearDateFilter = () => {
     setFilterDate(null);
-  };
-
-  // Función para extraer el nombre del archivo de una URL de Firebase
-  const getFileNameFromUrl = (url) => {
-    if (!url) return "Archivo adjunto";
-
-    // Firebase URLs typically have the filename at the end after the last slash
-    const urlParts = url.split('/');
-    const lastPart = urlParts[urlParts.length - 1];
-
-    // Remove query parameters if any
-    const fileName = lastPart.split('?')[0];
-
-    // Decode URI encoded characters
-    return decodeURIComponent(fileName);
   };
 
   if (!consultaData) {
@@ -140,6 +121,7 @@ const VistaClienteConsulta = () => {
       </Box>
     );
   }
+  
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -197,26 +179,15 @@ const VistaClienteConsulta = () => {
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
               Fecha de envío:{" "}
-              {consultaData.start_date && consultaData.start_date.seconds
-                ? new Date(
-                  consultaData.start_date.seconds * 1000
-                ).toLocaleDateString("es-ES", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-                : new Date(consultaData.start_date).toLocaleDateString(
-                  "es-ES",
-                  {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
+              {new Date(
+                consultaData.start_date.seconds * 1000
+              ).toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </Typography>
           </Box>
         </Box>
@@ -232,9 +203,10 @@ const VistaClienteConsulta = () => {
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment.split(", ").map((fileName, index) => {
-                const fileUrl = fileDownloadUrls[fileName];
-                const displayName = fileName; // Usamos directamente el nombre del archivo
+              {consultaData.attachment.split(", ").map((fileReference, index) => {
+                const fileData = fileDownloadUrls[fileReference];
+                const fileUrl = fileData?.url;
+                const fileName = fileData?.sanitizedFileName || fileReference;
                 const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                   fileName.split(".").pop().toLowerCase()
                 );
@@ -257,9 +229,9 @@ const VistaClienteConsulta = () => {
                       <IconButton
                         component="a"
                         href={fileUrl}
-                        download={displayName}
+                        download={fileName}
                         rel="noopener noreferrer"
-                        aria-label={`Descargar archivo ${displayName}`}
+                        aria-label={`Descargar archivo ${fileName}`}
                         sx={{
                           padding: 0,
                           "&:hover": {
@@ -270,7 +242,7 @@ const VistaClienteConsulta = () => {
                         {isImage ? (
                           <img
                             src={fileUrl}
-                            alt={displayName}
+                            alt={fileName}
                             style={{
                               maxWidth: "50px",
                               maxHeight: "50px",
@@ -278,22 +250,22 @@ const VistaClienteConsulta = () => {
                             }}
                           />
                         ) : (
-                          getFileIcon(displayName)
+                          getFileIcon(fileName)
                         )}
                       </IconButton>
                     ) : (
-                      getFileIcon(displayName)
+                      getFileIcon(fileName)
                     )}
 
-                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                      {displayName}
+                    <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
+                      {fileName}
                     </Typography>
 
                     {fileUrl && (
                       <IconButton
                         component="a"
                         href={fileUrl}
-                        download={displayName}
+                        download={fileName}
                         rel="noopener noreferrer"
                         sx={{
                           color: "#1B5C94",
@@ -310,7 +282,6 @@ const VistaClienteConsulta = () => {
           )}
         </Card>
 
-        {/* Sección de historial de respuestas */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Box
             display="flex"
@@ -391,7 +362,6 @@ const VistaClienteConsulta = () => {
                     </Typography>
                     {respuesta.attachment.split(", ").map((fileName, index) => {
                       const fileUrl = fileDownloadUrls[fileName];
-                      const displayName = fileName; // Usamos directamente el nombre del archivo
                       const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                         fileName.split(".").pop().toLowerCase()
                       );
@@ -413,9 +383,9 @@ const VistaClienteConsulta = () => {
                             <IconButton
                               component="a"
                               href={fileUrl}
-                              download={displayName}
+                              download={fileName}
                               rel="noopener noreferrer"
-                              aria-label={`Descargar archivo ${displayName}`}
+                              aria-label={`Descargar archivo ${fileName}`}
                               sx={{
                                 padding: 0,
                                 "&:hover": { opacity: 0.8 },
@@ -424,7 +394,7 @@ const VistaClienteConsulta = () => {
                               {isImage ? (
                                 <img
                                   src={fileUrl}
-                                  alt={displayName}
+                                  alt={fileName}
                                   style={{
                                     maxWidth: "50px",
                                     maxHeight: "50px",
@@ -432,22 +402,22 @@ const VistaClienteConsulta = () => {
                                   }}
                                 />
                               ) : (
-                                getFileIcon(displayName)
+                                getFileIcon(fileName)
                               )}
                             </IconButton>
                           ) : (
-                            getFileIcon(displayName)
+                            getFileIcon(fileName)
                           )}
 
                           <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                            {displayName}
+                            {fileName}
                           </Typography>
 
                           {fileUrl && (
                             <IconButton
                               component="a"
                               href={fileUrl}
-                              download={displayName}
+                              download={fileName}
                               rel="noopener noreferrer"
                               sx={{
                                 color: "#1B5C94",
@@ -471,7 +441,6 @@ const VistaClienteConsulta = () => {
           )}
         </Card>
 
-        {/* Sección de respuesta */}
         <Box component="form" onSubmit={onSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField

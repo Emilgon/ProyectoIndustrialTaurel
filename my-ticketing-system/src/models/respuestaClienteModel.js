@@ -31,20 +31,35 @@ export const fetchConsultaById = async (consultaId) => {
   return null;
 };
 
-export const fetchDownloadUrls = async (attachments) => {
-  const urls = {};
-  if (!attachments) return urls;
-  for (const fileName of attachments.split(", ")) {
-    try {
-      const storageRef = ref(storage, `${fileName}`);
-      const url = await getDownloadURL(storageRef);
-      urls[fileName] = url;
-    } catch (error) {
-      console.error("Error fetching download URL:", error);
+export async function fetchDownloadUrls(filePath) {
+  try {
+    // Primero extraemos la ruta real del archivo si es una URL completa
+    const actualPath = extractStoragePath(filePath);
+
+    // Obtenemos referencia al archivo
+    const storageRef = ref(storage, actualPath);
+
+    // Obtenemos la URL de descarga
+    const url = await getDownloadURL(storageRef);
+    return url;
+  } catch (error) {
+    console.error('Error fetching download URL:', error);
+    throw error;
+  }
+}
+
+// Función auxiliar para extraer la ruta correcta
+function extractStoragePath(fullPath) {
+  // Si es una URL completa, extraemos la parte importante
+  if (fullPath.includes('firebasestorage.googleapis.com')) {
+    const match = fullPath.match(/\/o\/(.+?)(\?|$)/);
+    if (match) {
+      return decodeURIComponent(match[1].replace('%2F', '/'));
     }
   }
-  return urls;
-};
+  // Si no, asumimos que ya es la ruta correcta
+  return fullPath;
+}
 
 export const addRespuesta = async (consultaId, content, file) => {
   const responseData = {
@@ -57,15 +72,10 @@ export const addRespuesta = async (consultaId, content, file) => {
 
   const docRef = await addDoc(collection(db, "ResponsesClients"), responseData);
 
-  let downloadUrl = null;
   if (file) {
-    const storageRef = ref(
-      storage,
-      `respuestasClientes/${consultaId}/${file.name}`
-    );
+    const storageRef = ref(storage, `consultas/${consultaId}/${file.name}`);
     await uploadBytes(storageRef, file);
-    downloadUrl = await getDownloadURL(storageRef);
   }
 
-  return { id: docRef.id, downloadUrl };
+  return { id: docRef.id };
 };

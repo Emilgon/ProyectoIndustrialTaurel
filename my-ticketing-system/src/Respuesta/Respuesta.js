@@ -102,13 +102,13 @@ const Respuesta = () => {
 
   const filteredResponses = filterDate
     ? allResponses.filter((response) => {
-        const responseDate = new Date(response.timestamp.seconds * 1000);
-        return (
-          responseDate.getDate() === filterDate.getDate() &&
-          responseDate.getMonth() === filterDate.getMonth() &&
-          responseDate.getFullYear() === filterDate.getFullYear()
-        );
-      })
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
     : allResponses;
 
   const clearDateFilter = () => {
@@ -199,24 +199,24 @@ const Respuesta = () => {
               Fecha de envío:{" "}
               {consultaData.start_date && consultaData.start_date.seconds
                 ? new Date(
-                    consultaData.start_date.seconds * 1000
-                  ).toLocaleDateString("es-ES", {
+                  consultaData.start_date.seconds * 1000
+                ).toLocaleDateString("es-ES", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : new Date(consultaData.start_date).toLocaleDateString(
+                  "es-ES",
+                  {
                     day: "2-digit",
                     month: "2-digit",
                     year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  })
-                : new Date(consultaData.start_date).toLocaleDateString(
-                    "es-ES",
-                    {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  )}
+                  }
+                )}
             </Typography>
           </Box>
         </Box>
@@ -232,8 +232,10 @@ const Respuesta = () => {
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment.split(", ").map((fileName, index) => {
-                const fileUrl = fileDownloadUrls[fileName];
+              {consultaData.attachment.split(", ").map((fileReference, index) => {
+                const fileData = fileDownloadUrls[fileReference];
+                const fileUrl = fileData?.url;
+                const fileName = fileData?.displayName || fileReference.split('/').pop();
                 const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                   fileName.split(".").pop().toLowerCase()
                 );
@@ -256,7 +258,7 @@ const Respuesta = () => {
                       <IconButton
                         component="a"
                         href={fileUrl}
-                        download
+                        download={fileName}
                         rel="noopener noreferrer"
                         aria-label={`Descargar archivo ${fileName}`}
                         sx={{
@@ -282,9 +284,24 @@ const Respuesta = () => {
                       </IconButton>
                     )}
 
-                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                    <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
                       {fileName}
                     </Typography>
+
+                    {fileUrl && (
+                      <IconButton
+                        component="a"
+                        href={fileUrl}
+                        download={fileName}
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": { backgroundColor: "#e3f2fd" },
+                        }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
                   </Box>
                 );
               })}
@@ -372,36 +389,78 @@ const Respuesta = () => {
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
                     </Typography>
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                      sx={{
-                        p: 1,
-                        border: "1px solid #e0e0e0",
-                        borderRadius: 1,
-                        "&:hover": { backgroundColor: "#f5f5f5" },
-                      }}
-                    >
-                      {getFileIcon(respuesta.attachment)}
-                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                        {respuesta.attachment}
-                      </Typography>
-                      <IconButton
-                        component="a"
-                        href={`respuestas/${consultaId}/${respuesta.attachment}`}
-                        download
-                        rel="noopener noreferrer"
-                        sx={{
-                          color: "#1B5C94",
-                          "&:hover": {
-                            backgroundColor: "#e3f2fd",
-                          },
-                        }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    </Box>
+                    {respuesta.attachment.split(", ").map((fileReference, index) => {
+                      const fileData = fileDownloadUrls[fileReference];
+                      const fileUrl = fileData?.url;
+                      const fileName = fileData?.displayName || fileReference.split('/').pop();
+                      const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                        fileName.split(".").pop().toLowerCase()
+                      );
+
+                      return (
+                        <Box
+                          key={index}
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          sx={{
+                            p: 1,
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 1,
+                            "&:hover": { backgroundColor: "#f5f5f5" },
+                          }}
+                        >
+                          {fileUrl ? (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={fileName}
+                              rel="noopener noreferrer"
+                              aria-label={`Descargar archivo ${fileName}`}
+                              sx={{
+                                padding: 0,
+                                "&:hover": { opacity: 0.8 },
+                              }}
+                            >
+                              {isImage ? (
+                                <img
+                                  src={fileUrl}
+                                  alt={fileName}
+                                  style={{
+                                    maxWidth: "50px",
+                                    maxHeight: "50px",
+                                    borderRadius: "4px",
+                                  }}
+                                />
+                              ) : (
+                                getFileIcon(fileName)
+                              )}
+                            </IconButton>
+                          ) : (
+                            getFileIcon(fileName)
+                          )}
+
+                          <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
+                            {fileName}
+                          </Typography>
+
+                          {fileUrl && (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={fileName}
+                              rel="noopener noreferrer"
+                              sx={{
+                                color: "#1B5C94",
+                                "&:hover": { backgroundColor: "#e3f2fd" },
+                              }}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 )}
               </Box>

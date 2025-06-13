@@ -14,46 +14,66 @@ const useRespuestaController = (consultaId) => {
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
 
-  // Función para obtener URLs de descarga para múltiples archivos
   const fetchAllDownloadUrls = async (attachments) => {
     if (!attachments) return {};
-    
-    const urls = {};
+
+    const urlMap = {};
     const files = attachments.split(", ");
-    
-    for (const fileName of files) {
+
+    for (let fileReference of files) {
       try {
-        const fileInfo = await fetchDownloadUrls(fileName);
-        urls[fileName] = fileInfo;
+        let storagePath = fileReference;
+
+        // Si es una URL completa de Firebase Storage
+        if (fileReference.includes('firebasestorage.googleapis.com')) {
+          // Extraemos la parte importante de la URL
+          const urlObj = new URL(fileReference);
+          storagePath = decodeURIComponent(urlObj.pathname
+            .replace('/v0/b/proyectoindustrialtaurel.firebasestorage.app/o/', '')
+            .replace(/%2F/g, '/'));
+        }
+
+        // Si es una ruta que comienza con "consultas/"
+        else if (fileReference.startsWith('consultas/')) {
+          // La mantenemos como está
+          storagePath = fileReference;
+        }
+
+        // Si es solo un nombre de archivo
+        else {
+          // Asumimos que está en la carpeta "archivos/"
+          storagePath = `archivos/${fileReference}`;
+        }
+
+        const url = await fetchDownloadUrls(storagePath);
+        // Guardamos con la referencia original como clave y objeto con url y displayName
+        const displayName = storagePath.split('/').pop();
+        urlMap[fileReference] = { url, displayName };
+
       } catch (error) {
-        console.error(`Error al obtener URL para ${fileName}:`, error);
-        urls[fileName] = { url: null, displayName: fileName };
+        console.error(`Error al obtener URL para ${fileReference}:`, error);
+        urlMap[fileReference] = { url: null, displayName: fileReference };
       }
     }
-    
-    return urls;
+
+    return urlMap;
   };
 
-  // Cargar datos iniciales
   useEffect(() => {
     const fetchData = async () => {
       if (!consultaId) return;
       try {
-        // 1. Obtener datos de la consulta
         const consulta = await fetchConsultaById(consultaId);
         setConsultaData(consulta);
 
-        // 2. Obtener URLs para archivos adjuntos de la consulta
         if (consulta?.attachment) {
           const urls = await fetchAllDownloadUrls(consulta.attachment);
           setFileDownloadUrls(urls);
         }
 
-        // 3. Obtener respuestas y sus archivos adjuntos
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
 
-        // 4. Obtener URLs para archivos adjuntos de las respuestas
         const responseUrls = {};
         for (const respuesta of respuestasData) {
           if (respuesta.attachment) {
@@ -94,18 +114,13 @@ const useRespuestaController = (consultaId) => {
     }
 
     try {
-      // 1. Guardar la respuesta en Firestore
       await addRespuesta(consultaId, reply, file);
-
-      // 2. Limpiar formulario
       setReply("");
       handleRemoveFile();
 
-      // 3. Actualizar lista de respuestas y URLs de descarga
       const updatedRespuestas = await fetchRespuestasByConsultaId(consultaId);
       setRespuestas(updatedRespuestas);
 
-      // 4. Actualizar URLs para nuevas respuestas con archivos adjuntos
       const newResponseUrls = {};
       for (const respuesta of updatedRespuestas) {
         if (respuesta.attachment && !fileDownloadUrls[respuesta.attachment]) {
@@ -113,7 +128,7 @@ const useRespuestaController = (consultaId) => {
           Object.assign(newResponseUrls, urls);
         }
       }
-      
+
       if (Object.keys(newResponseUrls).length > 0) {
         setFileDownloadUrls(prev => ({ ...prev, ...newResponseUrls }));
       }
@@ -125,7 +140,6 @@ const useRespuestaController = (consultaId) => {
         success: false,
         error: {
           message: error.message || "Error al enviar la respuesta",
-          details: error.details,
         },
       };
     }
