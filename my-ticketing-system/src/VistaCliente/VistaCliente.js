@@ -384,7 +384,7 @@ const VistaCliente = () => {
         {/* Sección de Historial */}
         <Paper sx={{ flex: 2, padding: 2, overflowY: "auto" }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Historial de Consultas y Respuestas
+            Historial de Consultas
           </Typography>
           {respuestas.length > 0 ? (
             respuestas
