@@ -1949,7 +1949,7 @@ const VistaAsesorFormulario = () => {
                                                 Archivo adjunto
                                               </TableCell>
                                               <TableCell>
-                                                {renderAttachments(respuesta.attachment)}
+                                                {respuesta.attachment && renderAttachments(respuesta.attachment)}
                                               </TableCell>
                                             </TableRow>
                                           )}
