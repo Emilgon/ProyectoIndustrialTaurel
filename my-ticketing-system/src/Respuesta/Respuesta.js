@@ -102,13 +102,13 @@ const Respuesta = () => {
 
   const filteredResponses = filterDate
     ? allResponses.filter((response) => {
-        const responseDate = new Date(response.timestamp.seconds * 1000);
-        return (
-          responseDate.getDate() === filterDate.getDate() &&
-          responseDate.getMonth() === filterDate.getMonth() &&
-          responseDate.getFullYear() === filterDate.getFullYear()
-        );
-      })
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
     : allResponses;
 
   const clearDateFilter = () => {
@@ -199,21 +199,21 @@ const Respuesta = () => {
               Fecha de envío:{" "}
               {consultaData.star_date && consultaData.star_date.seconds
                 ? new Date(
-                    consultaData.star_date.seconds * 1000
-                  ).toLocaleDateString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                  consultaData.star_date.seconds * 1000
+                ).toLocaleDateString("es-ES", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
                 : new Date(consultaData.star_date).toLocaleDateString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
             </Typography>
           </Box>
         </Box>
@@ -395,7 +395,6 @@ const Respuesta = () => {
                     })}
                   </Typography>
                 )}
-
                 {respuesta.attachment && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
@@ -404,11 +403,33 @@ const Respuesta = () => {
                     {respuesta.attachment
                       .split(", ")
                       .map((fileReference, index) => {
-                        const fileData = fileDownloadUrls[fileReference];
-                        const fileUrl = fileData?.url;
-                        const fileName =
-                          fileData?.displayName ||
-                          fileReference.split("/").pop();
+                        // Intenta varias rutas posibles para encontrar el archivo
+                        const possiblePaths = [
+                          `archivos/${fileReference}`, // Ruta principal
+                          `consultas/${consultaId}/${fileReference}`, // Para archivos de consultas
+                          `respuestas/${consultaId}/${fileReference}`, // Para archivos de respuestas
+                          fileReference // Intenta con la referencia directa
+                        ];
+
+                        // Busca la primera URL que exista
+                        let fileData = null;
+                        for (const path of possiblePaths) {
+                          if (fileDownloadUrls[path]) {
+                            fileData = fileDownloadUrls[path];
+                            break;
+                          }
+                        }
+
+                        // Si no se encontró en fileDownloadUrls, crea un objeto básico
+                        if (!fileData) {
+                          fileData = {
+                            url: null,
+                            displayName: fileReference.split("/").pop()
+                          };
+                        }
+
+                        const fileUrl = fileData.url;
+                        const fileName = fileData.displayName;
                         const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                           fileName.split(".").pop().toLowerCase()
                         );
@@ -427,65 +448,72 @@ const Respuesta = () => {
                             }}
                           >
                             {fileUrl ? (
-                              <IconButton
-                                onClick={() => {
-                                  // Crear un enlace temporal para la descarga
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                aria-label={`Descargar archivo ${fileName}`}
-                                sx={{
-                                  padding: 0,
-                                  "&:hover": { opacity: 0.8 },
-                                }}
-                              >
-                                {isImage ? (
-                                  <img
-                                    src={fileUrl}
-                                    alt={fileName}
-                                    style={{
-                                      maxWidth: "50px",
-                                      maxHeight: "50px",
-                                      borderRadius: "4px",
-                                    }}
-                                  />
-                                ) : (
-                                  getFileIcon(fileName)
-                                )}
-                              </IconButton>
+                              <>
+                                <IconButton
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = fileUrl;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  aria-label={`Descargar archivo ${fileName}`}
+                                  sx={{
+                                    padding: 0,
+                                    "&:hover": { opacity: 0.8 },
+                                  }}
+                                >
+                                  {isImage ? (
+                                    <img
+                                      src={fileUrl}
+                                      alt={fileName}
+                                      style={{
+                                        maxWidth: "50px",
+                                        maxHeight: "50px",
+                                        borderRadius: "4px",
+                                      }}
+                                    />
+                                  ) : (
+                                    getFileIcon(fileName)
+                                  )}
+                                </IconButton>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                                >
+                                  {fileName}
+                                </Typography>
+                                <IconButton
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = fileUrl;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  sx={{
+                                    color: "#1B5C94",
+                                    "&:hover": { backgroundColor: "#e3f2fd" },
+                                  }}
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              </>
                             ) : (
-                              getFileIcon(fileName)
-                            )}
-
-                            <Typography
-                              variant="body2"
-                              sx={{ flexGrow: 1, wordBreak: "break-all" }}
-                            >
-                              {fileName}
-                            </Typography>
-
-                            {fileUrl && (
-                              <IconButton
-                                onClick={() => {
-                                  // Crear un enlace temporal para la descarga
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                sx={{
-                                  color: "#1B5C94",
-                                  "&:hover": { backgroundColor: "#e3f2fd" },
-                                }}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
+                              <>
+                                {getFileIcon(fileName)}
+                                <Typography
+                                  variant="body2"
+                                  sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                                >
+                                  {fileName}
+                                </Typography>
+                                <Typography variant="caption" color="error">
+                                  (Archivo no disponible)
+                                </Typography>
+                              </>
                             )}
                           </Box>
                         );

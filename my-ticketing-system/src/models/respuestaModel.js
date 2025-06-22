@@ -33,34 +33,9 @@ export const fetchConsultaById = async (consultaId) => {
 
 export const fetchDownloadUrls = async (fileReference, consultaId) => {
   try {
-    let storagePath;
-    let displayName;
-
-    // Si es una URL completa de Firebase Storage
-    if (fileReference.includes('firebasestorage.googleapis.com')) {
-      const urlObj = new URL(fileReference);
-      storagePath = decodeURIComponent(urlObj.pathname
-        .replace('/v0/b/proyectoindustrialtaurel.firebasestorage.app/o/', '')
-        .replace(/%2F/g, '/')
-        .split('?')[0]); // Eliminar parámetros de consulta
-      displayName = storagePath.split('/').pop();
-    }
-    // Si es una ruta de storage
-    else if (fileReference.startsWith('consultas/') || fileReference.startsWith('respuestas/')) {
-      storagePath = fileReference;
-      displayName = fileReference.split('/').pop();
-    }
-    // Si es solo un nombre de archivo
-    else {
-      // Primero intentamos con la ruta de respuestas si tenemos consultaId
-      if (consultaId) {
-        storagePath = `respuestas/${consultaId}/${fileReference}`;
-      } else {
-        storagePath = `consultas/${fileReference}`; // Cambiado de 'archivos/' a 'consultas/'
-      }
-      displayName = fileReference;
-    }
-
+    // Todos los archivos están en 'archivos/'
+    const storagePath = `archivos/${fileReference}`;
+    const displayName = fileReference.split('/').pop();
     const url = await getDownloadURL(ref(storage, storagePath));
     return { url, displayName };
   } catch (error) {
@@ -87,7 +62,8 @@ export const addRespuesta = async (consultaId, content, file) => {
 
   let downloadUrl = null;
   if (file) {
-    const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
+    // Cambiado para subir a 'archivos/' en lugar de 'respuestas/'
+    const storageRef = ref(storage, `archivos/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);
   }

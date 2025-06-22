@@ -30,43 +30,43 @@ const useRespuestaController = (consultaId) => {
 
       for (let fileReference of files) {
         try {
-          let storagePath;
-          let displayName;
+          // Intenta varias rutas posibles
+          const possiblePaths = [
+            `archivos/${fileReference}`,
+            `consultas/${consultaId}/${fileReference}`,
+            `respuestas/${consultaId}/${fileReference}`,
+            fileReference
+          ];
 
-          // Si es una URL completa de Firebase Storage
-          if (fileReference.includes('firebasestorage.googleapis.com')) {
-            const urlObj = new URL(fileReference);
-            storagePath = decodeURIComponent(urlObj.pathname
-              .replace('/v0/b/proyectoindustrialtaurel.firebasestorage.app/o/', '')
-              .replace(/%2F/g, '/'));
-            displayName = storagePath.split('/').pop();
-          }
-          // Si es una ruta que comienza con "consultas/"
-          else if (fileReference.startsWith('consultas/')) {
-            storagePath = fileReference;
-            displayName = fileReference.split('/').pop();
-          }
-          // Si es solo un nombre de archivo
-          else {
-            // Primero intentamos con la ruta de respuestas si tenemos consultaId
-            if (consultaId) {
-              storagePath = `respuestas/${consultaId}/${fileReference}`;
-            } else {
-              storagePath = `archivos/${fileReference}`;
+          let urlFound = null;
+          let displayName = fileReference.split("/").pop();
+
+          for (const path of possiblePaths) {
+            try {
+              const url = await getDownloadURL(ref(storage, path));
+              urlFound = url;
+              break;
+            } catch (error) {
+              continue;
             }
-            displayName = fileReference;
           }
 
-          const url = await fetchDownloadUrls(storagePath, consultaId);
-          urlMap[fileReference] = { url, displayName };
-
+          if (urlFound) {
+            urlMap[fileReference] = {
+              url: urlFound,
+              displayName: displayName
+            };
+          } else {
+            urlMap[fileReference] = {
+              url: null,
+              displayName: displayName
+            };
+          }
         } catch (error) {
           console.error(`Error al obtener URL para ${fileReference}:`, error);
           urlMap[fileReference] = {
             url: null,
-            displayName: fileReference.includes('/')
-              ? fileReference.split('/').pop()
-              : fileReference
+            displayName: fileReference.split("/").pop()
           };
         }
       }
