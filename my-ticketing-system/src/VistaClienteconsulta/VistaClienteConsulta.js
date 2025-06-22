@@ -121,7 +121,6 @@ const VistaClienteConsulta = () => {
       </Box>
     );
   }
-  
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -180,7 +179,7 @@ const VistaClienteConsulta = () => {
             <Typography variant="h6" fontWeight="bold">
               Fecha de envío:{" "}
               {new Date(
-                consultaData.start_date.seconds * 1000
+                consultaData.star_date.seconds * 1000
               ).toLocaleDateString("es-ES", {
                 day: "2-digit",
                 month: "2-digit",
@@ -203,81 +202,85 @@ const VistaClienteConsulta = () => {
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment.split(", ").map((fileReference, index) => {
-                const fileData = fileDownloadUrls[fileReference];
-                const fileUrl = fileData?.url;
-                const fileName = fileData?.sanitizedFileName || fileReference;
-                const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                  fileName.split(".").pop().toLowerCase()
-                );
+              {consultaData.attachment
+                .split(", ")
+                .map((fileReference, index) => {
+                  const fileUrl = fileReference;
+                  const fileName = "Multimedia";
+                  const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                    fileName.split(".").pop().toLowerCase()
+                  );
 
-                return (
-                  <Box
-                    key={index}
-                    display="flex"
-                    alignItems="center"
-                    gap={1}
-                    mb={1}
-                    sx={{
-                      p: 1,
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 1,
-                      "&:hover": { backgroundColor: "#f5f5f5" },
-                    }}
-                  >
-                    {fileUrl ? (
-                      <IconButton
-                        component="a"
-                        href={fileUrl}
-                        download={fileName}
-                        rel="noopener noreferrer"
-                        aria-label={`Descargar archivo ${fileName}`}
-                        sx={{
-                          padding: 0,
-                          "&:hover": {
-                            opacity: 0.8,
-                          },
-                        }}
+                  return (
+                    <Box
+                      key={index}
+                      display="flex"
+                      alignItems="center"
+                      gap={1}
+                      mb={1}
+                      sx={{
+                        p: 1,
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
+                    >
+                      {fileUrl ? (
+                        <IconButton
+                          component="a"
+                          href={fileUrl}
+                          download={fileName}
+                          rel="noopener noreferrer"
+                          aria-label={`Descargar archivo ${fileName}`}
+                          sx={{
+                            padding: 0,
+                            "&:hover": {
+                              opacity: 0.8,
+                            },
+                          }}
+                        >
+                          {fileUrl ? (
+                            <img
+                              src={fileUrl}
+                              alt={fileName}
+                              style={{
+                                maxWidth: "50px",
+                                maxHeight: "50px",
+                                borderRadius: "4px",
+                              }}
+                            />
+                          ) : (
+                            getFileIcon(fileName)
+                          )}
+                        </IconButton>
+                      ) : (
+                        getFileIcon(fileName)
+                      )}
+
+                      <Typography
+                        variant="body2"
+                        sx={{ flexGrow: 1, wordBreak: "break-all" }}
                       >
-                        {isImage ? (
-                          <img
-                            src={fileUrl}
-                            alt={fileName}
-                            style={{
-                              maxWidth: "50px",
-                              maxHeight: "50px",
-                              borderRadius: "4px",
-                            }}
-                          />
-                        ) : (
-                          getFileIcon(fileName)
-                        )}
-                      </IconButton>
-                    ) : (
-                      getFileIcon(fileName)
-                    )}
+                        {fileName}
+                      </Typography>
 
-                    <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
-                      {fileName}
-                    </Typography>
-
-                    {fileUrl && (
-                      <IconButton
-                        component="a"
-                        href={fileUrl}
-                        download={fileName}
-                        rel="noopener noreferrer"
-                        sx={{
-                          color: "#1B5C94",
-                          "&:hover": { backgroundColor: "#e3f2fd" },
-                        }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    )}
-                  </Box>
-                );
-              })}
+                      {fileUrl && (
+                        <IconButton
+                          component="a"
+                          href={fileUrl}
+                          download={fileName}
+                          rel="noopener noreferrer"
+                          sx={{
+                            color: "#1B5C94",
+                            "&:hover": { backgroundColor: "#e3f2fd" },
+                          }}
+                        >
+                          <DownloadIcon />
+                        </IconButton>
+                      )}
+                    </Box>
+                  );
+                })}
             </Box>
           )}
         </Card>
@@ -436,7 +439,9 @@ const VistaClienteConsulta = () => {
             ))
           ) : (
             <Typography variant="body1">
-              {filterDate ? "No hay respuestas en esta fecha" : "No hay respuestas aún."}
+              {filterDate
+                ? "No hay respuestas en esta fecha"
+                : "No hay respuestas aún."}
             </Typography>
           )}
         </Card>
