@@ -448,6 +448,15 @@ const VistaAsesorFormulario = () => {
         })
       );
 
+      // Fetch download URLs for client responses attachments
+      let clientAttachmentUrls = {};
+      for (const respuesta of respuestasClienteData) {
+        if (respuesta.attachment) {
+          const urls = await fetchDownloadUrls(respuesta.attachment);
+          clientAttachmentUrls = { ...clientAttachmentUrls, ...urls };
+        }
+      }
+
       const respuestas1 = [...respuestasClienteData];
       const respuestas2 = [...respuestasData];
 
@@ -467,6 +476,9 @@ const VistaAsesorFormulario = () => {
       });
 
       setRespuestas(mergedArray);
+
+      // Update fileDownloadUrls state with client attachment URLs
+      setFileDownloadUrls((prevUrls) => ({ ...prevUrls, ...clientAttachmentUrls }));
     } catch (error) {
       console.error("Error al obtener las respuestas:", error);
     }
@@ -480,25 +492,43 @@ const VistaAsesorFormulario = () => {
       attachments.split(", ") :
       Array.isArray(attachments) ? attachments : [];
 
-    for (const fileUrl of files) {
+    for (const fileReference of files) {
       try {
         // Si ya es una URL completa, la usamos directamente
-        if (fileUrl.startsWith('http')) {
-          urls[fileUrl] = fileUrl;
+        if (fileReference.startsWith('http')) {
+          urls[fileReference] = {
+            url: fileReference,
+            displayName: fileReference.split('/').pop().split('?')[0]
+          };
           continue;
         }
 
-        // Extraer el nombre del archivo decodificando y eliminando parámetros de consulta
-        let fileName = fileUrl.split('/').pop() || '';
-        fileName = decodeURIComponent(fileName.split('?')[0]);
+        // Manejar diferentes formatos de referencia de archivo
+        let storagePath = fileReference;
 
-        const storageRef = ref(storage, `${fileName}`);
+        // Si comienza con 'consultas/', mantenemos la ruta
+        if (fileReference.startsWith('consultas/')) {
+          storagePath = fileReference;
+        }
+        // Si es solo un nombre de archivo, asumimos que está en 'archivos/'
+        else {
+          storagePath = `archivos/${fileReference.split('/').pop()}`;
+        }
+
+        const storageRef = ref(storage, storagePath);
         const url = await getDownloadURL(storageRef);
-        urls[fileName] = url;
+
+        urls[fileReference] = {
+          url: url,
+          displayName: storagePath.split('/').pop()
+        };
       } catch (error) {
         console.error("Error al obtener la URL de descarga:", error);
         // Si falla, al menos mostramos el nombre del archivo
-        urls[fileUrl] = null;
+        urls[fileReference] = {
+          url: null,
+          displayName: fileReference.split('/').pop()
+        };
       }
     }
     return urls;
@@ -873,15 +903,17 @@ const VistaAsesorFormulario = () => {
       attachments.split(", ") :
       Array.isArray(attachments) ? attachments : [];
 
-    return files.map((fileName) => {
-      const fileUrl = fileDownloadUrls[fileName];
-      // Decodificar y eliminar parámetros de consulta para mostrar solo el nombre limpio
-      let displayName = fileName.split('/').pop() || '';
-      displayName = decodeURIComponent(displayName.split('?')[0]);
+    return files.map((fileReference) => {
+      // Obtener la URL de descarga si existe
+      const fileUrl = fileDownloadUrls[fileReference]?.url || fileReference;
+      // Obtener el nombre legible del archivo
+      const displayName = fileDownloadUrls[fileReference]?.displayName ||
+        fileReference.split('/').pop() ||
+        fileReference;
 
       return (
         <Box
-          key={fileName}
+          key={fileReference}
           display="flex"
           alignItems="center"
           justifyContent="space-between"
@@ -909,6 +941,7 @@ const VistaAsesorFormulario = () => {
                 rel="noopener noreferrer"
                 size="small"
                 sx={{ color: "#1B5C94" }}
+                onClick={(e) => e.stopPropagation()}
               >
                 <DownloadIcon />
               </IconButton>
@@ -1194,21 +1227,21 @@ const VistaAsesorFormulario = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{display: "flex",justifyContent: "space-between",alignItems: "center",}}>
-          <Box sx={{ textAlign: 'left' }}>
-            {advisorName && (
-              <Typography variant="h5" fontWeight="bold" color="#1B5C94" gutterBottom>
-                Bienvenido, {advisorName}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Segunda fila: Consultas centrado */}
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-45} gutterBottom>
-              Consultas
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", }}>
+        <Box sx={{ textAlign: 'left' }}>
+          {advisorName && (
+            <Typography variant="h5" fontWeight="bold" color="#1B5C94" gutterBottom>
+              Bienvenido, {advisorName}
             </Typography>
-          </Box>
+          )}
+        </Box>
+
+        {/* Segunda fila: Consultas centrado */}
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-45} gutterBottom>
+            Consultas
+          </Typography>
+        </Box>
         <Tooltip title="Resetear filtros" arrow>
           <IconButton
             onClick={resetFilters}
