@@ -41,11 +41,15 @@ const useRespuestaController = (consultaId) => {
 
         // Si es solo un nombre de archivo
         else {
-          // Asumimos que está en la carpeta "archivos/"
-          storagePath = `archivos/${fileReference}`;
+          // Asumimos que está en la carpeta "archivos/" si no es una ruta de consulta
+          if (fileReference.startsWith('consultas/')) {
+            storagePath = fileReference;
+          } else {
+            storagePath = `archivos/${fileReference.split('/').pop()}`;
+          }
         }
 
-        const url = await fetchDownloadUrls(storagePath);
+        const url = await fetchDownloadUrls(storagePath, consultaId); // Pasar consultaId
         // Guardamos con la referencia original como clave y objeto con url y displayName
         const displayName = storagePath.split('/').pop();
         urlMap[fileReference] = { url, displayName };

@@ -21,8 +21,6 @@ import {
   Description as DocIcon,
   Image as ImageIcon,
   Delete as DeleteIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
   Description as DescriptionIcon,
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
@@ -34,7 +32,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
-const Respuesta = () => {
+const VistaClienteConsulta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
 
@@ -49,25 +47,24 @@ const Respuesta = () => {
     handleFileChange,
     handleRemoveFile,
     handleSubmit,
-  } = useRespuestaController(consultaId);
+  } = useRespuestaClienteController(consultaId);
 
-  const { respuestas: respuestasCliente } =
-    useRespuestaClienteController(consultaId);
+  const { respuestas: respuestasAsesor } = useRespuestaController(consultaId);
 
   const [allResponses, setAllResponses] = useState([]);
   const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
-    const respuestas1 = [...respuestasCliente];
-    const respuestas2 = [...respuestas];
+    const respuestas1 = [...respuestas];
+    const respuestas2 = [...respuestasAsesor];
 
     respuestas1.forEach((item) => {
-      item["sender"] = "Cliente";
+      item["sender"] = "Tú";
       return item;
     });
 
     respuestas2.forEach((item) => {
-      item["sender"] = "Tú";
+      item["sender"] = "Asesor";
       return item;
     });
 
@@ -77,7 +74,7 @@ const Respuesta = () => {
     });
 
     setAllResponses(mergedArray);
-  }, [respuestasCliente, respuestas]);
+  }, [respuestasAsesor, respuestas]);
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -132,7 +129,7 @@ const Respuesta = () => {
       Swal.fire({
         icon: "success",
         title: "Respuesta enviada correctamente",
-        text: "La respuesta se ha guardado y el cliente ha sido notificado",
+        text: "La respuesta se ha guardado",
         showConfirmButton: false,
         timer: 2000,
       });
@@ -163,32 +160,16 @@ const Respuesta = () => {
           gutterBottom
           sx={{ color: "#1B5C94" }}
         >
-          Respuesta a la Consulta
+          Consulta
         </Typography>
 
         <Box sx={{ mb: 3 }}>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
-              <PersonIcon fontSize="small" />
-            </Avatar>
-            <Typography variant="h6" fontWeight="bold">
-              Cliente: {consultaData.name}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
-              <BusinessIcon fontSize="small" />
-            </Avatar>
-            <Typography variant="h6" fontWeight="bold">
-              Empresa: {consultaData.company}
-            </Typography>
-          </Box>
           <Box display="flex" alignItems="center" gap={1}>
             <Avatar sx={{ bgcolor: "#1B5C94", width: 32, height: 32 }}>
               <DescriptionIcon fontSize="small" />
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
-              Tipo de consulta: {consultaData.type}
+              Tipo de consulta asignada: {consultaData.type}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={1} mt={1}>
@@ -197,32 +178,25 @@ const Respuesta = () => {
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
               Fecha de envío:{" "}
-              {consultaData.star_date && consultaData.star_date.seconds
-                ? new Date(
-                    consultaData.star_date.seconds * 1000
-                  ).toLocaleDateString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : new Date(consultaData.star_date).toLocaleDateString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+              {new Date(
+                consultaData.star_date.seconds * 1000
+              ).toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </Typography>
           </Box>
         </Box>
 
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Mensaje del Cliente
+            Primer mensaje
           </Typography>
           <Typography variant="body1">{consultaData.messageContent}</Typography>
+
           {consultaData.attachment && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -231,10 +205,9 @@ const Respuesta = () => {
               {consultaData.attachment
                 .split(", ")
                 .map((fileReference, index) => {
-                  const fileData = fileDownloadUrls[fileReference];
-                  const fileUrl = fileData?.url;
-                  const fileName =
-                    fileData?.displayName || fileReference.split("/").pop();
+                  const fileUrl = fileReference;
+                  const rawFileName = fileReference.split("/").pop();
+                  const fileName = decodeURIComponent(rawFileName.split("?")[0]);
                   const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                     fileName.split(".").pop().toLowerCase()
                   );
@@ -255,19 +228,16 @@ const Respuesta = () => {
                     >
                       {fileUrl ? (
                         <IconButton
-                          onClick={() => {
-                            // Crear un enlace temporal para la descarga
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
+                          component="a"
+                          href={fileUrl}
+                          download={fileName}
+                          rel="noopener noreferrer"
                           aria-label={`Descargar archivo ${fileName}`}
                           sx={{
                             padding: 0,
-                            "&:hover": { opacity: 0.8 },
+                            "&:hover": {
+                              opacity: 0.8,
+                            },
                           }}
                         >
                           {isImage ? (
@@ -297,15 +267,10 @@ const Respuesta = () => {
 
                       {fileUrl && (
                         <IconButton
-                          onClick={() => {
-                            // Crear un enlace temporal para la descarga
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
+                          component="a"
+                          href={fileUrl}
+                          download={fileName}
+                          rel="noopener noreferrer"
                           sx={{
                             color: "#1B5C94",
                             "&:hover": { backgroundColor: "#e3f2fd" },
@@ -321,7 +286,6 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Sección de historial de respuestas movida aquí */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Box
             display="flex"
@@ -366,7 +330,7 @@ const Respuesta = () => {
               <Box
                 key={index}
                 backgroundColor={
-                  respuesta.sender === "Cliente" ? "#DDDDDD33" : "#C4E4FF88"
+                  respuesta.sender === "Asesor" ? "#DDDDDD33" : "#C4E4FF88"
                 }
                 sx={{
                   mb: 2,
@@ -395,101 +359,84 @@ const Respuesta = () => {
                     })}
                   </Typography>
                 )}
-
                 {respuesta.attachment && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
                     </Typography>
-                    {respuesta.attachment
-                      .split(", ")
-                      .map((fileReference, index) => {
-                        const fileData = fileDownloadUrls[fileReference];
-                        const fileUrl = fileData?.url;
-                        const fileName =
-                          fileData?.displayName ||
-                          fileReference.split("/").pop();
-                        const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                          fileName.split(".").pop().toLowerCase()
-                        );
+                    {/* Asegurarse de que attachment sea un string antes de split y manejar casos de null/undefined */}
+                    {(String(respuesta.attachment || '').split(", ").filter(Boolean)).map((fileReference, index) => {
+                      const fileData = fileDownloadUrls[fileReference.trim()]; // Usar fileReference y trim
+                      const fileUrl = fileData?.url;
+                      const fileName = fileData?.displayName || fileReference.trim().split("/").pop(); // Obtener nombre de fileData o fileReference
+                      const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                        (fileName || "").split(".").pop().toLowerCase()
+                      );
 
-                        return (
-                          <Box
-                            key={index}
-                            display="flex"
-                            alignItems="center"
-                            gap={1}
-                            sx={{
-                              p: 1,
-                              border: "1px solid #e0e0e0",
-                              borderRadius: 1,
-                              "&:hover": { backgroundColor: "#f5f5f5" },
-                            }}
-                          >
-                            {fileUrl ? (
-                              <IconButton
-                                onClick={() => {
-                                  // Crear un enlace temporal para la descarga
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                aria-label={`Descargar archivo ${fileName}`}
-                                sx={{
-                                  padding: 0,
-                                  "&:hover": { opacity: 0.8 },
-                                }}
-                              >
-                                {isImage ? (
-                                  <img
-                                    src={fileUrl}
-                                    alt={fileName}
-                                    style={{
-                                      maxWidth: "50px",
-                                      maxHeight: "50px",
-                                      borderRadius: "4px",
-                                    }}
-                                  />
-                                ) : (
-                                  getFileIcon(fileName)
-                                )}
-                              </IconButton>
-                            ) : (
-                              getFileIcon(fileName)
-                            )}
-
-                            <Typography
-                              variant="body2"
-                              sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                      return (
+                        <Box
+                          key={index}
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          sx={{
+                            p: 1,
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 1,
+                            "&:hover": { backgroundColor: "#f5f5f5" },
+                          }}
+                        >
+                          {fileUrl ? (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={fileName}
+                              rel="noopener noreferrer"
+                              aria-label={`Descargar archivo ${fileName}`}
+                              sx={{
+                                padding: 0,
+                                "&:hover": { opacity: 0.8 },
+                              }}
                             >
-                              {fileName}
-                            </Typography>
+                              {isImage ? (
+                                <img
+                                  src={fileUrl}
+                                  alt={fileName}
+                                  style={{
+                                    maxWidth: "50px",
+                                    maxHeight: "50px",
+                                    borderRadius: "4px",
+                                  }}
+                                />
+                              ) : (
+                                getFileIcon(fileName)
+                              )}
+                            </IconButton>
+                          ) : (
+                            getFileIcon(fileName)
+                          )}
 
-                            {fileUrl && (
-                              <IconButton
-                                onClick={() => {
-                                  // Crear un enlace temporal para la descarga
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                sx={{
-                                  color: "#1B5C94",
-                                  "&:hover": { backgroundColor: "#e3f2fd" },
-                                }}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            )}
-                          </Box>
-                        );
-                      })}
+                          <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                            {fileName}
+                          </Typography>
+
+                          {fileUrl && (
+                            <IconButton
+                              component="a"
+                              href={fileUrl}
+                              download={fileName}
+                              rel="noopener noreferrer"
+                              sx={{
+                                color: "#1B5C94",
+                                "&:hover": { backgroundColor: "#e3f2fd" },
+                              }}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 )}
               </Box>
@@ -503,7 +450,6 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Sección de respuesta */}
         <Box component="form" onSubmit={onSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField
@@ -620,4 +566,4 @@ const Respuesta = () => {
   );
 };
 
-export default Respuesta;
+export default VistaClienteConsulta;
