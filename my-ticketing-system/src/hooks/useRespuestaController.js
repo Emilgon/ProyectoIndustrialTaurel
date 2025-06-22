@@ -50,18 +50,18 @@ const useRespuestaController = (consultaId) => {
           else {
             // Primero intentamos con la ruta de respuestas si tenemos consultaId
             if (consultaId) {
-              storagePath = `respuestas/${consultaId}/${fileReference.split('/').pop()}`;
+              storagePath = `respuestas/${consultaId}/${fileReference}`;
             } else {
-              // Si no hay consultaId, asumimos que es un archivo general en 'archivos/'
-              storagePath = `archivos/${fileReference.split('/').pop()}`;
+              storagePath = `archivos/${fileReference}`;
             }
-            displayName = fileReference.split('/').pop();
+            displayName = fileReference;
           }
 
-          const fileInfo = await fetchDownloadUrls(storagePath, consultaId);
-          urlMap[fileReference] = fileInfo; // fileInfo ya tiene { url, displayName }
+          const url = await fetchDownloadUrls(storagePath, consultaId);
+          urlMap[fileReference] = { url, displayName };
 
         } catch (error) {
+          console.error(`Error al obtener URL para ${fileReference}:`, error);
           urlMap[fileReference] = {
             url: null,
             displayName: fileReference.includes('/')

@@ -6,7 +6,6 @@ import {
   addDoc,
   doc,
   getDoc,
-  updateDoc, // Asegúrate de importar updateDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
@@ -55,24 +54,17 @@ export const fetchDownloadUrls = async (fileReference, consultaId) => {
     else {
       // Primero intentamos con la ruta de respuestas si tenemos consultaId
       if (consultaId) {
-        // Para respuestas, la estructura es respuestas/consultaId/nombreArchivo
-        storagePath = `respuestas/${consultaId}/${fileReference.split('/').pop()}`;
+        storagePath = `respuestas/${consultaId}/${fileReference}`;
       } else {
-        // Para archivos de consulta (sin consultaId específico en este contexto, o adjuntos generales)
-        // Se asume que la ruta es archivos/nombreArchivo o consultas/nombreArchivo
-        // Damos prioridad a 'archivos/' según el requerimiento
-        if (fileReference.startsWith('consultas/')) {
-            storagePath = fileReference;
-        } else {
-            storagePath = `archivos/${fileReference.split('/').pop()}`;
-        }
+        storagePath = `consultas/${fileReference}`; // Cambiado de 'archivos/' a 'consultas/'
       }
-      displayName = fileReference.split('/').pop();
+      displayName = fileReference;
     }
 
     const url = await getDownloadURL(ref(storage, storagePath));
     return { url, displayName };
   } catch (error) {
+    console.error(`Error al obtener URL para ${fileReference}:`, error);
     return {
       url: null,
       displayName: fileReference.includes('/')
@@ -94,28 +86,11 @@ export const addRespuesta = async (consultaId, content, file) => {
   const docRef = await addDoc(collection(db, "Responses"), responseData);
 
   let downloadUrl = null;
-  let attachmentPath = null; // Guardaremos la ruta relativa también
   if (file) {
-    const filePath = `archivos/${file.name}`; // Nueva ruta para todos los archivos de respuesta
-    const storageRef = ref(storage, filePath);
+    const storageRef = ref(storage, `respuestas/${consultaId}/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);
-    attachmentPath = filePath; // Guardar la ruta relativa
   }
 
-  // Actualizar el documento de respuesta con la ruta del adjunto si existe
-  if (attachmentPath) {
-    await updateDoc(doc(db, "Responses", docRef.id), {
-      attachment: attachmentPath, // Guardar la ruta relativa, no solo el nombre
-      attachmentURL: downloadUrl // Opcional: guardar también la URL completa si se necesita directamente
-    });
-  } else {
-     await updateDoc(doc(db, "Responses", docRef.id), {
-      attachment: null,
-      attachmentURL: null
-    });
-  }
-
-
-  return { id: docRef.id, downloadUrl, attachmentPath };
+  return { id: docRef.id, downloadUrl };
 };

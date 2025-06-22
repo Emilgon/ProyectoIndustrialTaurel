@@ -216,23 +216,12 @@ const VistaCliente = () => {
         return { url, displayName: path.split('/').pop() };
       }
 
-      // Si es solo un nombre de archivo (formato antiguo o nuevo sin prefijo gs:// o https://)
-      // Se asume que la nueva ruta es `archivos/nombreDelArchivo`
-      const newPath = `archivos/${fileName.split('/').pop()}`;
-      const storageRef = ref(storage, newPath);
+      // Si es solo un nombre de archivo (formato antiguo)
+      const storageRef = ref(storage, `consultas/${consultaId}/${fileName}`);
       const url = await getDownloadURL(storageRef);
-      return { url, displayName: fileName.split('/').pop() };
+      return { url, displayName: fileName };
     } catch (error) {
       console.error("Error al obtener la URL de descarga:", error);
-      // Intento con la ruta antigua si falla la nueva, para retrocompatibilidad
-      try {
-        const oldPath = `consultas/${consultaId}/${fileName.split('/').pop()}`;
-        const oldStorageRef = ref(storage, oldPath);
-        const oldUrl = await getDownloadURL(oldStorageRef);
-        return { url: oldUrl, displayName: fileName.split('/').pop() };
-      } catch (oldPathError) {
-        console.error("Error al obtener la URL de descarga con la ruta antigua:", oldPathError);
-      }
       return null;
     }
   };

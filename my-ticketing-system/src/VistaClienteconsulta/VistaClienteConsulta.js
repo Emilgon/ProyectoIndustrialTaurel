@@ -206,8 +206,7 @@ const VistaClienteConsulta = () => {
                 .split(", ")
                 .map((fileReference, index) => {
                   const fileUrl = fileReference;
-                  const rawFileName = fileReference.split("/").pop();
-                  const fileName = decodeURIComponent(rawFileName.split("?")[0]);
+                  const fileName = "Multimedia";
                   const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                     fileName.split(".").pop().toLowerCase()
                   );
@@ -240,7 +239,7 @@ const VistaClienteConsulta = () => {
                             },
                           }}
                         >
-                          {isImage ? (
+                          {fileUrl ? (
                             <img
                               src={fileUrl}
                               alt={fileName}
@@ -364,13 +363,10 @@ const VistaClienteConsulta = () => {
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
                     </Typography>
-                    {/* Asegurarse de que attachment sea un string antes de split y manejar casos de null/undefined */}
-                    {(String(respuesta.attachment || '').split(", ").filter(Boolean)).map((fileReference, index) => {
-                      const fileData = fileDownloadUrls[fileReference.trim()]; // Usar fileReference y trim
-                      const fileUrl = fileData?.url;
-                      const fileName = fileData?.displayName || fileReference.trim().split("/").pop(); // Obtener nombre de fileData o fileReference
+                    {respuesta.attachment.split(", ").map((fileName, index) => {
+                      const fileUrl = fileDownloadUrls[fileName];
                       const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                        (fileName || "").split(".").pop().toLowerCase()
+                        fileName.split(".").pop().toLowerCase()
                       );
 
                       return (
