@@ -206,10 +206,11 @@ const VistaClienteConsulta = () => {
                 .split(", ")
                 .map((fileReference, index) => {
                   const fileUrl = fileReference;
-                  const fileName = "Multimedia";
-                  const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                    fileName.split(".").pop().toLowerCase()
-                  );
+                  // Extract the file name from the URL or string
+                  // Decode URL-encoded file name
+                  const decodedFileName = decodeURIComponent(fileReference.split("/").pop().split("?")[0]);
+                  // Always show file icon, not image preview
+                  const fileName = decodedFileName;
 
                   return (
                     <Box
@@ -239,19 +240,7 @@ const VistaClienteConsulta = () => {
                             },
                           }}
                         >
-                          {fileUrl ? (
-                            <img
-                              src={fileUrl}
-                              alt={fileName}
-                              style={{
-                                maxWidth: "50px",
-                                maxHeight: "50px",
-                                borderRadius: "4px",
-                              }}
-                            />
-                          ) : (
-                            getFileIcon(fileName)
-                          )}
+                          {getFileIcon(fileName)}
                         </IconButton>
                       ) : (
                         getFileIcon(fileName)
@@ -385,7 +374,7 @@ const VistaClienteConsulta = () => {
                           {fileUrl ? (
                             <IconButton
                               component="a"
-                              href={fileUrl}
+                              href={fileUrl?.url}
                               download={fileName}
                               rel="noopener noreferrer"
                               aria-label={`Descargar archivo ${fileName}`}
@@ -396,7 +385,7 @@ const VistaClienteConsulta = () => {
                             >
                               {isImage ? (
                                 <img
-                                  src={fileUrl}
+                                  src={fileUrl?.url}
                                   alt={fileName}
                                   style={{
                                     maxWidth: "50px",
@@ -419,7 +408,7 @@ const VistaClienteConsulta = () => {
                           {fileUrl && (
                             <IconButton
                               component="a"
-                              href={fileUrl}
+                              href={fileUrl?.url}
                               download={fileName}
                               rel="noopener noreferrer"
                               sx={{

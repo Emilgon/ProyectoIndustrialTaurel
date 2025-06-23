@@ -231,9 +231,13 @@ const Respuesta = () => {
               {consultaData.attachment
                 .split(", ")
                 .map((fileReference, index) => {
-                  // Extraer solo el nombre del archivo de la referencia
-                  const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
-                  const fileData = fileDownloadUrls[fileReference];
+                  // Extract and decode clean file name for display
+                  let rawFileName = fileReference.split('/').pop();
+                  if (rawFileName.includes('?')) {
+                    rawFileName = rawFileName.split('?')[0];
+                  }
+                  const fileName = decodeURIComponent(rawFileName);
+                  const fileData = fileDownloadUrls[fileName] || fileDownloadUrls[fileReference];
                   const fileUrl = fileData?.url;
                   const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                     fileName.split(".").pop().toLowerCase()
@@ -264,14 +268,10 @@ const Respuesta = () => {
 
                       {fileUrl && (
                         <IconButton
-                          onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
+                          component="a"
+                          href={fileUrl}
+                          download={fileName}
+                          rel="noopener noreferrer"
                           sx={{
                             color: "#1B5C94",
                             "&:hover": { backgroundColor: "#e3f2fd" },
@@ -365,63 +365,58 @@ const Respuesta = () => {
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
                     </Typography>
-                    {respuesta.attachment
-                      .split(", ")
-                      .map((fileReference, index) => {
-                        const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
-                        const fileData = fileDownloadUrls[`archivos/${fileName}`] || fileDownloadUrls[fileReference];
-                        const fileUrl = fileData?.url;
-                        const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                          fileName.split(".").pop().toLowerCase()
-                        );
+                    {respuesta.attachment.split(", ").map((fileReference, index) => {
+                      const fileName = fileReference.split('/').pop();
+                      const fileData = fileDownloadUrls[fileName] || fileDownloadUrls[fileReference];
+                      const fileUrl = fileData?.url;
 
-                        return (
-                          <Box
-                            key={index}
-                            display="flex"
-                            alignItems="center"
-                            gap={1}
-                            sx={{
-                              p: 1,
-                              border: "1px solid #e0e0e0",
-                              borderRadius: 1,
-                              "&:hover": { backgroundColor: "#f5f5f5" },
-                            }}
+                      return (
+                        <Box
+                          key={index}
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          sx={{
+                            p: 1,
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 1,
+                            "&:hover": { backgroundColor: "#f5f5f5" },
+                          }}
+                        >
+                          {getFileIcon(fileName)}
+
+                          <Typography
+                            variant="body2"
+                            sx={{ flexGrow: 1, wordBreak: "break-all" }}
                           >
-                            {getFileIcon(fileName)}
+                            {fileName}
+                          </Typography>
 
-                            <Typography
-                              variant="body2"
-                              sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                          {fileUrl ? (
+                            <IconButton
+                              onClick={() => {
+                                const link = document.createElement("a");
+                                link.href = fileUrl;
+                                link.download = fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              sx={{
+                                color: "#1B5C94",
+                                "&:hover": { backgroundColor: "#e3f2fd" },
+                              }}
                             >
-                              {fileName}
+                              <DownloadIcon />
+                            </IconButton>
+                          ) : (
+                            <Typography variant="caption" color="error">
+                              (Archivo no disponible)
                             </Typography>
-
-                            {fileUrl ? (
-                              <IconButton
-                                onClick={() => {
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                sx={{
-                                  color: "#1B5C94",
-                                  "&:hover": { backgroundColor: "#e3f2fd" },
-                                }}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            ) : (
-                              <Typography variant="caption" color="error">
-                                (Archivo no disponible)
-                              </Typography>
-                            )}
-                          </Box>
-                        );
-                      })}
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 )}
               </Box>

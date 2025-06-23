@@ -35,38 +35,52 @@ const useRespuestaController = (consultaId) => {
           // Extraer SOLO el nombre del archivo (última parte después del último /)
           const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          // Primero intentar con la ruta directa en 'archivos/' (sin prefijos adicionales)
-          try {
-            const storageRef = ref(storage, `archivos/${fileName}`);
-            const url = await getDownloadURL(storageRef);
-            urlMap[fileReference] = {
-              url: url,
-              displayName: fileName
-            };
-            continue;
-          } catch (error) {
-            console.log(`Archivo no encontrado en archivos/${fileName}, probando otras rutas`);
+          // Eliminar cualquier prefijo duplicado 'archivos/archivos/' en cualquier parte de la cadena
+          const cleanReference = fileReference.replace(/archivos\/archivos\//g, 'archivos/');
+
+          // Posibles patrones de ruta a probar en orden de prioridad
+          const possiblePaths = [
+            `archivos/${fileName}`,          // Ruta directa con nombre de archivo
+            cleanReference,                  // Ruta original limpia
+            fileReference,                   // Ruta original (por si acaso)
+            fileName                         // Solo el nombre del archivo
+          ];
+
+          let downloadUrl = null;
+          let successfulPath = null;
+
+          // Probar cada posible ruta hasta encontrar una que funcione
+          for (const path of possiblePaths) {
+            try {
+              console.log(`Intentando obtener URL para: ${path}`);
+              const storageRef = ref(storage, path);
+              downloadUrl = await getDownloadURL(storageRef);
+              successfulPath = path;
+              console.log(`Éxito al obtener URL para: ${path}`);
+              break;
+            } catch (error) {
+              console.log(`Fallo al obtener URL para: ${path}`, error);
+              continue;
+            }
           }
 
-          // Si no se encuentra, probar con la referencia original (por si ya incluye 'archivos/')
-          try {
-            const url = await getDownloadURL(ref(storage, fileReference));
-            urlMap[fileReference] = {
-              url: url,
-              displayName: fileName
-            };
-          } catch (error) {
-            console.error(`No se pudo encontrar el archivo ${fileName} en ninguna ubicación`, error);
-            urlMap[fileReference] = {
-              url: null,
-              displayName: fileName
-            };
+          if (!downloadUrl) {
+            throw new Error(`Archivo no encontrado en ninguna ubicación probada: ${fileName}`);
           }
+
+          console.log(`Archivo encontrado en: ${successfulPath}`);
+          // Use fileName as key instead of fileReference to avoid duplicated path issues
+          urlMap[fileName] = {
+            url: downloadUrl,
+            displayName: fileName,
+            path: successfulPath
+          };
         } catch (error) {
           console.error(`Error procesando ${fileReference}:`, error);
           urlMap[fileReference] = {
             url: null,
-            displayName: fileReference.split('/').pop() // Fallback simple
+            displayName: fileReference.split('/').pop(),
+            error: error.message
           };
         }
       }

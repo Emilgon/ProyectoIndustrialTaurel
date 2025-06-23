@@ -6,7 +6,10 @@ export const addConsulta = async (mensaje, archivo, affair) => {
   let attachmentURL = "";
 
   if (archivo) {
-    const storageRef = ref(storage, `${archivo.name}`);
+    // Remove any leading 'archivos/' prefix to avoid duplication
+    const cleanFileName = archivo.name.replace(/^archivos\//, "");
+    const filePath = `archivos/${cleanFileName}`;
+    const storageRef = ref(storage, filePath);
     await uploadBytes(storageRef, archivo);
     attachmentURL = await getDownloadURL(storageRef);
   }
