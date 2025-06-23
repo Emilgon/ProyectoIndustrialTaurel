@@ -6,6 +6,7 @@ import {
   addDoc,
   doc,
   getDoc,
+  updateDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
@@ -33,18 +34,38 @@ export const fetchConsultaById = async (consultaId) => {
 
 export const fetchDownloadUrls = async (fileReference, consultaId) => {
   try {
-    // Todos los archivos están en 'archivos/'
-    const storagePath = `archivos/${fileReference}`;
-    const displayName = fileReference.split('/').pop();
-    const url = await getDownloadURL(ref(storage, storagePath));
-    return { url, displayName };
+    const fileName = fileReference.split('/').pop();
+
+    const possiblePaths = [
+      `archivos/${fileName}`,
+      fileReference
+    ];
+
+    let urlFound = null;
+
+    for (const path of possiblePaths) {
+      try {
+        const url = await getDownloadURL(ref(storage, path));
+        urlFound = url;
+        break;
+      } catch (error) {
+        continue;
+      }
+    }
+
+    if (!urlFound) {
+      throw new Error("No se pudo encontrar el archivo en ninguna ubicación");
+    }
+
+    return {
+      url: urlFound,
+      displayName: fileName
+    };
   } catch (error) {
     console.error(`Error al obtener URL para ${fileReference}:`, error);
     return {
       url: null,
-      displayName: fileReference.includes('/')
-        ? fileReference.split('/').pop()
-        : fileReference
+      displayName: fileReference.split('/').pop()
     };
   }
 };
@@ -55,14 +76,14 @@ export const addRespuesta = async (consultaId, content, file) => {
     content,
     timestamp: new Date(),
     userId: auth.currentUser.uid,
-    attachment: file ? file.name : null,
+    attachment: file ? file.name : null, // Solo el nombre, sin ruta
   };
 
   const docRef = await addDoc(collection(db, "Responses"), responseData);
 
   let downloadUrl = null;
   if (file) {
-    // Cambiado para subir a 'archivos/' en lugar de 'respuestas/'
+    // Subir directamente a 'archivos/' sin prefijos adicionales
     const storageRef = ref(storage, `archivos/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);

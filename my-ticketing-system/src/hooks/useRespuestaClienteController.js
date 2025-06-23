@@ -33,8 +33,7 @@ const useRespuestaController = (consultaId) => {
             .replace(/%2F/g, '/'));
         }
 
-        // Si es una ruta que comienza con "consultas/"
-        else if (fileReference.startsWith('consultas/')) {
+        else if (fileReference.startsWith('archivos/')) {
           // La mantenemos como está
           storagePath = fileReference;
         }
@@ -45,9 +44,11 @@ const useRespuestaController = (consultaId) => {
           storagePath = `archivos/${fileReference}`;
         }
 
-        const url = await fetchDownloadUrls(storagePath);
-        // Guardamos con la referencia original como clave y objeto con url y displayName
+        const urls = await fetchDownloadUrls(storagePath);
+        // fetchDownloadUrls now returns an object with fileName keys and url values
+        // We need to get the url for the fileReference or fileName
         const displayName = storagePath.split('/').pop();
+        const url = urls[displayName] || null;
         urlMap[fileReference] = { url, displayName };
 
       } catch (error) {

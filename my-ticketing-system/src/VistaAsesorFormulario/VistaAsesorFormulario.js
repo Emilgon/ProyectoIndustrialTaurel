@@ -506,8 +506,7 @@ const VistaAsesorFormulario = () => {
         // Manejar diferentes formatos de referencia de archivo
         let storagePath = fileReference;
 
-        // Si comienza con 'consultas/', mantenemos la ruta
-        if (fileReference.startsWith('consultas/')) {
+        if (fileReference.startsWith('archivos/')) {
           storagePath = fileReference;
         }
         // Si es solo un nombre de archivo, asumimos que está en 'archivos/'

@@ -231,10 +231,10 @@ const Respuesta = () => {
               {consultaData.attachment
                 .split(", ")
                 .map((fileReference, index) => {
+                  // Extraer solo el nombre del archivo de la referencia
+                  const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
                   const fileData = fileDownloadUrls[fileReference];
                   const fileUrl = fileData?.url;
-                  const fileName =
-                    fileData?.displayName || fileReference.split("/").pop();
                   const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                     fileName.split(".").pop().toLowerCase()
                   );
@@ -253,40 +253,7 @@ const Respuesta = () => {
                         "&:hover": { backgroundColor: "#f5f5f5" },
                       }}
                     >
-                      {fileUrl ? (
-                        <IconButton
-                          onClick={() => {
-                            // Crear un enlace temporal para la descarga
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          aria-label={`Descargar archivo ${fileName}`}
-                          sx={{
-                            padding: 0,
-                            "&:hover": { opacity: 0.8 },
-                          }}
-                        >
-                          {isImage ? (
-                            <img
-                              src={fileUrl}
-                              alt={fileName}
-                              style={{
-                                maxWidth: "50px",
-                                maxHeight: "50px",
-                                borderRadius: "4px",
-                              }}
-                            />
-                          ) : (
-                            getFileIcon(fileName)
-                          )}
-                        </IconButton>
-                      ) : (
-                        getFileIcon(fileName)
-                      )}
+                      {getFileIcon(fileName)}
 
                       <Typography
                         variant="body2"
@@ -298,7 +265,6 @@ const Respuesta = () => {
                       {fileUrl && (
                         <IconButton
                           onClick={() => {
-                            // Crear un enlace temporal para la descarga
                             const link = document.createElement("a");
                             link.href = fileUrl;
                             link.download = fileName;
@@ -321,7 +287,6 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Sección de historial de respuestas movida aquí */}
         <Card sx={{ p: 2, mb: 3, boxShadow: 2, borderRadius: 2 }}>
           <Box
             display="flex"
@@ -403,33 +368,9 @@ const Respuesta = () => {
                     {respuesta.attachment
                       .split(", ")
                       .map((fileReference, index) => {
-                        // Intenta varias rutas posibles para encontrar el archivo
-                        const possiblePaths = [
-                          `archivos/${fileReference}`, // Ruta principal
-                          `consultas/${consultaId}/${fileReference}`, // Para archivos de consultas
-                          `respuestas/${consultaId}/${fileReference}`, // Para archivos de respuestas
-                          fileReference // Intenta con la referencia directa
-                        ];
-
-                        // Busca la primera URL que exista
-                        let fileData = null;
-                        for (const path of possiblePaths) {
-                          if (fileDownloadUrls[path]) {
-                            fileData = fileDownloadUrls[path];
-                            break;
-                          }
-                        }
-
-                        // Si no se encontró en fileDownloadUrls, crea un objeto básico
-                        if (!fileData) {
-                          fileData = {
-                            url: null,
-                            displayName: fileReference.split("/").pop()
-                          };
-                        }
-
-                        const fileUrl = fileData.url;
-                        const fileName = fileData.displayName;
+                        const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
+                        const fileData = fileDownloadUrls[`archivos/${fileName}`] || fileDownloadUrls[fileReference];
+                        const fileUrl = fileData?.url;
                         const isImage = ["jpg", "jpeg", "png", "gif"].includes(
                           fileName.split(".").pop().toLowerCase()
                         );
@@ -447,73 +388,36 @@ const Respuesta = () => {
                               "&:hover": { backgroundColor: "#f5f5f5" },
                             }}
                           >
+                            {getFileIcon(fileName)}
+
+                            <Typography
+                              variant="body2"
+                              sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                            >
+                              {fileName}
+                            </Typography>
+
                             {fileUrl ? (
-                              <>
-                                <IconButton
-                                  onClick={() => {
-                                    const link = document.createElement("a");
-                                    link.href = fileUrl;
-                                    link.download = fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                  }}
-                                  aria-label={`Descargar archivo ${fileName}`}
-                                  sx={{
-                                    padding: 0,
-                                    "&:hover": { opacity: 0.8 },
-                                  }}
-                                >
-                                  {isImage ? (
-                                    <img
-                                      src={fileUrl}
-                                      alt={fileName}
-                                      style={{
-                                        maxWidth: "50px",
-                                        maxHeight: "50px",
-                                        borderRadius: "4px",
-                                      }}
-                                    />
-                                  ) : (
-                                    getFileIcon(fileName)
-                                  )}
-                                </IconButton>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ flexGrow: 1, wordBreak: "break-all" }}
-                                >
-                                  {fileName}
-                                </Typography>
-                                <IconButton
-                                  onClick={() => {
-                                    const link = document.createElement("a");
-                                    link.href = fileUrl;
-                                    link.download = fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                  }}
-                                  sx={{
-                                    color: "#1B5C94",
-                                    "&:hover": { backgroundColor: "#e3f2fd" },
-                                  }}
-                                >
-                                  <DownloadIcon />
-                                </IconButton>
-                              </>
+                              <IconButton
+                                onClick={() => {
+                                  const link = document.createElement("a");
+                                  link.href = fileUrl;
+                                  link.download = fileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                sx={{
+                                  color: "#1B5C94",
+                                  "&:hover": { backgroundColor: "#e3f2fd" },
+                                }}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
                             ) : (
-                              <>
-                                {getFileIcon(fileName)}
-                                <Typography
-                                  variant="body2"
-                                  sx={{ flexGrow: 1, wordBreak: "break-all" }}
-                                >
-                                  {fileName}
-                                </Typography>
-                                <Typography variant="caption" color="error">
-                                  (Archivo no disponible)
-                                </Typography>
-                              </>
+                              <Typography variant="caption" color="error">
+                                (Archivo no disponible)
+                              </Typography>
                             )}
                           </Box>
                         );
@@ -531,7 +435,6 @@ const Respuesta = () => {
           )}
         </Card>
 
-        {/* Sección de respuesta */}
         <Box component="form" onSubmit={onSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField

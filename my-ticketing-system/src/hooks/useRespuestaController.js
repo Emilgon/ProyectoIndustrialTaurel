@@ -8,6 +8,8 @@ import {
 import { fetchClientById } from "../models/clientsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebaseConfig";
 
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
@@ -30,43 +32,41 @@ const useRespuestaController = (consultaId) => {
 
       for (let fileReference of files) {
         try {
-          // Intenta varias rutas posibles
-          const possiblePaths = [
-            `archivos/${fileReference}`,
-            `consultas/${consultaId}/${fileReference}`,
-            `respuestas/${consultaId}/${fileReference}`,
-            fileReference
-          ];
+          // Extraer SOLO el nombre del archivo (última parte después del último /)
+          const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          let urlFound = null;
-          let displayName = fileReference.split("/").pop();
-
-          for (const path of possiblePaths) {
-            try {
-              const url = await getDownloadURL(ref(storage, path));
-              urlFound = url;
-              break;
-            } catch (error) {
-              continue;
-            }
+          // Primero intentar con la ruta directa en 'archivos/' (sin prefijos adicionales)
+          try {
+            const storageRef = ref(storage, `archivos/${fileName}`);
+            const url = await getDownloadURL(storageRef);
+            urlMap[fileReference] = {
+              url: url,
+              displayName: fileName
+            };
+            continue;
+          } catch (error) {
+            console.log(`Archivo no encontrado en archivos/${fileName}, probando otras rutas`);
           }
 
-          if (urlFound) {
+          // Si no se encuentra, probar con la referencia original (por si ya incluye 'archivos/')
+          try {
+            const url = await getDownloadURL(ref(storage, fileReference));
             urlMap[fileReference] = {
-              url: urlFound,
-              displayName: displayName
+              url: url,
+              displayName: fileName
             };
-          } else {
+          } catch (error) {
+            console.error(`No se pudo encontrar el archivo ${fileName} en ninguna ubicación`, error);
             urlMap[fileReference] = {
               url: null,
-              displayName: displayName
+              displayName: fileName
             };
           }
         } catch (error) {
-          console.error(`Error al obtener URL para ${fileReference}:`, error);
+          console.error(`Error procesando ${fileReference}:`, error);
           urlMap[fileReference] = {
             url: null,
-            displayName: fileReference.split("/").pop()
+            displayName: fileReference.split('/').pop() // Fallback simple
           };
         }
       }

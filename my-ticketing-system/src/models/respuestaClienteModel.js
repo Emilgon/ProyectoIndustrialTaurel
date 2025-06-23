@@ -36,7 +36,7 @@ export const fetchDownloadUrls = async (attachments, consultaId) => {
   if (!attachments) return urls;
   for (const fileName of attachments.split(", ")) {
     try {
-      const storageRef = ref(storage, `consultas/${consultaId}/${fileName}`);
+      const storageRef = ref(storage, `archivos/${fileName}`);
       const url = await getDownloadURL(storageRef);
       urls[fileName] = url;
     } catch (error) {
@@ -59,7 +59,7 @@ export const addRespuesta = async (consultaId, content, file) => {
 
   let downloadUrl = null;
   if (file) {
-    const storageRef = ref(storage, `consultas/${consultaId}/${file.name}`);
+    const storageRef = ref(storage, `archivos/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);
   }

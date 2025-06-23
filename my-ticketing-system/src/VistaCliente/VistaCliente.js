@@ -217,7 +217,7 @@ const VistaCliente = () => {
       }
 
       // Si es solo un nombre de archivo (formato antiguo)
-      const storageRef = ref(storage, `consultas/${consultaId}/${fileName}`);
+      const storageRef = ref(storage, `archivos/${consultaId}/${fileName}`);
       const url = await getDownloadURL(storageRef);
       return { url, displayName: fileName };
     } catch (error) {
