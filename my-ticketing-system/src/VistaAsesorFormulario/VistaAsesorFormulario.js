@@ -33,6 +33,7 @@ import {
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ChatIcon from "@mui/icons-material/Chat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -97,14 +98,15 @@ const VistaAsesorFormulario = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [historialAbierto, setHistorialAbierto] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
-  const [order, setOrder] = useState("asc");
-  const [orderBy, setOrderBy] = useState("company");
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("apply_date"); // Cambiado a "apply_date"
   const [editType, setEditType] = useState("No Asignado");
   const [selectedConsultId, setSelectedConsultId] = useState(null);
   const [resolverDays, setResolverDays] = useState(null);
   const [pendientesCount, setPendientesCount] = useState(0);
   const [enProcesoCount, setEnProcesoCount] = useState(0);
   const [resueltasCount, setResueltasCount] = useState(0);
+  const [resueltasFueraDeTiempoCount, setResueltasFueraDeTiempoCount] = useState(0);
   const [anchorElEstado, setAnchorElEstado] = useState(null);
   const [anchorElTipo, setAnchorElTipo] = useState(null);
   const [anchorElFecha, setAnchorElFecha] = useState(null);
@@ -174,6 +176,26 @@ const VistaAsesorFormulario = () => {
     const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
+
+        // Fix status logic: if status is "En proceso" but no type assigned or type is "No Asignado", set status to "Pendiente"
+        let fixedStatus = data.status;
+        if (
+          data.status === "En proceso" &&
+          (!data.type || data.type === "No Asignado")
+        ) {
+          fixedStatus = "Pendiente";
+        }
+
+        // Add new status "Resuelta fuera de tiempo" if status is "Resuelta" but remaining_days <= 0
+        if (
+          data.status === "Resuelta" &&
+          data.indicator !== undefined &&
+          data.indicator !== null &&
+          data.indicator <= 0
+        ) {
+          fixedStatus = "Resuelta fuera de tiempo";
+        }
+
         return {
           ...data,
           id: doc.id,
@@ -181,6 +203,7 @@ const VistaAsesorFormulario = () => {
           remaining_days: data.start_date
             ? calculateRemainingDays(data.start_date, data.indicator)
             : data.indicator,
+          status: fixedStatus,
         };
       });
       setConsultas(consultasData);
@@ -194,9 +217,13 @@ const VistaAsesorFormulario = () => {
       const resueltas = consultasData.filter(
         (c) => c.status === "Resuelta"
       ).length;
+      const resueltasFueraDeTiempo = consultasData.filter(
+        (c) => c.status === "Resuelta fuera de tiempo"
+      ).length;
       setPendientesCount(pendientes);
       setEnProcesoCount(enProceso);
       setResueltasCount(resueltas);
+      setResueltasFueraDeTiempoCount(resueltasFueraDeTiempo);
     });
 
     // Configurar listeners para respuestas de clientes
@@ -349,8 +376,38 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-  const handleMarcarResuelta = async (id, currentStatus) => {
-    const isResuelta = currentStatus === "Resuelta";
+const handleMarcarResuelta = async (id, currentStatus) => {
+    const consulta = consultas.find(c => c.id === id);
+    const hasTypeAssigned = consulta.type && consulta.type !== "No Asignado";
+
+    // Fetch responses count from Firestore for the consulta
+    let hasResponses = false;
+    try {
+      const respuestasRef = query(
+        collection(db, "Responses"),
+        where("consultaId", "==", id)
+      );
+      const respuestasSnapshot = await getDocs(respuestasRef);
+      if (!respuestasSnapshot.empty) {
+        hasResponses = true;
+      }
+    } catch (error) {
+      console.error("Error fetching responses count:", error);
+      // Assume no responses if error occurs
+      hasResponses = false;
+    }
+
+    if (!hasTypeAssigned || !hasResponses) {
+      Swal.fire({
+        title: "No se puede marcar como resuelta",
+        text: "No puede marcar como resuelta una consulta sin tipo asignado o sin respuestas.",
+        icon: "warning",
+        confirmButtonText: "Aceptar",
+      });
+      return;
+    }
+
+    const isResuelta = currentStatus === "Resuelta" || currentStatus === "Resuelta fuera de tiempo";
     const { isConfirmed } = await Swal.fire({
       title: isResuelta ? "Desmarcar como resuelta" : "Confirmar",
       text: isResuelta
@@ -366,13 +423,19 @@ const VistaAsesorFormulario = () => {
     if (isConfirmed) {
       try {
         const consultaRef = doc(db, "Consults", id);
-        const consulta = consultas.find(c => c.id === id);
-        const newStatus = isResuelta ? "En proceso" : "Resuelta";
 
         // Calcular remaining_days basado en la fecha actual
         const remainingDays = consulta.start_date
           ? calculateRemainingDays(consulta.start_date, consulta.indicator)
           : consulta.indicator;
+
+        // Determine new status considering "Resuelta fuera de tiempo"
+        let newStatus;
+        if (isResuelta) {
+          newStatus = "En proceso";
+        } else {
+          newStatus = remainingDays <= 0 ? "Resuelta fuera de tiempo" : "Resuelta";
+        }
 
         const updateData = {
           status: newStatus,
@@ -623,7 +686,7 @@ const VistaAsesorFormulario = () => {
 
   const renderRemainingDays = (consulta) => {
     if (!consulta.indicator && consulta.indicator !== 0) {
-      return <Typography>No Asignado</Typography>;
+      return <Typography sx={{ textAlign: "left" }}>No Asignado</Typography>;
     }
 
     const remainingDays =
@@ -632,7 +695,7 @@ const VistaAsesorFormulario = () => {
         : consulta.indicator;
 
     // Si la consulta está resuelta
-    if (consulta.status === "Resuelta") {
+    if (consulta.status === "Resuelta" || consulta.status === "Resuelta fuera de tiempo") {
       return (
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Box
@@ -640,11 +703,11 @@ const VistaAsesorFormulario = () => {
               width: 8,
               height: 8,
               borderRadius: "50%",
-              backgroundColor: remainingDays > 0 ? "green" : "red",
+              backgroundColor: remainingDays > 0 ? "green" : "orange",
               mr: 1,
             }}
           />
-          <Typography sx={{ color: remainingDays > 0 ? "success.main" : "error.main" }}>
+          <Typography sx={{ color: remainingDays > 0 ? "success.main" : "black" }}>
             {remainingDays > 0 ? "Resuelta a tiempo" : "Resuelta fuera de tiempo"}
           </Typography>
         </Box>
@@ -662,7 +725,7 @@ const VistaAsesorFormulario = () => {
     }
 
     return (
-      <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Box sx={{ display: "flex", alignItems: "center", textAlign: "left", width: "100%" }}>
         <Box
           sx={{
             width: 8,
@@ -678,7 +741,7 @@ const VistaAsesorFormulario = () => {
             mr: 1,
           }}
         />
-        <Typography sx={{ color: isOverdue ? "error.main" : "inherit" }}>
+        <Typography sx={{ color: isOverdue ? "error.main" : "inherit", textAlign: "left", flexGrow: 1 }}>
           {isOverdue ? "0" : remainingDays} {remainingDays === 1 ? "Día" : "Días"}
           {plazoInfo}
           {isOverdue && " (Fuera de tiempo)"}
@@ -787,10 +850,18 @@ const VistaAsesorFormulario = () => {
     setAnchorElIndicador(null);
   };
 
-  const filteredConsultas = consultas
+const filteredConsultas = consultas
     .filter((consulta) => {
-      const matchesType = !selectedType || consulta.type === selectedType;
-      const matchesState = !selectedState || consulta.status === selectedState;
+      const matchesType =
+        !selectedType ||
+        (selectedType === "No Asignado"
+          ? !consulta.type || consulta.type === "No Asignado"
+          : consulta.type === selectedType);
+      const matchesState =
+        !selectedState ||
+        (selectedState === "Resuelta fuera de tiempo"
+          ? consulta.status === "Resuelta fuera de tiempo"
+          : consulta.status === selectedState);
       const consultaDate = consulta.start_date
         ? typeof consulta.start_date.toDate === "function"
           ? consulta.start_date.toDate()
@@ -809,13 +880,16 @@ const VistaAsesorFormulario = () => {
             matchesIndicador = remainingDays <= 1;
             break;
           case "proximo":
-            matchesIndicador = remainingDays > 1 && remainingDays <= 3;
+            matchesIndicador = remainingDays > 1 && remainingDays <= 3 && consulta.status !== "Resuelta fuera de tiempo";
             break;
           case "normal":
-            matchesIndicador = remainingDays > 3;
+            matchesIndicador = remainingDays > 3 && remainingDays > 0;
             break;
           case "no_asignado":
             matchesIndicador = !remainingDays && remainingDays !== 0;
+            break;
+          case "fuera_tiempo":
+            matchesIndicador = remainingDays !== undefined && remainingDays !== null && Number(remainingDays) <= 0;
             break;
           default:
             matchesIndicador = !remainingDays && remainingDays !== 0;
@@ -836,11 +910,9 @@ const VistaAsesorFormulario = () => {
     .sort((a, b) => {
       // Primero, mantener la lógica de ordenamiento por columnas cuando se hace click en los headers
       if (orderBy === "status") {
-        const statesOrder = ["Pendiente", "En proceso", "Resuelta"];
-        const aPriority =
-          a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
-        const bPriority =
-          b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
+        const statesOrder = ["Pendiente", "En proceso", "Resuelta", "Resuelta fuera de tiempo"];
+        const aPriority = a.status === selectedState ? -1 : statesOrder.indexOf(a.status);
+        const bPriority = b.status === selectedState ? -1 : statesOrder.indexOf(b.status);
         return order === "asc" ? aPriority - bPriority : bPriority - aPriority;
       }
       if (orderBy === "apply_date") {
@@ -859,23 +931,13 @@ const VistaAsesorFormulario = () => {
         return order === "asc" ? aIndex - bIndex : bIndex - aIndex;
       }
 
-      // Si no hay ordenamiento específico por columna, aplicar el ordenamiento por defecto:
-      // 1. Por estado (Pendiente > En proceso > Resuelta)
-      // 2. Por fecha (más reciente primero)
-      const statesOrder = ["Pendiente", "En proceso", "Resuelta"];
-      const aStatePriority = statesOrder.indexOf(a.status);
-      const bStatePriority = statesOrder.indexOf(b.status);
-
-      if (aStatePriority !== bStatePriority) {
-        return aStatePriority - bStatePriority;
-      }
-
-      // Ordenar por fecha descendente (más reciente primero)
-      const aDate = a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
-      const bDate = b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
-
-      return bDate - aDate;
-    })
+      // Ordenar por fecha de solicitud descendente (más reciente primero) por defecto
+      const aDate = a.apply_date?.seconds ? a.apply_date.seconds * 1000 :
+        a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
+      const bDate = b.apply_date?.seconds ? b.apply_date.seconds * 1000 :
+        b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
+      return bDate - aDate; // Orden descendente (más reciente primero)
+    });
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -1052,7 +1114,7 @@ const VistaAsesorFormulario = () => {
                       ? new Date(
                         consulta.timestamp.seconds * 1000
                       ).toLocaleString()
-                      : "Fecha no disponible"}
+                      : ""}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -1263,7 +1325,7 @@ const VistaAsesorFormulario = () => {
         </Tooltip>
       </Box>
       <Grid container spacing={2} mt={.5} mb={2}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card sx={{ boxShadow: 3, color: "#1B5C94" }} >
             <CardContent>
               <Typography variant="h6" fontWeight="bold" >
@@ -1275,7 +1337,7 @@ const VistaAsesorFormulario = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card sx={{ boxShadow: 3, color: "#1B5C94" }}>
             <CardContent>
               <Typography variant="h6" fontWeight="bold">
@@ -1287,7 +1349,7 @@ const VistaAsesorFormulario = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card sx={{ boxShadow: 3, color: "#1B5C94" }}>
             <CardContent>
               <Typography variant="h6" fontWeight="bold">
@@ -1295,6 +1357,18 @@ const VistaAsesorFormulario = () => {
               </Typography>
               <Typography variant="h4" color="success.main">
                 {resueltasCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card sx={{ boxShadow: 3, color: "#1B5C94" }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold">
+                RESUELTAS FUERA DE TIEMPO:
+              </Typography>
+              <Typography variant="h4" color="warning.main">
+                {resueltasFueraDeTiempoCount}
               </Typography>
             </CardContent>
           </Card>
@@ -1568,68 +1642,73 @@ const VistaAsesorFormulario = () => {
                   }}
                 >
                   <Box sx={{ p: 1 }}>
-                    <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
-                      Todos
-                    </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleIndicadorFilter("urgente")}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: "red",
-                        }}
-                      />
-                      Urgente (1 día o menos)
-                    </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleIndicadorFilter("proximo")}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: "orange",
-                        }}
-                      />
-                      Próximo (2-3 días)
-                    </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleIndicadorFilter("normal")}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: "green",
-                        }}
-                      />
-                      Normal ( mayor a 3 días)
-                    </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleIndicadorFilter("no_asignado")}
-                    >
-                      No Asignado
-                    </MuiMenuItem>
+                <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
+                  Todos
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => handleIndicadorFilter("urgente")}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: "red",
+                    }}
+                  />
+                  Urgente (1 día)
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => handleIndicadorFilter("proximo")}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: "orange",
+                    }}
+                  />
+                  Próximo (2-3 días)
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => handleIndicadorFilter("normal")}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: "green",
+                    }}
+                  />
+                  Normal ( mayor a 3 días)
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => handleIndicadorFilter("no_asignado")}
+                >
+                  No Asignado
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => handleIndicadorFilter("fuera_tiempo")}
+                >
+                  Fuera de tiempo (0 días)
+                </MuiMenuItem>
                   </Box>
                 </Popover>
               </TableCell>
@@ -1662,6 +1741,7 @@ const VistaAsesorFormulario = () => {
                   <MuiMenuItem onClick={() => handleSelectState("Pendiente")}>Pendiente</MuiMenuItem>
                   <MuiMenuItem onClick={() => handleSelectState("En proceso")}>En proceso</MuiMenuItem>
                   <MuiMenuItem onClick={() => handleSelectState("Resuelta")}>Resuelta</MuiMenuItem>
+                  <MuiMenuItem onClick={() => handleSelectState("Resuelta fuera de tiempo")}>Resuelta fuera de tiempo</MuiMenuItem>
                 </Menu>
               </TableCell>
               <TableCell align="center">
@@ -1717,22 +1797,34 @@ const VistaAsesorFormulario = () => {
                       handleToggleDetails(consulta.id);
                     }
                   }}
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": { backgroundColor: "#f5f5f5" },
-                    backgroundColor:
-                      (consulta.remaining_days <= 0 && consulta.status !== "Resuelta")
-                        ? "rgba(255, 0, 0, 0.1)"
+                sx={{
+                  cursor: "pointer",
+                  "&:hover": { backgroundColor: "#f5f5f5" },
+              backgroundColor:
+                ((!consulta.type || consulta.type.trim().toLowerCase() === "no asignado") && !consulta.start_date)
+                  ? "rgba(255, 0, 0, 0.1)" // red highlight for new consultations with no type assigned
+                  : (consulta.status === "Resuelta fuera de tiempo")
+                    ? "rgba(255, 255, 0, 0.2)" // yellow highlight for resolved out of time
+                    : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
+                      ? "rgba(0, 128, 0, 0.15)" // green highlight for resolved within time
+                      : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
+                        ? "rgba(255, 0, 0, 0.1)" // red highlight for overdue unresolved consultations
                         : "inherit",
-                    borderLeft:
-                      (consulta.remaining_days <= 0 && consulta.status !== "Resuelta")
-                        ? "4px solid red"
-                        : "none"
-                  }}
-                >
+                borderLeft:
+                  ((!consulta.type || consulta.type.trim().toLowerCase() === "no asignado") && !consulta.start_date)
+                    ? "4px solid red"
+                    : (consulta.status === "Resuelta fuera de tiempo")
+                      ? "4px solid #FFD700" // gold border for resolved out of time
+                      : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
+                        ? "4px solid green" // green border for resolved within time
+                        : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
+                          ? "4px solid red"
+                          : "none"
+              }}
+            >
                   <TableCell>{consulta.company}</TableCell>
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
-                  <TableCell align="center">{formatDateTime(consulta.start_date)}</TableCell>
+                  <TableCell align="center">{formatDateTime(consulta.start_date || consulta.timestamp || consulta.apply_date)}</TableCell>
                   <TableCell align="center">{renderRemainingDays(consulta)}</TableCell>
                   <TableCell align="center">{consulta.status}</TableCell>
                   <TableCell align="center">
@@ -1848,9 +1940,11 @@ const VistaAsesorFormulario = () => {
                   <TableCell align="center">
                     <Box display="flex" justifyContent="center" alignItems="center">
                       <Checkbox
-                        checked={consulta.status === "Resuelta"}
+                        checked={consulta.status === "Resuelta" || consulta.status === "Resuelta fuera de tiempo"}
                         onChange={() => handleMarcarResuelta(consulta.id, consulta.status)}
                         onClick={(e) => e.stopPropagation()}
+                        icon={consulta.status === "Resuelta fuera de tiempo" ? <WarningAmberIcon sx={{ color: "orange", fontSize: 28 }} /> : undefined}
+                        checkedIcon={consulta.status === "Resuelta fuera de tiempo" ? <WarningAmberIcon sx={{ color: "orange", fontSize: 28 }} /> : undefined}
                         sx={{
                           color: "#1B5C94",
                           '&.Mui-checked': {
