@@ -184,7 +184,7 @@ const VistaClienteConsulta = () => {
             <Typography variant="h6" fontWeight="bold">
               Fecha de envío:{" "}
               {new Date(
-                consultaData.star_date.seconds * 1000
+                consultaData.start_date.seconds * 1000
               ).toLocaleDateString("es-ES", {
                 day: "2-digit",
                 month: "2-digit",

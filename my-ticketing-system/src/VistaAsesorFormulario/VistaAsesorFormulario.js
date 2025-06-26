@@ -99,7 +99,7 @@ const VistaAsesorFormulario = () => {
   const [historialAbierto, setHistorialAbierto] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
   const [order, setOrder] = useState("desc");
-  const [orderBy, setOrderBy] = useState("apply_date"); // Cambiado a "apply_date"
+  const [orderBy, setOrderBy] = useState("start_date"); // Cambiado a "start_date"
   const [editType, setEditType] = useState("No Asignado");
   const [selectedConsultId, setSelectedConsultId] = useState(null);
   const [resolverDays, setResolverDays] = useState(null);
@@ -376,7 +376,7 @@ const VistaAsesorFormulario = () => {
     }
   };
 
-const handleMarcarResuelta = async (id, currentStatus) => {
+  const handleMarcarResuelta = async (id, currentStatus) => {
     const consulta = consultas.find(c => c.id === id);
     const hasTypeAssigned = consulta.type && consulta.type !== "No Asignado";
 
@@ -850,7 +850,7 @@ const handleMarcarResuelta = async (id, currentStatus) => {
     setAnchorElIndicador(null);
   };
 
-const filteredConsultas = consultas
+  const filteredConsultas = consultas
     .filter((consulta) => {
       const matchesType =
         !selectedType ||
@@ -872,33 +872,37 @@ const filteredConsultas = consultas
         !startDate ||
         !endDate ||
         (consultaDate >= startDate && consultaDate <= endDate);
+
       let matchesIndicador = true;
       if (indicadorFilter !== "todos") {
-        const remainingDays = consulta.remaining_days || consulta.indicator;
+        const remainingDays = consulta.remaining_days !== undefined ? consulta.remaining_days : consulta.indicator;
+
         switch (indicadorFilter) {
           case "urgente":
-            matchesIndicador = remainingDays <= 1;
+            matchesIndicador = remainingDays <= 1 && remainingDays > 0;
             break;
           case "proximo":
-            matchesIndicador = remainingDays > 1 && remainingDays <= 3 && consulta.status !== "Resuelta fuera de tiempo";
+            matchesIndicador = remainingDays > 1 && remainingDays <= 3;
             break;
           case "normal":
-            matchesIndicador = remainingDays > 3 && remainingDays > 0;
+            matchesIndicador = remainingDays > 3;
             break;
           case "no_asignado":
-            matchesIndicador = !remainingDays && remainingDays !== 0;
+            matchesIndicador = remainingDays === undefined || remainingDays === null;
             break;
           case "fuera_tiempo":
-            matchesIndicador = remainingDays !== undefined && remainingDays !== null && Number(remainingDays) <= 0;
+            matchesIndicador = remainingDays <= 0;
             break;
           default:
-            matchesIndicador = !remainingDays && remainingDays !== 0;
+            matchesIndicador = true;
             break;
         }
       }
+
       const matchesCompany =
         !searchCompany ||
-        consulta.company.toLowerCase().includes(searchCompany.toLowerCase());
+        (consulta.company && consulta.company.toLowerCase().includes(searchCompany.toLowerCase()));
+
       return (
         matchesType &&
         matchesState &&
@@ -917,8 +921,8 @@ const filteredConsultas = consultas
       }
       if (orderBy === "apply_date") {
         return order === "asc"
-          ? (a.apply_date?.seconds || 0) - (b.apply_date?.seconds || 0)
-          : (b.apply_date?.seconds || 0) - (a.apply_date?.seconds || 0);
+          ? (a.start_date?.seconds || 0) - (b.start_date?.seconds || 0)
+          : (b.start_date?.seconds || 0) - (a.start_date?.seconds || 0);
       }
       if (orderBy === "type") {
         const typesOrder = [
@@ -932,9 +936,9 @@ const filteredConsultas = consultas
       }
 
       // Ordenar por fecha de solicitud descendente (más reciente primero) por defecto
-      const aDate = a.apply_date?.seconds ? a.apply_date.seconds * 1000 :
+      const aDate = a.start_date?.seconds ? a.start_date.seconds * 1000 :
         a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
-      const bDate = b.apply_date?.seconds ? b.apply_date.seconds * 1000 :
+      const bDate = b.start_date?.seconds ? b.start_date.seconds * 1000 :
         b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
       return bDate - aDate; // Orden descendente (más reciente primero)
     });
@@ -1642,73 +1646,73 @@ const filteredConsultas = consultas
                   }}
                 >
                   <Box sx={{ p: 1 }}>
-                <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
-                  Todos
-                </MuiMenuItem>
-                <MuiMenuItem
-                  onClick={() => handleIndicadorFilter("urgente")}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: "red",
-                    }}
-                  />
-                  Urgente (1 día)
-                </MuiMenuItem>
-                <MuiMenuItem
-                  onClick={() => handleIndicadorFilter("proximo")}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: "orange",
-                    }}
-                  />
-                  Próximo (2-3 días)
-                </MuiMenuItem>
-                <MuiMenuItem
-                  onClick={() => handleIndicadorFilter("normal")}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: "green",
-                    }}
-                  />
-                  Normal ( mayor a 3 días)
-                </MuiMenuItem>
-                <MuiMenuItem
-                  onClick={() => handleIndicadorFilter("no_asignado")}
-                >
-                  No Asignado
-                </MuiMenuItem>
-                <MuiMenuItem
-                  onClick={() => handleIndicadorFilter("fuera_tiempo")}
-                >
-                  Fuera de tiempo (0 días)
-                </MuiMenuItem>
+                    <MuiMenuItem onClick={() => handleIndicadorFilter("todos")}>
+                      Todos
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("urgente")}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "red",
+                        }}
+                      />
+                      Urgente (1 día)
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("proximo")}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "orange",
+                        }}
+                      />
+                      Próximo (2-3 días)
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("normal")}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "green",
+                        }}
+                      />
+                      Normal ( mayor a 3 días)
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("no_asignado")}
+                    >
+                      No Asignado
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("fuera_tiempo")}
+                    >
+                      Fuera de tiempo (0 días)
+                    </MuiMenuItem>
                   </Box>
                 </Popover>
               </TableCell>
@@ -1797,31 +1801,31 @@ const filteredConsultas = consultas
                       handleToggleDetails(consulta.id);
                     }
                   }}
-                sx={{
-                  cursor: "pointer",
-                  "&:hover": { backgroundColor: "#f5f5f5" },
-              backgroundColor:
-                ((!consulta.type || consulta.type.trim().toLowerCase() === "no asignado") && !consulta.start_date)
-                  ? "rgba(255, 0, 0, 0.1)" // red highlight for new consultations with no type assigned
-                  : (consulta.status === "Resuelta fuera de tiempo")
-                    ? "rgba(255, 255, 0, 0.2)" // yellow highlight for resolved out of time
-                    : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
-                      ? "rgba(0, 128, 0, 0.15)" // green highlight for resolved within time
-                      : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
-                        ? "rgba(255, 0, 0, 0.1)" // red highlight for overdue unresolved consultations
-                        : "inherit",
-                borderLeft:
-                  ((!consulta.type || consulta.type.trim().toLowerCase() === "no asignado") && !consulta.start_date)
-                    ? "4px solid red"
-                    : (consulta.status === "Resuelta fuera de tiempo")
-                      ? "4px solid #FFD700" // gold border for resolved out of time
-                      : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
-                        ? "4px solid green" // green border for resolved within time
-                        : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
-                          ? "4px solid red"
-                          : "none"
-              }}
-            >
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                    backgroundColor:
+                      (!consulta.type || consulta.type.trim().toLowerCase() === "no asignado")
+                        ? "rgba(255, 0, 0, 0.1)" // Fondo rojo claro para consultas sin tipo
+                        : (consulta.status === "Resuelta fuera de tiempo")
+                          ? "rgba(255, 255, 0, 0.2)"
+                          : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
+                            ? "rgba(0, 128, 0, 0.15)"
+                            : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
+                              ? "rgba(255, 0, 0, 0.1)"
+                              : "inherit",
+                    borderLeft:
+                      (!consulta.type || consulta.type.trim().toLowerCase() === "no asignado")
+                        ? "4px solid red" // Borde izquierdo rojo para consultas sin tipo
+                        : (consulta.status === "Resuelta fuera de tiempo")
+                          ? "4px solid #FFD700"
+                          : (consulta.status === "Resuelta" && consulta.remaining_days > 0)
+                            ? "4px solid green"
+                            : (consulta.remaining_days < 0 && consulta.status !== "Resuelta" && consulta.status !== "Resuelta fuera de tiempo")
+                              ? "4px solid red"
+                              : "none"
+                  }}
+                >
                   <TableCell>{consulta.company}</TableCell>
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
                   <TableCell align="center">{formatDateTime(consulta.start_date || consulta.timestamp || consulta.apply_date)}</TableCell>

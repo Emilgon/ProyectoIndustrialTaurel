@@ -42,7 +42,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
     name,
     company,
     type: null,
-    star_date: new Date(),
+    start_date: new Date(),
     indicator: null,
     status: "Pendiente",
     email: user.email,

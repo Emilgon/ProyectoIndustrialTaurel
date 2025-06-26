@@ -202,9 +202,9 @@ const Respuesta = () => {
             </Avatar>
             <Typography variant="h6" fontWeight="bold">
               Fecha de envío:{" "}
-              {consultaData.star_date && consultaData.star_date.seconds
+              {consultaData.start_date && consultaData.start_date.seconds
                 ? new Date(
-                  consultaData.star_date.seconds * 1000
+                  consultaData.start_date.seconds * 1000
                 ).toLocaleDateString("es-ES", {
                   day: "2-digit",
                   month: "2-digit",
@@ -212,7 +212,7 @@ const Respuesta = () => {
                   hour: "2-digit",
                   minute: "2-digit",
                 })
-                : new Date(consultaData.star_date).toLocaleDateString("es-ES", {
+                : new Date(consultaData.start_date).toLocaleDateString("es-ES", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
