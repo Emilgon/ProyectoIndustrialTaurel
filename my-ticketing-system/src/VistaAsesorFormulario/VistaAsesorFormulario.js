@@ -635,6 +635,26 @@ const VistaAsesorFormulario = () => {
   };
 
   const handleSave = async () => {
+    // Validation for required fields based on type
+    if (editType === "Asesoría técnica" && (!tipoAsesoria || tipoAsesoria.trim() === "")) {
+      Swal.fire({
+        title: "Aviso",
+        text: "Debe asignar un tipo de asesoría antes de guardar.",
+        icon: "warning",
+        confirmButtonColor: "#1B5C94",
+      });
+      return;
+    }
+    if (editType === "Clasificación arancelaria" && (!itemsCount || itemsCount <= 0)) {
+      Swal.fire({
+        title: "Aviso",
+        text: "Debe asignar la cantidad de ítems a clasificar antes de guardar.",
+        icon: "warning",
+        confirmButtonColor: "#1B5C94",
+      });
+      return;
+    }
+
     try {
       let daysToResolve = resolverDays;
 
