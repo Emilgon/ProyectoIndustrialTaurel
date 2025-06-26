@@ -100,7 +100,7 @@ const VistaAsesorFormulario = () => {
   const [respuestas, setRespuestas] = useState([]);
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("start_date"); // Cambiado a "start_date"
-  const [editType, setEditType] = useState("No Asignado");
+  const [editType, setEditType] = useState("");
   const [selectedConsultId, setSelectedConsultId] = useState(null);
   const [resolverDays, setResolverDays] = useState(null);
   const [pendientesCount, setPendientesCount] = useState(0);
@@ -636,6 +636,15 @@ const VistaAsesorFormulario = () => {
 
   const handleSave = async () => {
     // Validation for required fields based on type
+    if (!editType || editType.trim() === "") {
+      Swal.fire({
+        title: "Aviso",
+        text: "Debe seleccionar un tipo de consulta antes de guardar.",
+        icon: "warning",
+        confirmButtonColor: "#1B5C94",
+      });
+      return;
+    }
     if (editType === "Asesoría técnica" && (!tipoAsesoria || tipoAsesoria.trim() === "")) {
       Swal.fire({
         title: "Aviso",
@@ -895,7 +904,9 @@ const VistaAsesorFormulario = () => {
 
       let matchesIndicador = true;
       if (indicadorFilter !== "todos") {
-        const remainingDays = consulta.remaining_days !== undefined ? consulta.remaining_days : consulta.indicator;
+        const remainingDays = consulta.remaining_days !== undefined ?
+          consulta.remaining_days :
+          consulta.indicator;
 
         switch (indicadorFilter) {
           case "urgente":
@@ -905,13 +916,26 @@ const VistaAsesorFormulario = () => {
             matchesIndicador = remainingDays > 1 && remainingDays <= 3;
             break;
           case "normal":
-            matchesIndicador = remainingDays > 3;
+            matchesIndicador = remainingDays > 3 && consulta.status !== "Resuelta";
             break;
           case "no_asignado":
-            matchesIndicador = remainingDays === undefined || remainingDays === null;
+            // Consultas sin indicador asignado
+            matchesIndicador = (
+              consulta.indicator === undefined ||
+              consulta.indicator === null ||
+              consulta.indicator === "No Asignado" ||
+              consulta.indicator === "" ||
+              isNaN(consulta.indicator)
+            );
             break;
           case "fuera_tiempo":
-            matchesIndicador = remainingDays <= 0;
+            // Consultas con indicador 0 o remaining_days 0
+            matchesIndicador = (
+              (consulta.indicator === 0 ||
+                consulta.remaining_days === 0) &&
+              consulta.status !== "Resuelta" &&
+              consulta.status !== "Resuelta fuera de tiempo"
+            );
             break;
           default:
             matchesIndicador = true;
@@ -1193,6 +1217,7 @@ const VistaAsesorFormulario = () => {
                 size="small"
                 sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
               >
+                <MuiMenuItem value="">Seleccione...</MuiMenuItem>
                 <MuiMenuItem value="Asesoría técnica">
                   Asesoría técnica
                 </MuiMenuItem>
@@ -1499,8 +1524,13 @@ const VistaAsesorFormulario = () => {
                     open={Boolean(anchorElTipo)}
                     onClose={() => setAnchorElTipo(null)}
                   >
-                  <MuiMenuItem onClick={() => handleSelectType("")}>
+                    <MuiMenuItem onClick={() => handleSelectType("")}>
                       Todos
+                    </MuiMenuItem>
+                    <MuiMenuItem
+                      onClick={() => handleSelectType("No Asignado")}
+                    >
+                      No Asignado
                     </MuiMenuItem>
                     <MuiMenuItem
                       onClick={() => handleSelectType("Asesoría técnica")}
@@ -1664,6 +1694,24 @@ const VistaAsesorFormulario = () => {
                       Todos
                     </MuiMenuItem>
                     <MuiMenuItem
+                      onClick={() => handleIndicadorFilter("no_asignado")}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "gray",
+                        }}
+                      />
+                      No asignado (sin días asignados)
+                    </MuiMenuItem>
+                    <MuiMenuItem
                       onClick={() => handleIndicadorFilter("urgente")}
                       sx={{
                         display: "flex",
@@ -1717,15 +1765,24 @@ const VistaAsesorFormulario = () => {
                       />
                       Normal ( mayor a 3 días)
                     </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleIndicadorFilter("no_asignado")}
-                    >
-                      No Asignado
-                    </MuiMenuItem>
+
                     <MuiMenuItem
                       onClick={() => handleIndicadorFilter("fuera_tiempo")}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
                     >
-                      Fuera de tiempo (0 días)
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "yellow",
+                        }}
+                      />
+                      Fuera de tiempo (0 días, no resueltas)
                     </MuiMenuItem>
                   </Box>
                 </Popover>
