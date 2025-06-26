@@ -1193,7 +1193,6 @@ const VistaAsesorFormulario = () => {
                 size="small"
                 sx={{ bgcolor: "#f5f5f5", borderRadius: 1 }}
               >
-                <MuiMenuItem value="No Asignado">No Asignado</MuiMenuItem>
                 <MuiMenuItem value="Asesoría técnica">
                   Asesoría técnica
                 </MuiMenuItem>
@@ -1500,13 +1499,8 @@ const VistaAsesorFormulario = () => {
                     open={Boolean(anchorElTipo)}
                     onClose={() => setAnchorElTipo(null)}
                   >
-                    <MuiMenuItem onClick={() => handleSelectType("")}>
+                  <MuiMenuItem onClick={() => handleSelectType("")}>
                       Todos
-                    </MuiMenuItem>
-                    <MuiMenuItem
-                      onClick={() => handleSelectType("No Asignado")}
-                    >
-                      No Asignado
                     </MuiMenuItem>
                     <MuiMenuItem
                       onClick={() => handleSelectType("Asesoría técnica")}
