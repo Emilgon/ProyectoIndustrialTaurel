@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { addConsulta } from "../models/consultaModel";
 
+/**
+ * Hook personalizado para manejar la lógica del formulario de consulta.
+ * Gestiona el estado del mensaje, archivo adjunto y asunto de la consulta.
+ * @returns {object} Un objeto con los estados y funciones para el formulario de consulta.
+ */
 const useConsultaController = () => {
   const [mensaje, setMensaje] = useState("");
   const [archivo, setArchivo] = useState(null);

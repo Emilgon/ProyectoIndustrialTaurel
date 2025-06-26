@@ -12,6 +12,11 @@ import { useNavigate } from "react-router-dom";
 import useConsultaController from "../hooks/useConsultaController";
 import Swal from "sweetalert2";
 
+/**
+ * Componente para que los clientes realicen nuevas consultas.
+ * Permite ingresar un asunto, mensaje y adjuntar un archivo.
+ * @returns {JSX.Element} El elemento JSX que representa el formulario de consulta.
+ */
 const Consulta = () => {
   const [affair, setAffair] = useState("");
   const {

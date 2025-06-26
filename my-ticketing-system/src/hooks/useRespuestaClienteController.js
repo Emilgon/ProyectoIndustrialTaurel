@@ -6,6 +6,12 @@ import {
   addRespuesta,
 } from "../models/respuestaClienteModel";
 
+/**
+ * Hook personalizado para manejar la lógica de la vista de respuesta del cliente.
+ * Obtiene datos de la consulta, respuestas y gestiona el envío de nuevas respuestas.
+ * @param {string} consultaId - El ID de la consulta.
+ * @returns {object} Un objeto con los estados y funciones para la vista de respuesta del cliente.
+ */
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
   const [respuestas, setRespuestas] = useState([]);

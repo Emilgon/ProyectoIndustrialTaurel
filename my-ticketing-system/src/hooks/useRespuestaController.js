@@ -11,6 +11,12 @@ import { getAuth } from "firebase/auth";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebaseConfig";
 
+/**
+ * Hook personalizado para manejar la lógica de respuesta del asesor a una consulta.
+ * Obtiene datos de la consulta, respuestas, gestiona el envío de nuevas respuestas y notificaciones por correo.
+ * @param {string} consultaId - El ID de la consulta.
+ * @returns {object} Un objeto con los estados y funciones para la vista de respuesta del asesor.
+ */
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
   const [respuestas, setRespuestas] = useState([]);

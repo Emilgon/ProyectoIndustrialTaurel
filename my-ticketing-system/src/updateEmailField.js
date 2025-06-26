@@ -1,6 +1,12 @@
 import { getDocs, collection, updateDoc, doc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
+/**
+ * Actualiza el campo 'correo' en todos los documentos de la colección 'Consultas'
+ * en Firestore si el campo no existe.
+ * Este script parece ser de un solo uso para migración de datos.
+ * @async
+ */
 const updateEmailField = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'Consultas'));

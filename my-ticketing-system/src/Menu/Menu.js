@@ -4,6 +4,11 @@ import LoginRegisterClient from "../LoginRegisterClient/LoginRegisterClient";
 import { Box, Typography } from "@mui/material";
 import "./Menu.css";
 
+/**
+ * Componente que representa el menú principal o la página de inicio de sesión.
+ * Muestra una imagen de fondo y el componente de inicio de sesión del cliente.
+ * @returns {JSX.Element} El elemento JSX que representa el menú principal.
+ */
 const Menu = () => {
   const navigate = useNavigate();
 

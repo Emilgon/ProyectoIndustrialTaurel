@@ -6,6 +6,12 @@ import PeopleIcon from "@mui/icons-material/People";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 
+/**
+ * Componente que muestra el panel de control del asesor.
+ * Permite navegar a diferentes secciones como consultas, clientes y reportes.
+ * Muestra un contador de consultas activas.
+ * @returns {JSX.Element} El elemento JSX que representa el panel de control del asesor.
+ */
 const AsesorControl = () => {
   const navigate = useNavigate();
   const [consultCount, setConsultCount] = useState(0);

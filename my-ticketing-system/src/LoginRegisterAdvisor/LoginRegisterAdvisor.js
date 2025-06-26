@@ -7,6 +7,11 @@ import Swal from "sweetalert2";
 import { ArrowBack as ArrowBackIcon, Email as EmailIcon, Lock as LockIcon, Person as PersonIcon, Visibility, VisibilityOff } from "@mui/icons-material";
 import "./LoginRegisterAdvisor.css";
 
+/**
+ * Componente para el inicio de sesión de los asesores.
+ * Permite a los asesores ingresar sus credenciales para acceder al panel de control.
+ * @returns {JSX.Element} El elemento JSX que representa el formulario de inicio de sesión del asesor.
+ */
 const LoginRegisterAdvisor = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

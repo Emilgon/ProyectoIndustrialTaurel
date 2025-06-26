@@ -7,6 +7,15 @@ import Swal from 'sweetalert2';
 import { ArrowBack as ArrowBackIcon, Lock as LockIcon, Email as EmailIcon, AdminPanelSettings as AdminPanelSettingsIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import './LoginRegisterClient.css';
 
+/**
+ * Componente para el inicio de sesión de los clientes.
+ * Permite a los clientes ingresar sus credenciales y registrarse si no tienen cuenta.
+ * @param {object} props - Propiedades del componente.
+ * @param {boolean} [props.showAdvisorOption=false] - Si se debe mostrar la opción para iniciar sesión como asesor.
+ * @param {function} [props.onAdvisorClick] - Función a ejecutar cuando se hace clic en la opción de asesor.
+ * @param {boolean} [props.hideBackButton=false] - Si se debe ocultar el botón de retroceso.
+ * @returns {JSX.Element} El elemento JSX que representa el formulario de inicio de sesión del cliente.
+ */
 const LoginRegisterClient = ({ showAdvisorOption = false, onAdvisorClick, hideBackButton = false }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

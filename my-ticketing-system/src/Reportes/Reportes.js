@@ -62,6 +62,9 @@ import {
 } from 'chart.js';
 
 // Registrar componentes necesarios de Chart.js
+/**
+ * Registra los componentes necesarios de Chart.js para su uso en la aplicación.
+ */
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -94,6 +97,11 @@ const timeRanges = [
   { value: 'all', label: 'Todo el tiempo' }
 ];
 
+/**
+ * Calcula el número de la semana para una fecha dada.
+ * @param {Date} date - La fecha para la cual calcular el número de la semana.
+ * @returns {number} El número de la semana.
+ */
 const getWeekNumber = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -153,6 +161,10 @@ const Reports = () => {
 
   const open = Boolean(anchorEl);
 
+  /**
+   * Efecto para cargar los datos iniciales de consultas y respuestas desde Firestore.
+   * Se ejecuta una vez al montar el componente.
+   */
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
@@ -186,6 +198,11 @@ const Reports = () => {
 
     fetchData();
   }, []);
+
+  /**
+   * Efecto para obtener y mostrar el nombre del asesor logueado.
+   * Se ejecuta una vez al montar el componente y cuando cambia `auth`.
+   */
   useEffect(() => {
     const fetchAdvisorName = async () => {
       try {
@@ -258,12 +275,19 @@ const Reports = () => {
     return filtered;
   };
 
-  // Efectos para actualizar cada gráfico independientemente con filtro global de tiempo
+  /**
+   * Efecto para actualizar los datos del gráfico de tendencia de consultas.
+   * Se ejecuta cuando cambian las consultas, los filtros de tendencia o el filtro de tiempo global.
+   */
   useEffect(() => {
     const trendFiltered = filterConsults(consults, { ...filters.trend, ...timeFilter });
     setTrendChartData(generateTimeData(trendFiltered, () => 'Consultas'));
   }, [consults, filters.trend, timeFilter]);
 
+  /**
+   * Efecto para actualizar los datos del gráfico de estado de respuestas.
+   * Se ejecuta cuando cambian las consultas, los filtros de estado de respuesta o el filtro de tiempo global.
+   */
   useEffect(() => {
     const responseFiltered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     setResponseRateChartData({
@@ -290,6 +314,10 @@ const Reports = () => {
     });
   }, [consults, filters.responseStatus, timeFilter]);
 
+  /**
+   * Efecto para actualizar los datos de los gráficos de tipos de consulta (estático y temporal).
+   * Se ejecuta cuando cambian las consultas, los filtros de tipos de consulta o el filtro de tiempo global.
+   */
   useEffect(() => {
     const typesFiltered = filterConsults(consults, { ...filters.consultTypes, ...timeFilter });
 
@@ -317,6 +345,10 @@ const Reports = () => {
     setTypesTimeData(generateTimeData(typesFiltered, consult => classifyConsultType(consult)));
   }, [consults, filters.consultTypes, timeFilter]);
 
+  /**
+   * Efecto para actualizar los datos de los gráficos de clientes (estático y temporal).
+   * Se ejecuta cuando cambian las consultas, los filtros de clientes o el filtro de tiempo global.
+   */
   useEffect(() => {
     const clientsFiltered = filterConsults(consults, { ...filters.clients, ...timeFilter });
 
@@ -359,7 +391,10 @@ const Reports = () => {
     ));
   }, [consults, filters.clients, timeFilter]);
 
-  // Manejadores de filtros
+  /**
+   * Maneja el cambio en el filtro de rango de tiempo.
+   * @param {string} value - El nuevo valor del rango de tiempo.
+   */
   const handleTimeRangeChange = (value) => {
     setTimeFilter(prev => ({
       ...prev,
@@ -367,7 +402,10 @@ const Reports = () => {
     }));
   };
 
-  // Actualizar fechas startDate y endDate cuando cambia timeRange
+  /**
+   * Efecto para actualizar las fechas de inicio y fin cuando cambia el `timeRange`.
+   * Se ejecuta cuando `timeFilter.timeRange` cambia.
+   */
   useEffect(() => {
     const now = new Date();
     let startDate = new Date();
@@ -401,7 +439,10 @@ const Reports = () => {
     }));
   }, [timeFilter.timeRange]);
 
-  // Removed duplicate declarations of handlers
+  /**
+   * Calcula la cantidad de ítems clasificados por cliente y el total de ítems clasificados.
+   * @returns {{itemsByClient: Object<string, number>, totalItems: number}} Un objeto con los ítems por cliente y el total.
+   */
   const calculateClassifiedItems = () => {
     const itemsByClient = {};
     let totalItems = 0;
@@ -465,6 +506,11 @@ const Reports = () => {
     }));
     setAnchorEl(null);
   };
+
+  /**
+   * Efecto para actualizar los datos de los gráficos de clasificación arancelaria (estático y temporal).
+   * Se ejecuta cuando cambian las consultas.
+   */
   useEffect(() => {
     const classifiedConsults = consults.filter(consult => consult.type === 'Clasificación arancelaria');
 
@@ -501,6 +547,11 @@ const Reports = () => {
     setSnackbarOpen(false);
   };
 
+  /**
+   * Clasifica el tipo de consulta, diferenciando entre asesoría técnica interna y externa.
+   * @param {object} consult - La consulta a clasificar.
+   * @returns {string} El tipo de consulta clasificado.
+   */
   const classifyConsultType = (consult) => {
     if (!consult.type) return 'Sin tipo';
 
@@ -513,6 +564,11 @@ const Reports = () => {
     return consult.type;
   };
 
+  /**
+   * Clasifica el estado de respuesta de una consulta (A tiempo, Tardía, No respondida).
+   * @param {object} consult - La consulta a clasificar.
+   * @returns {string} El estado de respuesta clasificado.
+   */
   const classifyResponseStatus = (consult) => {
     const response = responses.find(res => res.consultaId === consult.id);
 
@@ -522,6 +578,10 @@ const Reports = () => {
     return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
   };
 
+  /**
+   * Genera el nombre del archivo para el reporte de Excel.
+   * @returns {string} El nombre del archivo generado.
+   */
   const generateFileName = () => {
     const now = new Date();
     const month = now.toLocaleDateString('es-ES', { month: 'long' });
@@ -629,6 +689,9 @@ const Reports = () => {
     return { labels, datasets };
   };
 
+  /**
+   * Exporta los datos de los reportes a un archivo de Excel.
+   */
   const exportToExcel = () => {
     const fileName = generateFileName();
     const now = new Date();
@@ -826,7 +889,12 @@ const Reports = () => {
     setSnackbarOpen(true);
   };
 
-  // Función auxiliar para obtener top clientes
+  /**
+   * Obtiene los principales clientes basados en el número de consultas.
+   * @param {Array<object>} consults - Lista de consultas.
+   * @param {number} limit - Número máximo de clientes a retornar.
+   * @returns {Array<{name: string, count: number}>} Lista de los principales clientes.
+   */
   const getTopClients = (consults, limit) => {
     const clients = consults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
@@ -840,7 +908,11 @@ const Reports = () => {
       .map(([name, count]) => ({ name, count }));
   };
 
-  // Función auxiliar para obtener consultas por tipo
+  /**
+   * Agrupa las consultas por tipo.
+   * @param {Array<object>} consults - Lista de consultas.
+   * @returns {Object<string, number>} Objeto con el conteo de consultas por tipo.
+   */
   const getConsultsByType = (consults) => {
     return consults.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
@@ -893,6 +965,10 @@ const Reports = () => {
     };
   };
 
+  /**
+   * Obtiene los datos de respuesta basados en los filtros actuales.
+   * @returns {{total: number, answered: number, timely: number, unanswered: number, late: number}} Objeto con estadísticas de respuesta.
+   */
   const getResponseData = () => {
     const filtered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     const totalConsults = filtered.length;
@@ -917,6 +993,10 @@ const Reports = () => {
     };
   };
 
+  /**
+   * Obtiene una lista de todos los tipos de consulta disponibles.
+   * @returns {Array<string>} Lista de tipos de consulta.
+   */
   const getAvailableTypes = () => {
     const types = new Set();
 
@@ -927,6 +1007,10 @@ const Reports = () => {
     return Array.from(types);
   };
 
+  /**
+   * Opciones comunes para los gráficos.
+   * @type {object}
+   */
   const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -944,6 +1028,13 @@ const Reports = () => {
     },
   };
 
+  /**
+   * Componente para seleccionar el tipo de gráfico.
+   * @param {object} props - Propiedades del componente.
+   * @param {string} props.value - El tipo de gráfico actualmente seleccionado.
+   * @param {function} props.onChange - Función para manejar el cambio de tipo de gráfico.
+   * @returns {JSX.Element} El selector de tipo de gráfico.
+   */
   const ChartTypeSelector = ({ value, onChange }) => (
     <ButtonGroup variant="outlined" size="small" sx={{ ml: 2 }}>
       {chartTypes.map((type) => (
@@ -968,6 +1059,11 @@ const Reports = () => {
     );
   }
 
+  /**
+   * Componente principal de la sección de reportes.
+   * Muestra varios gráficos y estadísticas sobre las consultas.
+   * @returns {JSX.Element} El componente de reportes.
+   */
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
       <Box sx={{ padding: '20px' }}>

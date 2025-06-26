@@ -7,6 +7,11 @@ import {
   updateConsulta
 } from "../models/vistaAsesorModel";
 
+/**
+ * Hook personalizado para manejar la lógica de la vista del asesor.
+ * Obtiene y gestiona las consultas, sus detalles, historial y respuestas.
+ * @returns {object} Un objeto con los estados y funciones para la vista del asesor.
+ */
 const useVistaAsesorController = () => {
   const [consultas, setConsultas] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);

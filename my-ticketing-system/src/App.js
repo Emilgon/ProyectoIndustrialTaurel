@@ -223,6 +223,10 @@ function Header() {
   );
 }
 
+/**
+ * Componente principal de la aplicación que configura el enrutamiento y la estructura general.
+ * @returns {JSX.Element} El elemento JSX que representa la aplicación.
+ */
 function App() {
   return (
     <Router>

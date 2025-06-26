@@ -7,6 +7,11 @@ import Swal from 'sweetalert2';
 import { Phone as PhoneIcon, ArrowBack as ArrowBackIcon, Person as PersonIcon, Email as EmailIcon, Lock as LockIcon, Business as BusinessIcon, Work as WorkIcon, Home as HomeIcon } from '@mui/icons-material';
 import './FormularioCliente.css';
 
+/**
+ * Componente para el registro de nuevos clientes.
+ * Incluye validación de campos y de fortaleza de contraseña.
+ * @returns {JSX.Element} El elemento JSX que representa el formulario de registro de clientes.
+ */
 const FormularioCliente = () => {
   const [formData, setFormData] = useState({
     address: '',          // Campo para la dirección

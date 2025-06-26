@@ -22,6 +22,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import useClientsInfoController from "../hooks/useClientsInfoController";
 
+/**
+ * Componente para mostrar y gestionar la información de los clientes.
+ * Permite buscar, filtrar, ordenar y ver detalles de las consultas de los clientes.
+ * @returns {JSX.Element} El elemento JSX que representa la interfaz de información de clientes.
+ */
 const ClientsInfo = () => {
   const {
     clients,
@@ -578,7 +583,12 @@ const ClientsInfo = () => {
   );
 };
 
-// Función auxiliar para generar colores a partir de strings
+/**
+ * Genera un color hexadecimal a partir de una cadena de texto.
+ * Útil para asignar colores consistentes a elementos basados en su nombre.
+ * @param {string} string - La cadena de texto de entrada.
+ * @returns {string} Un color hexadecimal.
+ */
 function stringToColor(string) {
   if (!string) return '#1976d2';
 

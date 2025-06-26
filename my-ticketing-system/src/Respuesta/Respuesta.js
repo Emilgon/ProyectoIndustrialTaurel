@@ -34,6 +34,11 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
+/**
+ * Componente para que el asesor responda a una consulta específica de un cliente.
+ * Muestra los detalles de la consulta, el historial de respuestas y un formulario para enviar una nueva respuesta.
+ * @returns {JSX.Element} El elemento JSX que representa la interfaz de respuesta a consultas.
+ */
 const Respuesta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();

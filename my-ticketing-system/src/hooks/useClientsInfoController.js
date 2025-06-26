@@ -5,6 +5,11 @@ import {
   fetchDownloadUrls
 } from "../models/clientsInfoModel";
 
+/**
+ * Hook personalizado para manejar la lógica de la vista de información de clientes.
+ * Obtiene y gestiona los datos de los clientes y sus consultas.
+ * @returns {object} Un objeto con los estados y funciones para la vista de información de clientes.
+ */
 const useClientsInfoController = () => {
   const [clients, setClients] = useState([]);
   const [expandedClientId, setExpandedClientId] = useState(null);

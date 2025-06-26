@@ -32,6 +32,11 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
+/**
+ * Componente para que el cliente vea los detalles de una consulta específica y sus respuestas.
+ * Permite al cliente enviar nuevas respuestas a la consulta.
+ * @returns {JSX.Element} El elemento JSX que representa la vista de consulta del cliente.
+ */
 const VistaClienteConsulta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();

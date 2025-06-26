@@ -86,6 +86,11 @@ import TimerIcon from "@mui/icons-material/Timer";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import { blue } from "@mui/material/colors";
 
+/**
+ * Componente que muestra la vista principal del asesor para gestionar las consultas.
+ * Permite filtrar, ordenar y ver detalles de las consultas, así como responder y asignar tipos/estados.
+ * @returns {JSX.Element} El elemento JSX que representa la vista del asesor.
+ */
 const VistaAsesorFormulario = () => {
   const [consultas, setConsultas] = useState([]);
   const [filterDate, setFilterDate] = useState(null);

@@ -36,6 +36,11 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Swal from "sweetalert2";
 
+/**
+ * Componente que muestra la vista principal del cliente.
+ * Muestra los datos del cliente y su historial de consultas, permitiendo ver respuestas y hacer nuevas consultas.
+ * @returns {JSX.Element} El elemento JSX que representa la vista del cliente.
+ */
 const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);

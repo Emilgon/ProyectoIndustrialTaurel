@@ -2,6 +2,15 @@ import { collection, addDoc, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
 
+/**
+ * Agrega una nueva consulta a la base de datos.
+ * @async
+ * @param {string} mensaje - El contenido del mensaje de la consulta.
+ * @param {File} archivo - El archivo adjunto a la consulta (opcional).
+ * @param {string} affair - El asunto de la consulta.
+ * @returns {Promise<string>} Una promesa que se resuelve con el ID de la consulta creada.
+ * @throws {Error} Si el usuario no está autenticado o no se encuentran los datos del usuario.
+ */
 export const addConsulta = async (mensaje, archivo, affair) => {
   let attachmentURL = "";
 
