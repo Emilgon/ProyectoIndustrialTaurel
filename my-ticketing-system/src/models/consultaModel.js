@@ -12,15 +12,12 @@ import { db, storage, auth } from "../firebaseConfig";
  * @throws {Error} Si el usuario no está autenticado o no se encuentran los datos del usuario.
  */
 export const addConsulta = async (mensaje, archivo, affair) => {
-  let attachmentFileName = null; // Store only the file name
+  let attachmentURL = "";
 
   if (archivo) {
-    // Store files in the "archivos/" directory for consistency
-    const storageRef = ref(storage, `archivos/${archivo.name}`);
+    const storageRef = ref(storage, `${archivo.name}`);
     await uploadBytes(storageRef, archivo);
-    // We don't need the download URL to store in Firestore, just the name.
-    // The URL will be fetched on demand by fetchDownloadUrls.
-    attachmentFileName = archivo.name;
+    attachmentURL = await getDownloadURL(storageRef);
   }
 
   const user = auth.currentUser;
@@ -47,7 +44,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
     status: "Pendiente",
     email: user.email,
     messageContent: mensaje,
-    attachment: attachmentFileName, // Save only the file name
+    attachment: attachmentURL,
     affair: affair,
     timestamp: new Date(),
     clientId,

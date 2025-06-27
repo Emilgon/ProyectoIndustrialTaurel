@@ -53,51 +53,13 @@ export const fetchConsultaById = async (consultaId) => {
 export const fetchDownloadUrls = async (attachments, consultaId) => {
   const urls = {};
   if (!attachments) return urls;
-
-  for (const fileReference of attachments.split(", ")) {
+  for (const fileName of attachments.split(", ")) {
     try {
-      // Extraer solo el nombre del archivo (última parte después del último /)
-      // y decodificarlo por si tiene caracteres especiales URI-encoded.
-      let fileName = decodeURIComponent(fileReference.split('/').pop());
-
-      // Limpiar la referencia original en caso de que se use directamente.
-      // Reemplaza 'archivos/archivos/' con 'archivos/' para corregir duplicaciones.
-      const cleanFileReference = decodeURIComponent(fileReference.replace(/archivos\/archivos\//g, 'archivos/'));
-
-      // Prioritize using the cleaned file name with the standard 'archivos/' prefix.
-      // This handles cases where 'attachments' might store 'fileName.ext' or 'archivos/fileName.ext'.
-      let pathForStorage = `archivos/${fileName}`;
-      let url = null;
-
-      // Attempt 1: Standard path (archivos/fileName.ext)
-      // This should work if `fileName` is just the base name e.g., "EXCE_TFG.xlsx"
-      // or if `fileReference` was "archivos/EXCE_TFG.xlsx" (fileName becomes "EXCE_TFG.xlsx")
-      try {
-        const storageRef = ref(storage, pathForStorage);
-        url = await getDownloadURL(storageRef);
-      } catch (error) {
-        // Attempt 2: Use the cleaned file reference directly.
-        // This handles cases where `fileReference` might be a correct full path already
-        // like "archivos/somefolder/fileName.ext" or a cleaned "archivos/fileName.ext"
-        // or if `fileName` itself was a full path due to unusual naming.
-        console.warn(`Failed to fetch with 'archivos/${fileName}', trying '${cleanFileReference}'`, error);
-        try {
-          const storageRefClean = ref(storage, cleanFileReference);
-          url = await getDownloadURL(storageRefClean);
-          // If successful with cleanFileReference, update fileName to be the key in urls object
-          fileName = decodeURIComponent(cleanFileReference.split('/').pop());
-        } catch (errorDeep) {
-          console.error(`Error fetching download URL for '${fileReference}' with all fallbacks:`, errorDeep);
-          continue; // Skip to next fileReference if all attempts fail
-        }
-      }
-
-      // Store the URL with the most accurate fileName as key
+      const storageRef = ref(storage, `archivos/${fileName}`);
+      const url = await getDownloadURL(storageRef);
       urls[fileName] = url;
-
     } catch (error) {
-      // This outer catch is for unexpected errors in the loop logic itself.
-      console.error("General error in fetchDownloadUrls loop for fileReference:", fileReference, error);
+      console.error("Error fetching download URL:", error);
     }
   }
   return urls;
