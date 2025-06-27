@@ -104,13 +104,13 @@ const VistaClienteConsulta = () => {
 
   const filteredResponses = filterDate
     ? allResponses.filter((response) => {
-        const responseDate = new Date(response.timestamp.seconds * 1000);
-        return (
-          responseDate.getDate() === filterDate.getDate() &&
-          responseDate.getMonth() === filterDate.getMonth() &&
-          responseDate.getFullYear() === filterDate.getFullYear()
-        );
-      })
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
     : allResponses;
 
   const clearDateFilter = () => {
@@ -368,15 +368,15 @@ const VistaClienteConsulta = () => {
                     <Typography variant="body1" fontWeight="bold" gutterBottom>
                       Archivo Adjunto
                     </Typography>
-{respuesta.attachment.split(", ").map((fileNameRaw, index) => {
-  // Normalize fileName by trimming and decoding URI components
-  const fileName = decodeURIComponent(fileNameRaw.trim());
-  const fileUrl = fileDownloadUrls[fileName];
-  const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-    fileName.split(".").pop().toLowerCase()
-  );
+                    {respuesta.attachment.split(", ").map((fileNameRaw, index) => {
+                      // Normalize fileName by trimming and decoding URI components
+                      const fileName = decodeURIComponent(fileNameRaw.trim());
+                      const fileUrl = fileDownloadUrls[fileName];
+                      const isImage = ["jpg", "jpeg", "png", "gif"].includes(
+                        fileName.split(".").pop().toLowerCase()
+                      );
 
-  console.log("Attachment fileName:", fileName, "fileUrl:", fileUrl);
+                      console.log("Attachment fileName:", fileName, "fileUrl:", fileUrl);
 
                       return (
                         <Box
@@ -421,9 +421,9 @@ const VistaClienteConsulta = () => {
                             getFileIcon(fileName)
                           )}
 
-      <Typography variant="body2" sx={{ flexGrow: 1 }}>
-        {fileName}
-      </Typography>
+                          <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                            {fileName}
+                          </Typography>
 
                           {fileUrl && (
                             <IconButton
