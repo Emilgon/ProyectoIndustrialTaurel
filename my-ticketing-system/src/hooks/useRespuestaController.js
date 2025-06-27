@@ -36,48 +36,76 @@ const useRespuestaController = (consultaId) => {
       const urlMap = {};
       const files = attachments.split(", ");
 
-      for (let fileReference of files) {
+      for (let originalFileReference of files) {
+        let downloadUrl = null;
+        let displayFileName = ''; // Nombre para mostrar y usar como clave
+        let keyForUrlMap = originalFileReference; // Por defecto, la referencia original es la clave
+
         try {
-          // Extraer SOLO el nombre del archivo
-          const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
+          const decodedFileReference = decodeURIComponent(originalFileReference);
 
-          // fileReference es el nombre normalizado del archivo (ej: "documento_norm.pdf")
-          // La ruta en Storage es "archivos/documento_norm.pdf"
-          const storagePath = `archivos/${fileReference}`;
-          let downloadUrl = null;
+          // Intentar extraer un nombre de archivo limpio de la referencia (sea URL o no)
+          // Esto servirá como displayName y como clave si la originalFileReference es una URL.
+          displayFileName = decodedFileReference.substring(decodedFileReference.lastIndexOf('/') + 1).split('?')[0];
+          if (!displayFileName) displayFileName = decodedFileReference; // Si no hay '/', es el nombre mismo
 
-          try {
-            const storageRef = ref(storage, storagePath);
-            downloadUrl = await getDownloadURL(storageRef);
-          } catch (error) {
-            // Intentar con fileReference directamente como respaldo por si ya tiene 'archivos/' (caso improbable)
+
+          if (decodedFileReference.startsWith("http://") || decodedFileReference.startsWith("https://")) {
+            if (decodedFileReference.includes("firebasestorage.googleapis.com")) {
+              downloadUrl = decodedFileReference; // Es una URL de Firebase, usarla directamente
+              keyForUrlMap = displayFileName; // Usar el nombre extraído como clave para consistencia
+              console.log(`Detectada URL de Firebase Storage: ${downloadUrl}, usando nombre de archivo '${keyForUrlMap}' como clave.`);
+            } else {
+              // Es otra URL, no la manejamos para descarga directa de Storage, podría ser un enlace externo
+              console.warn(`Referencia es una URL externa no Firebase: ${decodedFileReference}`);
+              displayFileName = decodedFileReference; // Mostrar la URL completa si es externa
+              keyForUrlMap = displayFileName;
+            }
+          } else {
+            // No es una URL, asumimos que es un nombre de archivo (normalizado o no)
+            // Este es el caso esperado para nuevas subidas.
+            keyForUrlMap = decodedFileReference; // El nombre de archivo es la clave
+            displayFileName = decodedFileReference; // Y también el nombre a mostrar
+            const storagePath = `archivos/${decodedFileReference}`;
+            console.log(`Procesando como nombre de archivo: ${decodedFileReference}, intentando ruta: ${storagePath}`);
             try {
-              console.warn(`Primer intento falló para ${storagePath}, intentando con ${fileReference} directamente.`);
-              const storageRefBackup = ref(storage, fileReference);
-              downloadUrl = await getDownloadURL(storageRefBackup);
-            } catch (backupError) {
-              console.error(`Error al obtener URL de descarga para ${fileReference} (intentos: ${storagePath}, ${fileReference}):`, backupError);
-              throw new Error(`Archivo no encontrado: ${fileName} tras varios intentos.`);
+              const storageRef = ref(storage, storagePath);
+              downloadUrl = await getDownloadURL(storageRef);
+            } catch (storageError) {
+              // Intento de respaldo por si 'decodedFileReference' ya tenía 'archivos/' (poco probable para datos nuevos)
+              console.warn(`Intento con '${storagePath}' falló. Intentando directamente con '${decodedFileReference}'. Error: ${storageError.message}`);
+              try {
+                  const backupStorageRef = ref(storage, decodedFileReference);
+                  downloadUrl = await getDownloadURL(backupStorageRef);
+              } catch (backupStorageError) {
+                console.error(`Todos los intentos de obtener URL de descarga para '${decodedFileReference}' fallaron.`, backupStorageError);
+                throw new Error(`Archivo no encontrado: ${displayFileName} tras varios intentos.`);
+              }
             }
           }
 
-          // Si llegamos aquí, downloadUrl debería estar seteado.
-          // La clave es fileReference (nombre normalizado), displayName es el nombre limpio.
-          urlMap[fileReference] = {
+          urlMap[keyForUrlMap] = {
             url: downloadUrl,
-            displayName: fileName // Mantenemos el nombre decodificado y limpio para mostrar
+            displayName: displayFileName
           };
+
         } catch (error) {
-          // Este catch ahora es para el error lanzado por "Archivo no encontrado" o errores inesperados.
-          console.error(`Error final procesando ${fileReference}:`, error);
-          urlMap[fileReference] = {
+          console.error(`Error final procesando referencia '${originalFileReference}':`, error);
+          // Asegurar que displayFileName tenga un valor incluso en error para la clave
+          if (!displayFileName && originalFileReference) {
+             displayFileName = decodeURIComponent(originalFileReference.substring(originalFileReference.lastIndexOf('/') + 1).split('?')[0] || originalFileReference);
+          } else if (!displayFileName) {
+            displayFileName = "archivo_desconocido";
+          }
+          keyForUrlMap = displayFileName; // Usar el nombre extraído o por defecto como clave en error
+
+          urlMap[keyForUrlMap] = {
             url: null,
-            displayName: decodeURIComponent(fileReference.split('/').pop().split('?')[0]), // Nombre limpio para mostrar
+            displayName: displayFileName,
             error: error.message
           };
         }
       }
-
       return urlMap;
     };
 
@@ -87,21 +115,27 @@ const useRespuestaController = (consultaId) => {
         const consulta = await fetchConsultaById(consultaId);
         setConsultaData(consulta);
 
+        // Procesar adjuntos de la consulta inicial
         if (consulta?.attachment) {
-          const urls = await fetchAllDownloadUrls(consulta.attachment);
-          setFileDownloadUrls(urls);
+          console.log("Procesando adjuntos de la consulta inicial:", consulta.attachment);
+          const consultaAttachmentUrls = await fetchAllDownloadUrls(consulta.attachment);
+          setFileDownloadUrls(consultaAttachmentUrls);
         }
 
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
 
+        // Procesar adjuntos de las respuestas
         const responseUrls = {};
         for (const respuesta of respuestasData) {
           if (respuesta.attachment) {
+            console.log(`Procesando adjuntos de respuesta ${respuesta.id}:`, respuesta.attachment);
             const urls = await fetchAllDownloadUrls(respuesta.attachment);
             Object.assign(responseUrls, urls);
           }
         }
+        // Combinar URLs de adjuntos de consulta y respuestas
+        // Dando prioridad a las URLs de respuesta si hay colisión de claves (poco probable si las claves son nombres de archivo únicos)
         setFileDownloadUrls(prev => ({ ...prev, ...responseUrls }));
       } catch (error) {
         console.error("Error fetching data:", error);
