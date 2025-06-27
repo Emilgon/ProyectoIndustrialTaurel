@@ -38,48 +38,48 @@ const useRespuestaController = (consultaId) => {
 
       for (let fileReference of files) {
         try {
-          // Extraer SOLO el nombre del archivo (última parte después del último /)
+          // Extraer SOLO el nombre del archivo
           const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          // Eliminar cualquier prefijo duplicado 'archivos/archivos/' en cualquier parte de la cadena
+          // Eliminar cualquier prefijo duplicado 'archivos/'
           const cleanReference = fileReference.replace(/archivos\/archivos\//g, 'archivos/');
 
-          // Posibles patrones de ruta a probar en orden de prioridad
+          // Posibles patrones de ruta a probar
+          // Fix duplicated 'archivos/' prefix in path
+          let basePath = fileReference;
+          if (fileReference.startsWith('archivos/archivos/')) {
+            basePath = fileReference.replace('archivos/archivos/', 'archivos/');
+          } else if (!fileReference.startsWith('archivos/')) {
+            basePath = `archivos/${fileReference}`;
+          }
+
           const possiblePaths = [
-            `archivos/${fileName}`,          // Ruta directa con nombre de archivo
-            cleanReference,                  // Ruta original limpia
-            fileReference,                   // Ruta original (por si acaso)
-            fileName                         // Solo el nombre del archivo
+            basePath,
+            cleanReference,
+            fileReference,
+            fileName
           ];
 
           let downloadUrl = null;
-          let successfulPath = null;
 
-          // Probar cada posible ruta hasta encontrar una que funcione
           for (const path of possiblePaths) {
             try {
-              console.log(`Intentando obtener URL para: ${path}`);
               const storageRef = ref(storage, path);
               downloadUrl = await getDownloadURL(storageRef);
-              successfulPath = path;
-              console.log(`Éxito al obtener URL para: ${path}`);
               break;
             } catch (error) {
-              console.log(`Fallo al obtener URL para: ${path}`, error);
               continue;
             }
           }
 
           if (!downloadUrl) {
-            throw new Error(`Archivo no encontrado en ninguna ubicación probada: ${fileName}`);
+            throw new Error(`Archivo no encontrado: ${fileName}`);
           }
 
-          console.log(`Archivo encontrado en: ${successfulPath}`);
-          // Use fileName as key instead of fileReference to avoid duplicated path issues
+          // Usar fileName como clave para evitar duplicados
           urlMap[fileName] = {
             url: downloadUrl,
-            displayName: fileName,
-            path: successfulPath
+            displayName: fileName
           };
         } catch (error) {
           console.error(`Error procesando ${fileReference}:`, error);

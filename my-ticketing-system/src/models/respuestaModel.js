@@ -53,31 +53,39 @@ export const fetchConsultaById = async (consultaId) => {
  */
 export const fetchDownloadUrls = async (fileReference, consultaId) => {
   try {
+    // Extraer solo el nombre del archivo (última parte después del último /)
     const fileName = fileReference.split('/').pop();
 
+    // Eliminar cualquier prefijo duplicado 'archivos/archivos/' en cualquier parte de la cadena
+    const cleanReference = fileReference.replace(/archivos\/archivos\//g, 'archivos/');
+
+    // Posibles patrones de ruta a probar en orden de prioridad
     const possiblePaths = [
-      `archivos/${fileName}`,
-      fileReference
+      `archivos/${fileName}`,          // Ruta directa con nombre de archivo
+      cleanReference,                  // Ruta original limpia
+      fileReference,                   // Ruta original (por si acaso)
+      fileName                         // Solo el nombre del archivo
     ];
 
-    let urlFound = null;
+    let downloadUrl = null;
 
+    // Probar cada posible ruta hasta encontrar una que funcione
     for (const path of possiblePaths) {
       try {
-        const url = await getDownloadURL(ref(storage, path));
-        urlFound = url;
-        break;
+        const storageRef = ref(storage, path);
+        downloadUrl = await getDownloadURL(storageRef);
+        break; // Si encontramos una URL válida, salimos del bucle
       } catch (error) {
-        continue;
+        continue; // Si falla, probamos con el siguiente patrón
       }
     }
 
-    if (!urlFound) {
-      throw new Error("No se pudo encontrar el archivo en ninguna ubicación");
+    if (!downloadUrl) {
+      throw new Error("No se pudo encontrar el archivo en ninguna ubicación probada");
     }
 
     return {
-      url: urlFound,
+      url: downloadUrl,
       displayName: fileName
     };
   } catch (error) {

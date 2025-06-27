@@ -33,6 +33,8 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { fetchDownloadUrls as fetchModelDownloadUrls } from "../models/respuestaModel";
 
 /**
  * Componente para que el asesor responda a una consulta específica de un cliente.
@@ -82,7 +84,31 @@ const Respuesta = () => {
     });
 
     setAllResponses(mergedArray);
-  }, [respuestasCliente, respuestas]);
+  }, [respuestasCliente, respuestas, fileDownloadUrls]);
+
+  // Use fetchDownloadUrls from model to avoid duplicated 'archivos/' prefix in storage path
+  const fetchDownloadUrls = async (attachments) => {
+    const urls = {};
+
+    // If attachments is a string, convert to array
+    const files = typeof attachments === 'string' ?
+      attachments.split(", ") :
+      Array.isArray(attachments) ? attachments : [];
+
+    for (const fileReference of files) {
+      try {
+        const result = await fetchModelDownloadUrls(fileReference, consultaId);
+        urls[fileReference] = result;
+      } catch (error) {
+        console.error("Error al obtener la URL de descarga:", error);
+        urls[fileReference] = {
+          url: null,
+          displayName: fileReference.split('/').pop()
+        };
+      }
+    }
+    return urls;
+  };
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -371,7 +397,8 @@ const Respuesta = () => {
                       Archivo Adjunto
                     </Typography>
                     {respuesta.attachment.split(", ").map((fileReference, index) => {
-                      const fileName = fileReference.split('/').pop();
+                      // Extraer nombre limpio del archivo
+                      const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
                       const fileData = fileDownloadUrls[fileName] || fileDownloadUrls[fileReference];
                       const fileUrl = fileData?.url;
 
@@ -416,7 +443,7 @@ const Respuesta = () => {
                             </IconButton>
                           ) : (
                             <Typography variant="caption" color="error">
-                              .
+                              Error al cargar archivo
                             </Typography>
                           )}
                         </Box>

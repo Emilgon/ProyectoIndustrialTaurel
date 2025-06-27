@@ -128,20 +128,27 @@ const ClientsInfo = () => {
       return false;
     })
     .filter(client => {
+      // If no date filter is set, include all clients
       if (!startDate && !endDate) return true;
 
       if (client.consultas && client.consultas.length > 0) {
         return client.consultas.some(consulta => {
           if (!consulta.timestamp?.seconds) return false;
 
+          // Convert Firestore timestamp to Date object
           const consultaDate = new Date(consulta.timestamp.seconds * 1000);
 
-          if (startDate && endDate) {
-            return consultaDate >= startDate && consultaDate <= endDate;
-          } else if (startDate) {
-            return consultaDate >= startDate;
-          } else if (endDate) {
-            return consultaDate <= endDate;
+          // Normalize dates to ignore time part for comparison
+          const consultaDateOnly = new Date(consultaDate.getFullYear(), consultaDate.getMonth(), consultaDate.getDate());
+          const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
+          const endDateOnly = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) : null;
+
+          if (startDateOnly && endDateOnly) {
+            return consultaDateOnly >= startDateOnly && consultaDateOnly <= endDateOnly;
+          } else if (startDateOnly) {
+            return consultaDateOnly >= startDateOnly;
+          } else if (endDateOnly) {
+            return consultaDateOnly <= endDateOnly;
           }
           return true;
         });
