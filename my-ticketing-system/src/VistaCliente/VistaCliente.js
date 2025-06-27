@@ -94,43 +94,55 @@ const VistaCliente = () => {
 
   // Listener para nuevas respuestas del asesor
   useEffect(() => {
-    const unsubscribeResponses = onSnapshot(
-      collection(db, "Responses"),
-      async (snapshot) => {
-        const newCounts = { ...newResponsesCount };
-        let hasChanges = false;
+      const unsubscribeResponses = onSnapshot(
+        collection(db, "Responses"),
+        async (snapshot) => {
+          let hasChanges = false;
+          const user = auth.currentUser;
 
-        for (const change of snapshot.docChanges()) {
-          if (change.type === "added" || change.type === "modified") {
-            const newResponse = change.doc.data();
-            try {
-              const consultaRef = doc(db, "Consults", newResponse.consultaId);
-              const consultaDoc = await getDoc(consultaRef);
+          setNewResponsesCount(prevCounts => {
+            const newCounts = { ...prevCounts };
 
-              if (consultaDoc.exists()) {
-                const consultaData = consultaDoc.data();
-                const responseDate = newResponse.timestamp?.toDate?.();
-                const lastViewedDate = consultaData.lastViewed?.toDate?.();
+            for (const change of snapshot.docChanges()) {
+              if (change.type === "added" || change.type === "modified") {
+                const newResponse = change.doc.data();
+                try {
+                  // Skip notification if the response was sent by the current user
+                  if (user && newResponse.senderEmail === user.email) {
+                    continue;
+                  }
 
-                if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
-                  newCounts[newResponse.consultaId] = (newCounts[newResponse.consultaId] || 0) + 1;
-                  hasChanges = true;
+                  const consultaRef = doc(db, "Consults", newResponse.consultaId);
+                  const consultaDoc = getDoc(consultaRef);
+
+                  if (consultaDoc) {
+                    consultaDoc.then(docSnap => {
+                      if (docSnap.exists()) {
+                        const consultaData = docSnap.data();
+                        const responseDate = newResponse.timestamp?.toDate?.();
+                        const lastViewedDate = consultaData.lastViewed?.toDate?.();
+
+                        if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
+                          newCounts[newResponse.consultaId] = (newCounts[newResponse.consultaId] || 0) + 1;
+                          hasChanges = true;
+                          setNewResponsesCount(newCounts);
+                        }
+                      }
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error al verificar estado de consulta:", error);
                 }
               }
-            } catch (error) {
-              console.error("Error al verificar estado de consulta:", error);
             }
-          }
-        }
 
-        if (hasChanges) {
-          setNewResponsesCount(newCounts);
+            return newCounts;
+          });
         }
-      }
-    );
+      );
 
     return () => unsubscribeResponses();
-  }, [newResponsesCount]);
+  }, []);
 
   // Cargar notificaciones existentes al iniciar
   useEffect(() => {
