@@ -53,13 +53,32 @@ export const fetchConsultaById = async (consultaId) => {
 export const fetchDownloadUrls = async (attachments, consultaId) => {
   const urls = {};
   if (!attachments) return urls;
-  for (const fileName of attachments.split(", ")) {
+
+  // Convertir attachments a array si es una cadena
+  const files = typeof attachments === 'string' ?
+    attachments.split(", ") :
+    Array.isArray(attachments) ? attachments : [];
+
+  for (const fileReference of files) {
     try {
-      const storageRef = ref(storage, `archivos/${fileName}`);
+      // Limpiar la ruta - eliminar cualquier prefijo duplicado 'archivos/'
+      const cleanPath = fileReference.replace(/^archivos\//, '').replace(/^archivos\//, '');
+
+      // Construir la ruta correcta
+      const storagePath = `archivos/${cleanPath}`;
+
+      const storageRef = ref(storage, storagePath);
       const url = await getDownloadURL(storageRef);
-      urls[fileName] = url;
+      urls[fileReference] = {
+        url: url,
+        displayName: cleanPath.split('/').pop() // Nombre del archivo sin ruta
+      };
     } catch (error) {
-      console.error("Error fetching download URL:", error);
+      console.error("Error fetching download URL for:", fileReference, error);
+      urls[fileReference] = {
+        url: null,
+        displayName: fileReference.split('/').pop()
+      };
     }
   }
   return urls;
@@ -79,13 +98,14 @@ export const addRespuesta = async (consultaId, content, file) => {
     content,
     timestamp: new Date(),
     userId: auth.currentUser.uid,
-    attachment: file ? file.name : null,
+    attachment: file ? file.name : null, // Solo el nombre del archivo, sin ruta
   };
 
   const docRef = await addDoc(collection(db, "ResponsesClients"), responseData);
 
   let downloadUrl = null;
   if (file) {
+    // Guardar siempre en 'archivos/' sin subcarpetas adicionales
     const storageRef = ref(storage, `archivos/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);

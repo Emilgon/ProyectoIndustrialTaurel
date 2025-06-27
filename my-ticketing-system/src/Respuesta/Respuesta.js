@@ -447,7 +447,7 @@ const Respuesta = () => {
                               </IconButton>
                             ) : (
                               <Typography variant="caption" color="error">
-                                (Archivo no disponible)
+                                .
                               </Typography>
                             )}
                           </Box>
