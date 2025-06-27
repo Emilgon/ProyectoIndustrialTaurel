@@ -296,12 +296,7 @@ const Respuesta = () => {
                       {fileUrl && (
                         <IconButton
                           onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
+                            window.open(fileUrl, "_blank");
                           }}
                           sx={{
                             color: "#1B5C94",
@@ -431,12 +426,7 @@ const Respuesta = () => {
                             {fileUrl ? (
                               <IconButton
                                 onClick={() => {
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
+                                  window.open(fileUrl, "_blank");
                                 }}
                                 sx={{
                                   color: "#1B5C94",
@@ -445,11 +435,7 @@ const Respuesta = () => {
                               >
                                 <DownloadIcon />
                               </IconButton>
-                            ) : (
-                              <Typography variant="caption" color="error">
-                                (Archivo no disponible)
-                              </Typography>
-                            )}
+                            ) : null}
                           </Box>
                         );
                       })}
