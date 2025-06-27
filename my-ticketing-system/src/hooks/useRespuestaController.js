@@ -41,51 +41,38 @@ const useRespuestaController = (consultaId) => {
           // Extraer SOLO el nombre del archivo
           const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          // Eliminar cualquier prefijo duplicado 'archivos/'
-          const cleanReference = fileReference.replace(/archivos\/archivos\//g, 'archivos/');
-
-          // Posibles patrones de ruta a probar
-          // Fix duplicated 'archivos/' prefix in path
-          let basePath = fileReference;
-          if (fileReference.startsWith('archivos/archivos/')) {
-            basePath = fileReference.replace('archivos/archivos/', 'archivos/');
-          } else if (!fileReference.startsWith('archivos/')) {
-            basePath = `archivos/${fileReference}`;
-          }
-
-          const possiblePaths = [
-            basePath,
-            cleanReference,
-            fileReference,
-            fileName
-          ];
-
+          // fileReference es el nombre normalizado del archivo (ej: "documento_norm.pdf")
+          // La ruta en Storage es "archivos/documento_norm.pdf"
+          const storagePath = `archivos/${fileReference}`;
           let downloadUrl = null;
 
-          for (const path of possiblePaths) {
+          try {
+            const storageRef = ref(storage, storagePath);
+            downloadUrl = await getDownloadURL(storageRef);
+          } catch (error) {
+            // Intentar con fileReference directamente como respaldo por si ya tiene 'archivos/' (caso improbable)
             try {
-              const storageRef = ref(storage, path);
-              downloadUrl = await getDownloadURL(storageRef);
-              break;
-            } catch (error) {
-              continue;
+              console.warn(`Primer intento falló para ${storagePath}, intentando con ${fileReference} directamente.`);
+              const storageRefBackup = ref(storage, fileReference);
+              downloadUrl = await getDownloadURL(storageRefBackup);
+            } catch (backupError) {
+              console.error(`Error al obtener URL de descarga para ${fileReference} (intentos: ${storagePath}, ${fileReference}):`, backupError);
+              throw new Error(`Archivo no encontrado: ${fileName} tras varios intentos.`);
             }
           }
 
-          if (!downloadUrl) {
-            throw new Error(`Archivo no encontrado: ${fileName}`);
-          }
-
-          // Usar fileName como clave para evitar duplicados
-          urlMap[fileName] = {
+          // Si llegamos aquí, downloadUrl debería estar seteado.
+          // La clave es fileReference (nombre normalizado), displayName es el nombre limpio.
+          urlMap[fileReference] = {
             url: downloadUrl,
-            displayName: fileName
+            displayName: fileName // Mantenemos el nombre decodificado y limpio para mostrar
           };
         } catch (error) {
-          console.error(`Error procesando ${fileReference}:`, error);
+          // Este catch ahora es para el error lanzado por "Archivo no encontrado" o errores inesperados.
+          console.error(`Error final procesando ${fileReference}:`, error);
           urlMap[fileReference] = {
             url: null,
-            displayName: fileReference.split('/').pop(),
+            displayName: decodeURIComponent(fileReference.split('/').pop().split('?')[0]), // Nombre limpio para mostrar
             error: error.message
           };
         }
