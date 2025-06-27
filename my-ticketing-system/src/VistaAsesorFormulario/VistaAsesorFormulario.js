@@ -1021,11 +1021,9 @@ const VistaAsesorFormulario = () => {
       // Obtener la URL de descarga si existe
       const fileUrl = fileDownloadUrls[fileReference]?.url || fileReference;
       // Obtener el nombre legible del archivo
-      // Decode URL-encoded file name for display
-      const rawDisplayName = fileDownloadUrls[fileReference]?.displayName ||
+      const displayName = fileDownloadUrls[fileReference]?.displayName ||
         fileReference.split('/').pop() ||
         fileReference;
-      const displayName = decodeURIComponent(rawDisplayName.split('?')[0]);
 
       return (
         <Box

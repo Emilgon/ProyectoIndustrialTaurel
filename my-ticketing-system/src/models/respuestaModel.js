@@ -111,25 +111,17 @@ export const addRespuesta = async (consultaId, content, file) => {
     content,
     timestamp: new Date(),
     userId: auth.currentUser.uid,
-    attachment: file ? file.name : null, // Solo el nombre del archivo
+    attachment: file ? file.name : null, // Solo el nombre, sin ruta
   };
 
   const docRef = await addDoc(collection(db, "Responses"), responseData);
 
   let downloadUrl = null;
   if (file) {
-    // Normalizar el nombre del archivo (eliminar caracteres problemáticos)
-    const normalizedFileName = file.name.replace(/[^\w.-]/g, '_');
-    const storageRef = ref(storage, `archivos/${normalizedFileName}`);
-
-    // Subir el archivo
+    // Subir directamente a 'archivos/' sin prefijos adicionales
+    const storageRef = ref(storage, `archivos/${file.name}`);
     await uploadBytes(storageRef, file);
     downloadUrl = await getDownloadURL(storageRef);
-
-    // Actualizar la respuesta con el nombre normalizado
-    await updateDoc(docRef, {
-      attachment: normalizedFileName
-    });
   }
 
   return { id: docRef.id, downloadUrl };

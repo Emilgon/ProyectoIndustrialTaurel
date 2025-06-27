@@ -36,73 +36,52 @@ const useRespuestaController = (consultaId) => {
       const urlMap = {};
       const files = attachments.split(", ");
 
-      for (let originalFileReference of files) {
-        let downloadUrl = null;
-        let displayFileName = ''; // Nombre para mostrar y usar como clave
-        let keyForUrlMap = ''; // Declare keyForUrlMap here to avoid no-undef error
-
+      for (let fileReference of files) {
         try {
-          const decodedFileReference = decodeURIComponent(originalFileReference);
+          // Extraer SOLO el nombre del archivo (última parte después del último /)
+          const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          // Extract only the file name (last part after '/')
-          const fileNameOnly = decodedFileReference.substring(decodedFileReference.lastIndexOf('/') + 1).split('?')[0];
-          displayFileName = fileNameOnly || decodedFileReference;
-
-          keyForUrlMap = fileNameOnly; // Use only the file name as key
-
-          if (decodedFileReference.startsWith("http://") || decodedFileReference.startsWith("https://")) {
-            if (decodedFileReference.includes("firebasestorage.googleapis.com")) {
-              downloadUrl = decodedFileReference; // Es una URL de Firebase, usarla directamente
-              keyForUrlMap = fileNameOnly; // Usar solo el nombre de archivo como clave para consistencia
-              console.log(`Detectada URL de Firebase Storage: ${downloadUrl}, usando nombre de archivo '${keyForUrlMap}' como clave.`);
-            } else {
-              // Es otra URL, no la manejamos para descarga directa de Storage, podría ser un enlace externo
-              console.warn(`Referencia es una URL externa no Firebase: ${decodedFileReference}`);
-              displayFileName = decodedFileReference; // Mostrar la URL completa si es externa
-              keyForUrlMap = displayFileName;
-            }
-          } else {
-            // No es una URL, asumimos que es un nombre de archivo (normalizado o no)
-            // Este es el caso esperado para nuevas subidas.
-            keyForUrlMap = fileNameOnly; // Usar solo el nombre de archivo como clave
-            displayFileName = fileNameOnly; // Y también el nombre a mostrar
-            const storagePath = `archivos/${fileNameOnly}`;
-            console.log(`Procesando como nombre de archivo: ${fileNameOnly}, intentando ruta: ${storagePath}`);
-            try {
-              const storageRef = ref(storage, storagePath);
-              downloadUrl = await getDownloadURL(storageRef);
-            } catch (storageError) {
-              // Intento de respaldo por si 'fileNameOnly' ya tenía 'archivos/' (poco probable para datos nuevos)
-              console.warn(`Intento con '${storagePath}' falló. Intentando directamente con '${fileNameOnly}'. Error: ${storageError.message}`);
-              try {
-                  const backupStorageRef = ref(storage, fileNameOnly);
-                  downloadUrl = await getDownloadURL(backupStorageRef);
-              } catch (backupStorageError) {
-                console.error(`Todos los intentos de obtener URL de descarga para '${fileNameOnly}' fallaron.`, backupStorageError);
-                throw new Error(`Archivo no encontrado: ${displayFileName} tras varios intentos.`);
-              }
-            }
+          // Primero intentar con la ruta directa en 'archivos/' (sin prefijos adicionales)
+          try {
+            const storageRef = ref(storage, `archivos/${fileName}`);
+            const url = await getDownloadURL(storageRef);
+            urlMap[fileReference] = {
+              url: url,
+              displayName: fileName
+            };
+            continue;
+          } catch (error) {
+            console.log(`Archivo no encontrado en archivos/${fileName}, probando otras rutas`);
           }
 
-          urlMap[keyForUrlMap] = {
-            url: downloadUrl,
-            displayName: displayFileName
-          };
-
+          // Si no se encuentra, probar con la referencia original (por si ya incluye 'archivos/')
+          try {
+            const url = await getDownloadURL(ref(storage, fileReference));
+            urlMap[fileReference] = {
+              url: url,
+              displayName: fileName
+            };
+          } catch (error) {
+            console.error(`No se pudo encontrar el archivo ${fileName} en ninguna ubicación`, error);
+            urlMap[fileReference] = {
+              url: null,
+              displayName: fileName
+            };
+          }
         } catch (error) {
-          console.error(`Error final procesando referencia '${originalFileReference}':`, error);
+          console.error(`Error final procesando referencia '${fileReference}':`, error);
           // Asegurar que displayFileName tenga un valor incluso en error para la clave
-          if (!displayFileName && originalFileReference) {
-             displayFileName = decodeURIComponent(originalFileReference.substring(originalFileReference.lastIndexOf('/') + 1).split('?')[0] || originalFileReference);
+          let displayFileName = '';
+          if (!displayFileName && fileReference) {
+             displayFileName = decodeURIComponent(fileReference.substring(fileReference.lastIndexOf('/') + 1).split('?')[0] || fileReference);
           } else if (!displayFileName) {
             displayFileName = "archivo_desconocido";
           }
-          keyForUrlMap = displayFileName; // Usar el nombre extraído o por defecto como clave en error
+          const keyForUrlMap = displayFileName; // Usar el nombre extraído o por defecto como clave en error
 
           urlMap[keyForUrlMap] = {
             url: null,
-            displayName: displayFileName,
-            error: error.message
+            displayName: fileReference.split('/').pop() // Fallback simple
           };
         }
       }

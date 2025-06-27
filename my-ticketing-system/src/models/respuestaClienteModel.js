@@ -53,12 +53,8 @@ export const fetchConsultaById = async (consultaId) => {
 export const fetchDownloadUrls = async (attachments, consultaId) => {
   const urls = {};
   if (!attachments) return urls;
-  for (let fileName of attachments.split(", ")) {
+  for (const fileName of attachments.split(", ")) {
     try {
-      // Normalize fileName to avoid 'archivos/archivos/' duplication
-      if (fileName.startsWith('archivos/')) {
-        fileName = fileName.slice('archivos/'.length);
-      }
       const storageRef = ref(storage, `archivos/${fileName}`);
       const url = await getDownloadURL(storageRef);
       urls[fileName] = url;
