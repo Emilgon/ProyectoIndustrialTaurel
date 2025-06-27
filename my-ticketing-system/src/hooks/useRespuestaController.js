@@ -39,21 +39,21 @@ const useRespuestaController = (consultaId) => {
       for (let originalFileReference of files) {
         let downloadUrl = null;
         let displayFileName = ''; // Nombre para mostrar y usar como clave
-        let keyForUrlMap = originalFileReference; // Por defecto, la referencia original es la clave
+        let keyForUrlMap = ''; // Declare keyForUrlMap here to avoid no-undef error
 
         try {
           const decodedFileReference = decodeURIComponent(originalFileReference);
 
-          // Intentar extraer un nombre de archivo limpio de la referencia (sea URL o no)
-          // Esto servirá como displayName y como clave si la originalFileReference es una URL.
-          displayFileName = decodedFileReference.substring(decodedFileReference.lastIndexOf('/') + 1).split('?')[0];
-          if (!displayFileName) displayFileName = decodedFileReference; // Si no hay '/', es el nombre mismo
+          // Extract only the file name (last part after '/')
+          const fileNameOnly = decodedFileReference.substring(decodedFileReference.lastIndexOf('/') + 1).split('?')[0];
+          displayFileName = fileNameOnly || decodedFileReference;
 
+          keyForUrlMap = fileNameOnly; // Use only the file name as key
 
           if (decodedFileReference.startsWith("http://") || decodedFileReference.startsWith("https://")) {
             if (decodedFileReference.includes("firebasestorage.googleapis.com")) {
               downloadUrl = decodedFileReference; // Es una URL de Firebase, usarla directamente
-              keyForUrlMap = displayFileName; // Usar el nombre extraído como clave para consistencia
+              keyForUrlMap = fileNameOnly; // Usar solo el nombre de archivo como clave para consistencia
               console.log(`Detectada URL de Firebase Storage: ${downloadUrl}, usando nombre de archivo '${keyForUrlMap}' como clave.`);
             } else {
               // Es otra URL, no la manejamos para descarga directa de Storage, podría ser un enlace externo
@@ -64,21 +64,21 @@ const useRespuestaController = (consultaId) => {
           } else {
             // No es una URL, asumimos que es un nombre de archivo (normalizado o no)
             // Este es el caso esperado para nuevas subidas.
-            keyForUrlMap = decodedFileReference; // El nombre de archivo es la clave
-            displayFileName = decodedFileReference; // Y también el nombre a mostrar
-            const storagePath = `archivos/${decodedFileReference}`;
-            console.log(`Procesando como nombre de archivo: ${decodedFileReference}, intentando ruta: ${storagePath}`);
+            keyForUrlMap = fileNameOnly; // Usar solo el nombre de archivo como clave
+            displayFileName = fileNameOnly; // Y también el nombre a mostrar
+            const storagePath = `archivos/${fileNameOnly}`;
+            console.log(`Procesando como nombre de archivo: ${fileNameOnly}, intentando ruta: ${storagePath}`);
             try {
               const storageRef = ref(storage, storagePath);
               downloadUrl = await getDownloadURL(storageRef);
             } catch (storageError) {
-              // Intento de respaldo por si 'decodedFileReference' ya tenía 'archivos/' (poco probable para datos nuevos)
-              console.warn(`Intento con '${storagePath}' falló. Intentando directamente con '${decodedFileReference}'. Error: ${storageError.message}`);
+              // Intento de respaldo por si 'fileNameOnly' ya tenía 'archivos/' (poco probable para datos nuevos)
+              console.warn(`Intento con '${storagePath}' falló. Intentando directamente con '${fileNameOnly}'. Error: ${storageError.message}`);
               try {
-                  const backupStorageRef = ref(storage, decodedFileReference);
+                  const backupStorageRef = ref(storage, fileNameOnly);
                   downloadUrl = await getDownloadURL(backupStorageRef);
               } catch (backupStorageError) {
-                console.error(`Todos los intentos de obtener URL de descarga para '${decodedFileReference}' fallaron.`, backupStorageError);
+                console.error(`Todos los intentos de obtener URL de descarga para '${fileNameOnly}' fallaron.`, backupStorageError);
                 throw new Error(`Archivo no encontrado: ${displayFileName} tras varios intentos.`);
               }
             }

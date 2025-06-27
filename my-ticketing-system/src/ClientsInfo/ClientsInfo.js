@@ -407,8 +407,6 @@ const ClientsInfo = () => {
                             size="small"
                             sx={{ fontWeight: 'bold' }}
                           />
-                          {/* Removed "Pendiente" chip as per user request */}
-                          {/*
                           {client.consultas?.some(c =>
                             c.status && c.status.toLowerCase() === "pendiente"
                           ) && (
@@ -418,7 +416,6 @@ const ClientsInfo = () => {
                                 size="small"
                               />
                             )}
-                          */}
                         </Box>
                       ) : (
                         "0"
