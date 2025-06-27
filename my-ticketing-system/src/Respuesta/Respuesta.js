@@ -443,7 +443,7 @@ const Respuesta = () => {
                             </IconButton>
                           ) : (
                             <Typography variant="caption" color="error">
-                              Error al cargar archivo
+                              .
                             </Typography>
                           )}
                         </Box>
