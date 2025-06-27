@@ -221,10 +221,10 @@ const VistaCliente = () => {
         return { url, displayName: path.split('/').pop() };
       }
 
-      // Si es solo un nombre de archivo (formato antiguo)
-      const storageRef = ref(storage, `archivos/${consultaId}/${fileName}`);
-      const url = await getDownloadURL(storageRef);
-      return { url, displayName: fileName };
+      // Si es solo un nombre de archivo (formato antiguo o inválido)
+      // Ya no se construye la URL a partir de partes, solo se aceptan URLs completas.
+      console.warn(`Formato de archivo no soportado o ruta incompleta: ${fileName}`);
+      return null; // Indicar que este archivo no se puede procesar con la lógica actual.
     } catch (error) {
       console.error("Error al obtener la URL de descarga:", error);
       return null;
@@ -236,17 +236,20 @@ const VistaCliente = () => {
     
     for (const consulta of respuestas) {
       // Procesar archivos adjuntos de la consulta
-      if (consulta.attachment) {
-        // Manejar tanto strings como arrays
+      if (consulta.attachment && (typeof consulta.attachment === 'string' || Array.isArray(consulta.attachment))) {
         const attachments = Array.isArray(consulta.attachment) 
           ? consulta.attachment 
-          : consulta.attachment.split(',').map(f => f.trim());
+          : consulta.attachment.split(',').map(f => f.trim()).filter(f => f); // filtrar vacíos
         
         for (const fileName of attachments) {
-          if (fileName && !fileUrls[fileName]) {
-            const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
-            if (fileInfo) {
+          if (fileName && !fileUrls[fileName]) { // Asegurarse que fileName no sea vacío
+            const fileInfo = await fetchDownloadUrl(consulta.id, fileName); // consulta.id sigue siendo útil para logs o contexto si es necesario, pero no para formar la URL.
+            if (fileInfo && fileInfo.url) {
               newUrls[fileName] = fileInfo;
+            } else {
+              // Store a placeholder to indicate it was processed but resulted in an error/unsupported
+              // This ensures the UI can distinguish between "loading" and "failed to load".
+              newUrls[fileName] = { displayName: fileName, url: null, error: "Unsupported format or path" };
             }
           }
         }
@@ -255,16 +258,18 @@ const VistaCliente = () => {
       // Procesar archivos adjuntos de las respuestas
       if (consulta.respuestas) {
         for (const respuesta of consulta.respuestas) {
-          if (respuesta.attachment) {
+          if (respuesta.attachment && (typeof respuesta.attachment === 'string' || Array.isArray(respuesta.attachment))) {
             const attachments = Array.isArray(respuesta.attachment) 
               ? respuesta.attachment 
-              : respuesta.attachment.split(',').map(f => f.trim());
+              : respuesta.attachment.split(',').map(f => f.trim()).filter(f => f); // filtrar vacíos
             
             for (const fileName of attachments) {
-              if (fileName && !fileUrls[fileName]) {
-                const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
-                if (fileInfo) {
-                  newUrls[fileName] = fileInfo;
+              if (fileName && !fileUrls[fileName]) { // Asegurarse que fileName no sea vacío
+                const fileInfoResult = await fetchDownloadUrl(consulta.id, fileName); // consulta.id sigue siendo útil para logs o contexto.
+                if (fileInfoResult && fileInfoResult.url) {
+                  newUrls[fileName] = fileInfoResult;
+                } else {
+                  newUrls[fileName] = { displayName: fileName, url: null, error: "Unsupported format or path" };
                 }
               }
             }
