@@ -27,9 +27,10 @@ const Menu = () => {
         {/* Panel izquierdo con imagen de fondo */}
         <Box
           sx={{
-            width: "40%",
+            width: { xs: "0%", md: "40%" },
             position: "relative",
             overflow: "hidden",
+            display: { xs: "none", md: "block" }
           }}
         >
           <img
@@ -49,7 +50,7 @@ const Menu = () => {
         {/* Panel derecho con el formulario de login */}
         <Box
           sx={{
-            width: "60%",
+            width: { xs: "100%", md: "60%" },
             display: "flex",
             justifyContent: "center",
             alignItems: "center",

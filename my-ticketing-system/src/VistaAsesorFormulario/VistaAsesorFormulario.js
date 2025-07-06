@@ -1352,7 +1352,7 @@ const VistaAsesorFormulario = () => {
 
         {/* Segunda fila: Consultas centrado */}
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-45} gutterBottom>
+          <Typography variant="h3" fontWeight="bold" color="#1B5C94" gutterBottom>
             Consultas
           </Typography>
         </Box>

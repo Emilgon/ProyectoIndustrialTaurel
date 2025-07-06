@@ -77,7 +77,7 @@ function Header() {
         </div>
 
         {/* Íconos a la derecha con tooltips */}
-        <div className="header-icons">
+        <div className="header-icons" style={{ marginLeft: 'auto' }}>
           {/* Ícono Home - Solo visible cuando NO estamos en /menu */}
           {!isMenu && (
             <div className="icon-tooltip">
