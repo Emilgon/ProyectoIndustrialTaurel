@@ -2,46 +2,72 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh; /* Use min-height to ensure it covers viewport but can grow */
     background-color: #f5f5f5;
+    padding: 20px; /* Add padding for smaller screens so box isn't edge-to-edge */
+    box-sizing: border-box;
   }
   
   .login-box {
     background-color: #fff;
-    padding: 20px;
+    padding: 30px; /* Increased padding */
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 400px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+    width: 100%; /* Make it responsive first */
+    max-width: 400px; /* Then constrain it */
   }
   
   .login-form {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    align-items: stretch; /* Stretch items to fill width */
+    padding: 0; /* Removed padding as login-box has it now */
   }
   
   .login-form button {
     margin-top: 20px;
+    padding: 10px 15px; /* Add padding to buttons */
+    font-size: 1rem; /* Ensure consistent button font size */
+  }
+
+  .login-form input { /* Assuming inputs are direct children or need styling */
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 1rem;
   }
   
-  .login-form button[type="text"] {
+  .login-form button[type="button"] { /* Changed selector from type="text" which is not valid for button */
     text-decoration: underline;
     color: #337ab7;
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 5px; /* Adjust padding for link-like button */
+    align-self: center; /* Center the link-like button */
   }
   
   /* Media queries para responsividad */
   @media (max-width: 768px) {
     .login-box {
-      width: 90%;
-      padding: 15px;
+      padding: 25px; /* Adjust padding */
     }
   }
   
   @media (max-width: 480px) {
+    .login-container {
+      padding: 10px; /* Reduce padding on very small screens */
+    }
     .login-box {
-      width: 95%;
-      padding: 10px;
+      padding: 20px; /* Further adjust padding */
+    }
+    .login-form button {
+      font-size: 0.9rem; /* Slightly smaller button text */
+    }
+    .login-form input {
+      font-size: 0.9rem; /* Slightly smaller input text */
     }
   }

@@ -1,15 +1,18 @@
-.container {
+.vista-cliente-container { /* Renamed .container to be more specific and avoid generic name collision */
   display: flex;
+  min-height: calc(100vh - 12vh); /* Assuming 12vh is header height, adjust if needed */
 }
 
 .menu-lateral {
   background-color: #1B5C94;
   color: white;
   padding: 20px;
-  width: 200px;
-  height: 100vh;
+  width: 250px; /* Slightly wider */
+  /* height: 100vh; */ /* Let flex control height */
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease, width 0.3s ease; /* For potential toggle */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .menu-lateral ul {
@@ -19,34 +22,100 @@
 }
 
 .menu-lateral li {
-  margin-bottom: 10px;
+  margin-bottom: 15px; /* Increased margin */
 }
 
 .menu-lateral a {
   color: white;
   text-decoration: none;
   cursor: pointer;
+  display: block; /* Make link take full width for easier clicking */
+  padding: 8px 10px; /* Add some padding */
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.menu-lateral a:hover, .menu-lateral a.active { /* Style for hover and active link */
+  background-color: #164f7b;
 }
 
 .content {
-  flex: 1; /* Para que ocupe todo el espacio restante */
-  padding: 20px;
+  flex: 1;
+  padding: 25px; /* Increased padding */
   display: flex;
-  justify-content: space-between;
+  flex-direction: column; /* Stack sections vertically by default */
+  gap: 25px; /* Add gap between sections */
+  background-color: #f5f5f5; /* Light background for content area */
+  overflow-y: auto; /* Allow content to scroll if it overflows */
 }
 
-.cliente-info {
-  width: 45%;
+.cliente-info, .historial {
+  width: 100%; /* Take full width when stacked */
   background-color: white;
-  padding: 20px;
-  border-radius: 16px; /* Bordes más redondeados */
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 25px; /* Increased padding */
+  border-radius: 16px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12); /* Slightly enhanced shadow */
 }
 
 .historial {
-  width: 45%;
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 16px; /* Bordes más redondeados */
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: #fdfdfd; /* Slightly different bg for historial if needed */
+}
+
+/* Media queries for responsividad */
+
+@media (min-width: 992px) { /* For larger screens, side-by-side layout */
+  .content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+  }
+  .cliente-info {
+    width: calc(50% - 12.5px); /* (100% - gap) / 2 */
+  }
+  .historial {
+    width: calc(50% - 12.5px);
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-lateral {
+    /* Example: Hide menu and show a toggle button instead */
+    /* This requires JS to toggle a class, e.g., .menu-lateral-hidden */
+    position: absolute; /* Or fixed */
+    transform: translateX(-100%);
+    z-index: 1000;
+    height: 100%; /* Cover full height when shown */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  }
+  .menu-lateral.menu-lateral-visible { /* Class to be toggled by JS */
+    transform: translateX(0);
+  }
+  /* Add a .menu-toggle-button style if you implement this */
+  /* .menu-toggle-button { display: block; position: fixed; top: 15px; left: 15px; z-index: 1001; } */
+
+  .content {
+    padding: 20px;
+    gap: 20px;
+  }
+  .cliente-info, .historial {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-lateral {
+    width: 220px; /* Make menu slightly narrower if shown */
+  }
+  .content {
+    padding: 15px;
+    gap: 15px;
+  }
+  .cliente-info, .historial {
+    padding: 15px;
+    border-radius: 12px;
+  }
+  .menu-lateral a {
+    padding: 6px 8px;
+    font-size: 0.95rem;
+  }
 }

@@ -6,14 +6,65 @@
   width: 60%;
   max-width: 800px;
   margin: 20px auto;
+  display: flex; /* Added for better control of children */
+  flex-direction: column; /* Stack form elements vertically by default */
+}
+
+.form-input {
+  margin-bottom: 15px; /* Added margin for spacing */
+  width: 100%; /* Make inputs take full width */
+}
+
+.attach-button {
+  background-color: grey;
+  align-self: flex-start; /* Align button to the start */
+  margin-top: 10px; /* Add some space above the button */
+}
+
+.file-preview {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+  margin-top: 10px; /* Add space if there's a file preview */
+  word-break: break-all; /* Prevent long file names from overflowing */
+}
+
+.file-preview span {
+  font-size: 14px;
+}
+
+.phone-input {
+  width: 100%;
+  padding: 16.5px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.23);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Roboto, sans-serif';
+  outline: none;
+  box-sizing: border-box; /* Ensure padding doesn't add to width */
+}
+
+.phone-input--error {
+  border-color: #d32f2f;
 }
 
 /* Media queries para responsividad */
+@media (max-width: 1024px) {
+  .form-box {
+    width: 75%;
+  }
+}
+
 @media (max-width: 768px) {
   .form-box {
     width: 90%;
     padding: 15px;
     margin: 15px auto;
+  }
+  .form-input, .phone-input {
+    font-size: 0.95rem; /* Slightly smaller font for smaller screens */
   }
 }
 
@@ -23,37 +74,12 @@
     padding: 10px;
     margin: 10px auto;
   }
-}
-
-.form-input {
-  margin-right: 10px;
-}
-
-.attach-button {
-  background-color: grey;
-}
-
-.file-preview {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-  background-color: #f9f9f9;
-}
-
-.file-preview span {
-  font-size: 14px;
-}
-.phone-input {
-  width: 100%;
-  padding: 16.5px 14px;
-  border: 1px solid rgba(0, 0, 0, 0.23);
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: 'Roboto, sans-serif';
-  outline: none;
-}
-
-.phone-input--error {
-  border-color: #d32f2f;
+  .form-input, .phone-input {
+    font-size: 0.9rem; /* Even smaller font for very small screens */
+    padding: 12px 10px; /* Adjust padding for smaller inputs */
+  }
+  .attach-button {
+    width: 100%; /* Make button full width on small screens */
+    text-align: center;
+  }
 }

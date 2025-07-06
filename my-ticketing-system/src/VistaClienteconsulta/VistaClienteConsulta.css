@@ -1,0 +1,93 @@
+.vista-cliente-consulta-container {
+  padding: 20px;
+  background-color: #f9f9f9; /* Light background for the page */
+  min-height: calc(100vh - 12vh - 40px); /* Adjust based on header and other fixed elements */
+  box-sizing: border-box;
+}
+
+.consulta-details-card {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 800px; /* Limit width on larger screens */
+  margin: 0 auto; /* Center the card */
+}
+
+.consulta-title {
+  font-size: 1.8rem;
+  color: #1B5C94;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.consulta-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  background-color: #f0f0f0;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.info-item strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.info-item span {
+  color: #555;
+}
+
+.consulta-attachments, .consulta-messages {
+  margin-top: 25px;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  color: #1B5C94;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+  .vista-cliente-consulta-container {
+    padding: 15px;
+  }
+  .consulta-details-card {
+    padding: 20px;
+  }
+  .consulta-title {
+    font-size: 1.6rem;
+  }
+  .section-title {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .vista-cliente-consulta-container {
+    padding: 10px;
+  }
+  .consulta-details-card {
+    padding: 15px;
+    border-radius: 8px;
+  }
+  .consulta-title {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+  }
+  .info-item {
+    padding: 12px;
+  }
+  .section-title {
+    font-size: 1.2rem;
+  }
+}
