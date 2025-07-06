@@ -195,7 +195,7 @@ const ClientsInfo = () => {
 
           {/* Segunda fila: Consultas centrado */}
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-220} gutterBottom>
+            <Typography variant="h3" fontWeight="bold" color="#1B5C94" gutterBottom>
               Clientes
             </Typography>
           </Box>

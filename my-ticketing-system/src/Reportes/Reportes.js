@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { collection, query, getDocs, getFirestore, db, getDoc, updateDoc, doc, deleteDoc, where, onSnapshot } from "../firebaseConfig";
 import { useNavigate } from 'react-router-dom';
-import { getAuth } from "firebase/auth"; // Asegúrate de importar getAuth
-
+import { getAuth } from "firebase/auth";
 
 // Componentes de Material-UI
 import {
@@ -61,10 +60,6 @@ import {
   RadialLinearScale
 } from 'chart.js';
 
-// Registrar componentes necesarios de Chart.js
-/**
- * Registra los componentes necesarios de Chart.js para su uso en la aplicación.
- */
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -79,7 +74,6 @@ ChartJS.register(
   RadialLinearScale
 );
 
-// Tipos de gráficos disponibles
 const chartTypes = [
   { value: 'bar', label: 'Barras', icon: <BarChartIcon /> },
   { value: 'pie', label: 'Circular', icon: <PieChartIcon /> },
@@ -88,7 +82,6 @@ const chartTypes = [
   { value: 'polarArea', label: 'Área polar', icon: <PolarAreaIcon /> }
 ];
 
-// Rangos de tiempo disponibles
 const timeRanges = [
   { value: 'week', label: 'Última semana' },
   { value: 'month', label: 'Último mes' },
@@ -97,11 +90,6 @@ const timeRanges = [
   { value: 'all', label: 'Todo el tiempo' }
 ];
 
-/**
- * Calcula el número de la semana para una fecha dada.
- * @param {Date} date - La fecha para la cual calcular el número de la semana.
- * @returns {number} El número de la semana.
- */
 const getWeekNumber = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -128,14 +116,12 @@ const Reports = () => {
   const [advisorName, setAdvisorName] = useState("");
   const auth = getAuth();
 
-  // Estado para el filtro global de tiempo
   const [timeFilter, setTimeFilter] = useState({
     timeRange: 'month',
     startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
     endDate: new Date()
   });
 
-  // Estados para los filtros específicos de cada gráfico (sin timeRange, startDate, endDate)
   const [filters, setFilters] = useState({
     trend: {
       consultType: 'all'
@@ -151,7 +137,6 @@ const Reports = () => {
     }
   });
 
-  // Estados para los datos de los gráficos
   const [trendChartData, setTrendChartData] = useState({ labels: [], datasets: [] });
   const [responseRateChartData, setResponseRateChartData] = useState({ labels: [], datasets: [] });
   const [clientsStaticData, setClientsStaticData] = useState({ labels: [], datasets: [] });
@@ -161,10 +146,6 @@ const Reports = () => {
 
   const open = Boolean(anchorEl);
 
-  /**
-   * Efecto para cargar los datos iniciales de consultas y respuestas desde Firestore.
-   * Se ejecuta una vez al montar el componente.
-   */
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
@@ -199,10 +180,6 @@ const Reports = () => {
     fetchData();
   }, []);
 
-  /**
-   * Efecto para obtener y mostrar el nombre del asesor logueado.
-   * Se ejecuta una vez al montar el componente y cuando cambia `auth`.
-   */
   useEffect(() => {
     const fetchAdvisorName = async () => {
       try {
@@ -229,7 +206,6 @@ const Reports = () => {
     let filtered = [...consults];
     const now = new Date();
 
-    // Filtro por rango de tiempo
     if (timeRange === 'week') {
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       filtered = filtered.filter(consult => consult.timestamp >= oneWeekAgo);
@@ -248,7 +224,6 @@ const Reports = () => {
       );
     }
 
-    // Filtro por tipo de consulta
     if (typeFilter && typeFilter !== 'all') {
       filtered = filtered.filter(consult => {
         const type = classifyConsultType(consult);
@@ -256,7 +231,6 @@ const Reports = () => {
       });
     }
 
-    // Filtro por estado de respuesta
     if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(consult => {
         const status = classifyResponseStatus(consult);
@@ -264,7 +238,6 @@ const Reports = () => {
       });
     }
 
-    // Filtro por búsqueda de empresa
     if (companySearch && companySearch !== '') {
       filtered = filtered.filter(consult =>
         (consult.company || consult.email || 'Cliente no identificado').toLowerCase()
@@ -275,19 +248,11 @@ const Reports = () => {
     return filtered;
   };
 
-  /**
-   * Efecto para actualizar los datos del gráfico de tendencia de consultas.
-   * Se ejecuta cuando cambian las consultas, los filtros de tendencia o el filtro de tiempo global.
-   */
   useEffect(() => {
     const trendFiltered = filterConsults(consults, { ...filters.trend, ...timeFilter });
     setTrendChartData(generateTimeData(trendFiltered, () => 'Consultas'));
   }, [consults, filters.trend, timeFilter]);
 
-  /**
-   * Efecto para actualizar los datos del gráfico de estado de respuestas.
-   * Se ejecuta cuando cambian las consultas, los filtros de estado de respuesta o el filtro de tiempo global.
-   */
   useEffect(() => {
     const responseFiltered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     setResponseRateChartData({
@@ -314,10 +279,6 @@ const Reports = () => {
     });
   }, [consults, filters.responseStatus, timeFilter]);
 
-  /**
-   * Efecto para actualizar los datos de los gráficos de tipos de consulta (estático y temporal).
-   * Se ejecuta cuando cambian las consultas, los filtros de tipos de consulta o el filtro de tiempo global.
-   */
   useEffect(() => {
     const typesFiltered = filterConsults(consults, { ...filters.consultTypes, ...timeFilter });
 
@@ -345,10 +306,6 @@ const Reports = () => {
     setTypesTimeData(generateTimeData(typesFiltered, consult => classifyConsultType(consult)));
   }, [consults, filters.consultTypes, timeFilter]);
 
-  /**
-   * Efecto para actualizar los datos de los gráficos de clientes (estático y temporal).
-   * Se ejecuta cuando cambian las consultas, los filtros de clientes o el filtro de tiempo global.
-   */
   useEffect(() => {
     const clientsFiltered = filterConsults(consults, { ...filters.clients, ...timeFilter });
 
@@ -391,10 +348,6 @@ const Reports = () => {
     ));
   }, [consults, filters.clients, timeFilter]);
 
-  /**
-   * Maneja el cambio en el filtro de rango de tiempo.
-   * @param {string} value - El nuevo valor del rango de tiempo.
-   */
   const handleTimeRangeChange = (value) => {
     setTimeFilter(prev => ({
       ...prev,
@@ -402,10 +355,6 @@ const Reports = () => {
     }));
   };
 
-  /**
-   * Efecto para actualizar las fechas de inicio y fin cuando cambia el `timeRange`.
-   * Se ejecuta cuando `timeFilter.timeRange` cambia.
-   */
   useEffect(() => {
     const now = new Date();
     let startDate = new Date();
@@ -439,10 +388,6 @@ const Reports = () => {
     }));
   }, [timeFilter.timeRange]);
 
-  /**
-   * Calcula la cantidad de ítems clasificados por cliente y el total de ítems clasificados.
-   * @returns {{itemsByClient: Object<string, number>, totalItems: number}} Un objeto con los ítems por cliente y el total.
-   */
   const calculateClassifiedItems = () => {
     const itemsByClient = {};
     let totalItems = 0;
@@ -507,14 +452,9 @@ const Reports = () => {
     setAnchorEl(null);
   };
 
-  /**
-   * Efecto para actualizar los datos de los gráficos de clasificación arancelaria (estático y temporal).
-   * Se ejecuta cuando cambian las consultas.
-   */
   useEffect(() => {
     const classifiedConsults = consults.filter(consult => consult.type === 'Clasificación arancelaria');
 
-    // Datos estáticos
     const itemsByClient = classifiedConsults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + (consult.itemsCount || 0);
@@ -536,7 +476,6 @@ const Reports = () => {
       }]
     });
 
-    // Datos temporales
     setClassificationTimeData(generateTimeData(
       classifiedConsults,
       consult => consult.company || consult.email || 'Cliente no identificado'
@@ -547,11 +486,6 @@ const Reports = () => {
     setSnackbarOpen(false);
   };
 
-  /**
-   * Clasifica el tipo de consulta, diferenciando entre asesoría técnica interna y externa.
-   * @param {object} consult - La consulta a clasificar.
-   * @returns {string} El tipo de consulta clasificado.
-   */
   const classifyConsultType = (consult) => {
     if (!consult.type) return 'Sin tipo';
 
@@ -564,11 +498,6 @@ const Reports = () => {
     return consult.type;
   };
 
-  /**
-   * Clasifica el estado de respuesta de una consulta (A tiempo, Tardía, No respondida).
-   * @param {object} consult - La consulta a clasificar.
-   * @returns {string} El estado de respuesta clasificado.
-   */
   const classifyResponseStatus = (consult) => {
     const response = responses.find(res => res.consultaId === consult.id);
 
@@ -578,10 +507,6 @@ const Reports = () => {
     return responseTime <= 24 * 60 * 60 * 1000 ? 'A tiempo' : 'Tardía';
   };
 
-  /**
-   * Genera el nombre del archivo para el reporte de Excel.
-   * @returns {string} El nombre del archivo generado.
-   */
   const generateFileName = () => {
     const now = new Date();
     const month = now.toLocaleDateString('es-ES', { month: 'long' });
@@ -597,7 +522,7 @@ const Reports = () => {
     let rangeStart, rangeEnd;
     const now = new Date();
 
-    const timeRange = filters.trend.timeRange; // Usamos el filtro de tendencia como base
+    const timeRange = filters.trend.timeRange;
 
     if (timeRange === 'week') {
       rangeStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -689,31 +614,24 @@ const Reports = () => {
     return { labels, datasets };
   };
 
-  /**
-   * Exporta los datos de los reportes a un archivo de Excel.
-   */
   const exportToExcel = () => {
     const fileName = generateFileName();
     const now = new Date();
     const monthName = now.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase();
     const year = now.getFullYear();
 
-    // Obtener el primer y último día del mes actual
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Filtrar consultas del mes actual
     const monthlyConsults = consults.filter(consult =>
       consult.timestamp >= firstDay && consult.timestamp <= lastDay
     );
 
-    // Obtener datos
     const responseData = getMonthlyResponseData(monthlyConsults);
     const classifiedItems = calculateMonthlyClassifiedItems(monthlyConsults);
     const topClients = getTopClients(monthlyConsults, 5);
     const consultsByType = getConsultsByType(monthlyConsults);
 
-    // Definir estilos
     const styles = {
       header: {
         font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
@@ -769,13 +687,9 @@ const Reports = () => {
       }
     };
 
-    // Crear datos para la hoja
     const data = [
-      // Título principal
       [{ v: `INDICADORES GERENCIA TÉCNICA - ${monthName} ${year}`, t: 's', s: styles.header }],
-      [''], // Espacio
-
-      // Indicadores principales (en columnas)
+      [''],
       [
         { v: 'INDICADOR', t: 's', s: styles.subHeader },
         { v: 'VALOR', t: 's', s: styles.subHeader },
@@ -801,9 +715,7 @@ const Reports = () => {
         classifiedItems.totalItems,
         ''
       ],
-      [''], // Espacio
-
-      // Top 5 clientes
+      [''],
       [
         { v: 'TOP 5 CLIENTES', t: 's', s: styles.subHeader },
         { v: 'CONSULTAS', t: 's', s: styles.subHeader },
@@ -814,9 +726,7 @@ const Reports = () => {
         client.count,
         { v: client.count / responseData.total, t: 'n', s: styles.percentage }
       ]),
-      [''], // Espacio
-
-      // Consultas por tipo
+      [''],
       [
         { v: 'TIPO DE CONSULTA', t: 's', s: styles.subHeader },
         { v: 'CANTIDAD', t: 's', s: styles.subHeader },
@@ -827,9 +737,7 @@ const Reports = () => {
         count,
         { v: count / responseData.total, t: 'n', s: styles.percentage }
       ]),
-      [''], // Espacio
-
-      // Ítems clasificados por cliente
+      [''],
       [
         { v: 'CLASIFICACIÓN ARANCELARIA', t: 's', s: styles.subHeader },
         { v: 'ÍTEMS', t: 's', s: styles.subHeader },
@@ -844,10 +752,8 @@ const Reports = () => {
         ])
     ];
 
-    // Crear hoja de cálculo
     const ws = XLSX.utils.aoa_to_sheet(data);
 
-    // Aplicar estilos generales
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
       for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -856,12 +762,10 @@ const Reports = () => {
 
         if (!ws[cell_ref]) continue;
 
-        // Aplicar estilo de celda básico si no tiene estilo específico
         if (!ws[cell_ref].s) {
           ws[cell_ref].s = styles.cell;
         }
 
-        // Combinar celdas para el título principal
         if (R === 0) {
           ws[cell_ref].s = styles.header;
           ws['!merges'] = ws['!merges'] || [];
@@ -870,14 +774,12 @@ const Reports = () => {
       }
     }
 
-    // Ajustar anchos de columnas
     ws['!cols'] = [
-      { wch: 35 }, // Columna A (nombres)
-      { wch: 15 }, // Columna B (valores)
-      { wch: 15 }  // Columna C (porcentajes)
+      { wch: 35 },
+      { wch: 15 },
+      { wch: 15 }
     ];
 
-    // Congelar primera fila
     ws['!freeze'] = { xSplit: 0, ySplit: 2 };
 
     const wb = XLSX.utils.book_new();
@@ -889,12 +791,6 @@ const Reports = () => {
     setSnackbarOpen(true);
   };
 
-  /**
-   * Obtiene los principales clientes basados en el número de consultas.
-   * @param {Array<object>} consults - Lista de consultas.
-   * @param {number} limit - Número máximo de clientes a retornar.
-   * @returns {Array<{name: string, count: number}>} Lista de los principales clientes.
-   */
   const getTopClients = (consults, limit) => {
     const clients = consults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
@@ -908,11 +804,6 @@ const Reports = () => {
       .map(([name, count]) => ({ name, count }));
   };
 
-  /**
-   * Agrupa las consultas por tipo.
-   * @param {Array<object>} consults - Lista de consultas.
-   * @returns {Object<string, number>} Objeto con el conteo de consultas por tipo.
-   */
   const getConsultsByType = (consults) => {
     return consults.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
@@ -921,7 +812,6 @@ const Reports = () => {
     }, {});
   };
 
-  // Nueva función para calcular datos mensuales
   const getMonthlyResponseData = (monthlyConsults) => {
     const totalConsults = monthlyConsults.length;
     const answeredConsults = monthlyConsults.filter(consult =>
@@ -945,8 +835,6 @@ const Reports = () => {
     };
   };
 
-
-  // Nueva función para ítems clasificados mensuales
   const calculateMonthlyClassifiedItems = (monthlyConsults) => {
     const itemsByClient = {};
     let totalItems = 0;
@@ -965,10 +853,6 @@ const Reports = () => {
     };
   };
 
-  /**
-   * Obtiene los datos de respuesta basados en los filtros actuales.
-   * @returns {{total: number, answered: number, timely: number, unanswered: number, late: number}} Objeto con estadísticas de respuesta.
-   */
   const getResponseData = () => {
     const filtered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
     const totalConsults = filtered.length;
@@ -993,10 +877,6 @@ const Reports = () => {
     };
   };
 
-  /**
-   * Obtiene una lista de todos los tipos de consulta disponibles.
-   * @returns {Array<string>} Lista de tipos de consulta.
-   */
   const getAvailableTypes = () => {
     const types = new Set();
 
@@ -1007,10 +887,6 @@ const Reports = () => {
     return Array.from(types);
   };
 
-  /**
-   * Opciones comunes para los gráficos.
-   * @type {object}
-   */
   const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -1028,13 +904,6 @@ const Reports = () => {
     },
   };
 
-  /**
-   * Componente para seleccionar el tipo de gráfico.
-   * @param {object} props - Propiedades del componente.
-   * @param {string} props.value - El tipo de gráfico actualmente seleccionado.
-   * @param {function} props.onChange - Función para manejar el cambio de tipo de gráfico.
-   * @returns {JSX.Element} El selector de tipo de gráfico.
-   */
   const ChartTypeSelector = ({ value, onChange }) => (
     <ButtonGroup variant="outlined" size="small" sx={{ ml: 2 }}>
       {chartTypes.map((type) => (
@@ -1059,19 +928,16 @@ const Reports = () => {
     );
   }
 
-  /**
-   * Componente principal de la sección de reportes.
-   * Muestra varios gráficos y estadísticas sobre las consultas.
-   * @returns {JSX.Element} El componente de reportes.
-   */
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
       <Box sx={{ padding: '20px' }}>
         <Box sx={{
           display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
           justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          mb: 3,
+          gap: 1
         }}>
           <Box sx={{ textAlign: 'left' }}>
             {advisorName && (
@@ -1081,9 +947,8 @@ const Reports = () => {
             )}
           </Box>
 
-          {/* Segunda fila: Consultas centrado */}
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h3" fontWeight="bold" color="#1B5C94" marginLeft={-15} gutterBottom>
+            <Typography variant="h3" fontWeight="bold" color="#1B5C94" gutterBottom>
               Reportes y Estadísticas
             </Typography>
           </Box>
@@ -1095,6 +960,390 @@ const Reports = () => {
           >
             Exportar a Excel
           </Button>
+        </Box>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Grid container spacing={3} sx={{ mt: 2, minWidth: 320 }}>
+            <Grid item xs={12} md={4}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Consultas recibidas
+                  </Typography>
+                  <Typography variant="h4" component="h2">
+                    {getResponseData().total}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Consultas respondidas
+                  </Typography>
+                  <Typography variant="h4" component="h2">
+                    {getResponseData().answered} ({getResponseData().total > 0 ? Math.round((getResponseData().answered / getResponseData().total) * 100) : 0}%)
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Respondidas a tiempo
+                  </Typography>
+                  <Typography variant="h4" component="h2">
+                    {getResponseData().timely} ({getResponseData().answered > 0 ? Math.round((getResponseData().timely / getResponseData().answered) * 100) : 0}%)
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Tendencia de consultas
+                    </Typography>
+                    <ButtonGroup variant="contained" orientation="horizontal" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                      {timeRanges.map((range) => (
+                        <Button
+                          key={range.value}
+                          onClick={() => handleTimeRangeChange(range.value)}
+                          color={timeFilter.timeRange === range.value ? 'primary' : 'inherit'}
+                        >
+                          {range.label}
+                        </Button>
+                      ))}
+                      <Button
+                        onClick={handleDateRangeClick}
+                        startIcon={<DateRangeIcon />}
+                        color={timeFilter.timeRange === 'custom' ? 'primary' : 'inherit'}
+                      >
+                        Personalizado
+                      </Button>
+                    </ButtonGroup>
+                  </Box>
+                  <Box sx={{ height: '400px' }}>
+                    {trendChartData.labels && trendChartData.labels.length > 0 ? (
+                      <Line
+                        data={trendChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                          },
+                          scales: {
+                            x: { title: { display: true, text: 'Fecha' } },
+                            y: {
+                              title: { display: true, text: 'Número de consultas' },
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography variant="body1">No hay datos disponibles</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Estado de respuestas
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
+                        <InputLabel id="response-filter-label">Filtrar por estado</InputLabel>
+                        <Select
+                          labelId="response-filter-label"
+                          value={filters.responseStatus.statusFilter}
+                          onChange={(e) => handleResponseStatusFilterChange(e.target.value)}
+                          label="Filtrar por estado"
+                        >
+                          <MenuItem value="all">Todos los estados</MenuItem>
+                          <MenuItem value="A tiempo">A tiempo</MenuItem>
+                          <MenuItem value="Tardía">Tardía</MenuItem>
+                          <MenuItem value="No respondida">No respondida</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <ChartTypeSelector value={responseChartType} onChange={setResponseChartType} />
+                    </Box>
+                  </Box>
+                  <Box sx={{ height: '300px' }}>
+                    {responseRateChartData.labels && responseRateChartData.labels.length > 0 ? (
+                      (() => {
+                        switch (responseChartType) {
+                          case 'bar':
+                            return <BarChart data={responseRateChartData} options={commonChartOptions} />;
+                          case 'pie':
+                            return <Pie data={responseRateChartData} options={commonChartOptions} />;
+                          case 'line':
+                            return <Line
+                              data={generateTimeData(
+                                filterConsults(consults, filters.responseStatus),
+                                classifyResponseStatus
+                              )}
+                              options={commonChartOptions}
+                            />;
+                          case 'doughnut':
+                            return <DoughnutChart data={responseRateChartData} options={commonChartOptions} />;
+                          case 'polarArea':
+                            return <PolarArea data={responseRateChartData} options={{
+                              ...commonChartOptions,
+                              scales: {
+                                r: {
+                                  beginAtZero: true,
+                                }
+                              }
+                            }} />;
+                          default:
+                            return <Pie data={responseRateChartData} options={commonChartOptions} />;
+                        }
+                      })()
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography variant="body1">No hay datos disponibles</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Tipos de consulta
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
+                        <InputLabel id="type-filter-label">Filtrar por tipo</InputLabel>
+                        <Select
+                          labelId="type-filter-label"
+                          value={filters.consultTypes.typeFilter}
+                          onChange={(e) => handleConsultTypeFilterChange(e.target.value)}
+                          label="Filtrar por tipo"
+                        >
+                          <MenuItem value="all">Todos los tipos</MenuItem>
+                          {getAvailableTypes().map(type => (
+                            <MenuItem key={type} value={type}>{type}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <ChartTypeSelector value={typeChartType} onChange={setTypeChartType} />
+                    </Box>
+                  </Box>
+                  <Box sx={{ height: '300px' }}>
+                    {typesStaticData.labels && typesStaticData.labels.length > 0 ? (
+                      (() => {
+                        switch (typeChartType) {
+                          case 'bar':
+                            return <BarChart data={typesStaticData} options={commonChartOptions} />;
+                          case 'pie':
+                            return <Pie data={typesStaticData} options={commonChartOptions} />;
+                          case 'line':
+                            return <Line data={typesTimeData} options={commonChartOptions} />;
+                          case 'doughnut':
+                            return <DoughnutChart data={typesStaticData} options={commonChartOptions} />;
+                          case 'polarArea':
+                            return <PolarArea data={typesStaticData} options={{
+                              ...commonChartOptions,
+                              scales: {
+                                r: {
+                                  beginAtZero: true,
+                                }
+                              }
+                            }} />;
+                          default:
+                            return <Pie data={typesStaticData} options={commonChartOptions} />;
+                        }
+                      })()
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography variant="body1">No hay datos disponibles</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Consultas por cliente
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TextField
+                        variant="outlined"
+                        size="small"
+                        placeholder="Buscar cliente..."
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                        }}
+                        value={filters.clients.companySearch}
+                        onChange={(e) => handleCompanySearchChange(e.target.value)}
+                        sx={{ mr: 2 }}
+                      />
+                      <ChartTypeSelector value={clientChartType} onChange={setClientChartType} />
+                    </Box>
+                  </Box>
+                  <Box sx={{ height: '400px' }}>
+                    {clientsStaticData.labels && clientsStaticData.labels.length > 0 ? (
+                      (() => {
+                        switch (clientChartType) {
+                          case 'bar':
+                            return <BarChart data={clientsStaticData} options={commonChartOptions} />;
+                          case 'pie':
+                            return <Pie data={clientsStaticData} options={commonChartOptions} />;
+                          case 'line':
+                            return <Line data={clientsTimeData} options={commonChartOptions} />;
+                          case 'doughnut':
+                            return <DoughnutChart data={clientsStaticData} options={commonChartOptions} />;
+                          case 'polarArea':
+                            return <PolarArea data={clientsStaticData} options={{
+                              ...commonChartOptions,
+                              scales: {
+                                r: {
+                                  beginAtZero: true,
+                                }
+                              }
+                            }} />;
+                          default:
+                            return <BarChart data={clientsStaticData} options={commonChartOptions} />;
+                        }
+                      })()
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography variant="body1">No hay datos disponibles</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Clasificación Arancelaria
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <ChartTypeSelector
+                        value={classificationChartType}
+                        onChange={setClassificationChartType}
+                      />
+                    </Box>
+                  </Box>
+
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <Card elevation={2}>
+                        <CardContent>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Total de ítems clasificados
+                          </Typography>
+                          <Typography variant="h3" sx={{ my: 2 }}>
+                            {calculateClassifiedItems().totalItems}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {Object.keys(calculateClassifiedItems().itemsByClient).length} clientes
+                          </Typography>
+                        </CardContent>
+                      </Card>
+
+                      <TableContainer component={Paper} sx={{ mt: 2 }}>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Cliente</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }} align="right">Ítems</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(calculateClassifiedItems().itemsByClient)
+                              .sort((a, b) => b[1] - a[1])
+                              .slice(0, 5)
+                              .map(([client, count]) => (
+                                <TableRow key={client}>
+                                  <TableCell>{client}</TableCell>
+                                  <TableCell align="right">{count}</TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Grid>
+
+                    <Grid item xs={12} md={8}>
+                      <Box sx={{ height: '400px' }}>
+                        {classificationChartData.labels && classificationChartData.labels.length > 0 ? (
+                          (() => {
+                            const data = {
+                              labels: Object.keys(calculateClassifiedItems().itemsByClient),
+                              datasets: [{
+                                label: 'Ítems Clasificados',
+                                data: Object.values(calculateClassifiedItems().itemsByClient),
+                                backgroundColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
+                                  `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%, 0.6)`
+                                ),
+                                borderColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
+                                  `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%)`
+                                ),
+                                borderWidth: 1
+                              }]
+                            };
+
+                            switch (classificationChartType) {
+                              case 'bar':
+                                return <BarChart data={data} options={commonChartOptions} />;
+                              case 'pie':
+                                return <Pie data={data} options={commonChartOptions} />;
+                              case 'line':
+                                return <Line data={classificationTimeData} options={commonChartOptions} />;
+                              case 'doughnut':
+                                return <DoughnutChart data={data} options={commonChartOptions} />;
+                              case 'polarArea':
+                                return <PolarArea data={data} options={{
+                                  ...commonChartOptions,
+                                  scales: {
+                                    r: {
+                                      beginAtZero: true,
+                                    }
+                                  }
+                                }} />;
+                              default:
+                                return <BarChart data={data} options={commonChartOptions} />;
+                            }
+                          })()
+                        ) : (
+                          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                            <Typography variant="body1">No hay datos de clasificación</Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
         </Box>
         <Popover
           open={open}
@@ -1137,392 +1386,6 @@ const Reports = () => {
             </Button>
           </Box>
         </Popover>
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={4}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Consultas recibidas
-                </Typography>
-                <Typography variant="h4" component="h2">
-                  {getResponseData().total}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Consultas respondidas
-                </Typography>
-                <Typography variant="h4" component="h2">
-                  {getResponseData().answered} ({getResponseData().total > 0 ? Math.round((getResponseData().answered / getResponseData().total) * 100) : 0}%)
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Respondidas a tiempo
-                </Typography>
-                <Typography variant="h4" component="h2">
-                  {getResponseData().timely} ({getResponseData().answered > 0 ? Math.round((getResponseData().timely / getResponseData().answered) * 100) : 0}%)
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Tendencia de consultas
-                  </Typography>
-            <ButtonGroup variant="contained" orientation="horizontal">
-              {timeRanges.map((range) => (
-                <Button
-                  key={range.value}
-                  onClick={() => handleTimeRangeChange(range.value)}
-                  color={timeFilter.timeRange === range.value ? 'primary' : 'inherit'}
-                >
-                  {range.label}
-                </Button>
-              ))}
-              <Button
-                onClick={handleDateRangeClick}
-                startIcon={<DateRangeIcon />}
-                color={timeFilter.timeRange === 'custom' ? 'primary' : 'inherit'}
-              >
-                Personalizado
-              </Button>
-            </ButtonGroup>
-                </Box>
-                <Box sx={{ height: '400px' }}>
-                  {trendChartData.labels && trendChartData.labels.length > 0 ? (
-                    <Line
-                      data={trendChartData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                        },
-                        scales: {
-                          x: { title: { display: true, text: 'Fecha' } },
-                          y: {
-                            title: { display: true, text: 'Número de consultas' },
-                            beginAtZero: true
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                      <Typography variant="body1">No hay datos disponibles</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Estado de respuestas
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
-                      <InputLabel id="response-filter-label">Filtrar por estado</InputLabel>
-                      <Select
-                        labelId="response-filter-label"
-                        value={filters.responseStatus.statusFilter}
-                        onChange={(e) => handleResponseStatusFilterChange(e.target.value)}
-                        label="Filtrar por estado"
-                      >
-                        <MenuItem value="all">Todos los estados</MenuItem>
-                        <MenuItem value="A tiempo">A tiempo</MenuItem>
-                        <MenuItem value="Tardía">Tardía</MenuItem>
-                        <MenuItem value="No respondida">No respondida</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <ChartTypeSelector value={responseChartType} onChange={setResponseChartType} />
-                  </Box>
-                </Box>
-                <Box sx={{ height: '300px' }}>
-                  {responseRateChartData.labels && responseRateChartData.labels.length > 0 ? (
-                    (() => {
-                      switch (responseChartType) {
-                        case 'bar':
-                          return <BarChart data={responseRateChartData} options={commonChartOptions} />;
-                        case 'pie':
-                          return <Pie data={responseRateChartData} options={commonChartOptions} />;
-                        case 'line':
-                          return <Line
-                            data={generateTimeData(
-                              filterConsults(consults, filters.responseStatus),
-                              classifyResponseStatus
-                            )}
-                            options={commonChartOptions}
-                          />;
-                        case 'doughnut':
-                          return <DoughnutChart data={responseRateChartData} options={commonChartOptions} />;
-                        case 'polarArea':
-                          return <PolarArea data={responseRateChartData} options={{
-                            ...commonChartOptions,
-                            scales: {
-                              r: {
-                                beginAtZero: true,
-                              }
-                            }
-                          }} />;
-                        default:
-                          return <Pie data={responseRateChartData} options={commonChartOptions} />;
-                      }
-                    })()
-                  ) : (
-                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                      <Typography variant="body1">No hay datos disponibles</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Tipos de consulta
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <FormControl variant="outlined" size="small" sx={{ minWidth: 150, mr: 2 }}>
-                      <InputLabel id="type-filter-label">Filtrar por tipo</InputLabel>
-                      <Select
-                        labelId="type-filter-label"
-                        value={filters.consultTypes.typeFilter}
-                        onChange={(e) => handleConsultTypeFilterChange(e.target.value)}
-                        label="Filtrar por tipo"
-                      >
-                        <MenuItem value="all">Todos los tipos</MenuItem>
-                        {getAvailableTypes().map(type => (
-                          <MenuItem key={type} value={type}>{type}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <ChartTypeSelector value={typeChartType} onChange={setTypeChartType} />
-                  </Box>
-                </Box>
-                <Box sx={{ height: '300px' }}>
-                  {typesStaticData.labels && typesStaticData.labels.length > 0 ? (
-                    (() => {
-                      switch (typeChartType) {
-                        case 'bar':
-                          return <BarChart data={typesStaticData} options={commonChartOptions} />;
-                        case 'pie':
-                          return <Pie data={typesStaticData} options={commonChartOptions} />;
-                        case 'line':
-                          return <Line data={typesTimeData} options={commonChartOptions} />;
-                        case 'doughnut':
-                          return <DoughnutChart data={typesStaticData} options={commonChartOptions} />;
-                        case 'polarArea':
-                          return <PolarArea data={typesStaticData} options={{
-                            ...commonChartOptions,
-                            scales: {
-                              r: {
-                                beginAtZero: true,
-                              }
-                            }
-                          }} />;
-                        default:
-                          return <Pie data={typesStaticData} options={commonChartOptions} />;
-                      }
-                    })()
-                  ) : (
-                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                      <Typography variant="body1">No hay datos disponibles</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Consultas por cliente
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TextField
-                      variant="outlined"
-                      size="small"
-                      placeholder="Buscar cliente..."
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                      value={filters.clients.companySearch}
-                      onChange={(e) => handleCompanySearchChange(e.target.value)}
-                      sx={{ mr: 2 }}
-                    />
-                    <ChartTypeSelector value={clientChartType} onChange={setClientChartType} />
-                  </Box>
-                </Box>
-                <Box sx={{ height: '400px' }}>
-                  {clientsStaticData.labels && clientsStaticData.labels.length > 0 ? (
-                    (() => {
-                      switch (clientChartType) {
-                        case 'bar':
-                          return <BarChart data={clientsStaticData} options={commonChartOptions} />;
-                        case 'pie':
-                          return <Pie data={clientsStaticData} options={commonChartOptions} />;
-                        case 'line':
-                          return <Line data={clientsTimeData} options={commonChartOptions} />;
-                        case 'doughnut':
-                          return <DoughnutChart data={clientsStaticData} options={commonChartOptions} />;
-                        case 'polarArea':
-                          return <PolarArea data={clientsStaticData} options={{
-                            ...commonChartOptions,
-                            scales: {
-                              r: {
-                                beginAtZero: true,
-                              }
-                            }
-                          }} />;
-                        default:
-                          return <BarChart data={clientsStaticData} options={commonChartOptions} />;
-                      }
-                    })()
-                  ) : (
-                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                      <Typography variant="body1">No hay datos disponibles</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          {/* Sección de Clasificación Arancelaria */}
-          {/* Sección de Clasificación Arancelaria */}
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Clasificación Arancelaria
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <ChartTypeSelector
-                      value={classificationChartType}
-                      onChange={setClassificationChartType}
-                    />
-                  </Box>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Estadísticas principales */}
-                  <Grid item xs={12} md={4}>
-                    <Card elevation={2}>
-                      <CardContent>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Total de ítems clasificados
-                        </Typography>
-                        <Typography variant="h3" sx={{ my: 2 }}>
-                          {calculateClassifiedItems().totalItems}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {Object.keys(calculateClassifiedItems().itemsByClient).length} clientes
-                        </Typography>
-                      </CardContent>
-                    </Card>
-
-                    <TableContainer component={Paper} sx={{ mt: 2 }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Cliente</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }} align="right">Ítems</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {Object.entries(calculateClassifiedItems().itemsByClient)
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 5)
-                            .map(([client, count]) => (
-                              <TableRow key={client}>
-                                <TableCell>{client}</TableCell>
-                                <TableCell align="right">{count}</TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Grid>
-
-                  {/* Gráfico principal */}
-                  <Grid item xs={12} md={8}>
-                    <Box sx={{ height: '400px' }}>
-                      {classificationChartData.labels && classificationChartData.labels.length > 0 ? (
-                        (() => {
-                          const data = {
-                            labels: Object.keys(calculateClassifiedItems().itemsByClient),
-                            datasets: [{
-                              label: 'Ítems Clasificados',
-                              data: Object.values(calculateClassifiedItems().itemsByClient),
-                              backgroundColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
-                                `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%, 0.6)`
-                              ),
-                              borderColor: Object.keys(calculateClassifiedItems().itemsByClient).map((_, i) =>
-                                `hsl(${(i * 360 / Object.keys(calculateClassifiedItems().itemsByClient).length)}, 70%, 50%)`
-                              ),
-                              borderWidth: 1
-                            }]
-                          };
-
-                          switch (classificationChartType) {
-                            case 'bar':
-                              return <BarChart data={data} options={commonChartOptions} />;
-                            case 'pie':
-                              return <Pie data={data} options={commonChartOptions} />;
-                            case 'line':
-                              return <Line data={classificationTimeData} options={commonChartOptions} />;
-                            case 'doughnut':
-                              return <DoughnutChart data={data} options={commonChartOptions} />;
-                            case 'polarArea':
-                              return <PolarArea data={data} options={{
-                                ...commonChartOptions,
-                                scales: {
-                                  r: {
-                                    beginAtZero: true,
-                                  }
-                                }
-                              }} />;
-                            default:
-                              return <BarChart data={data} options={commonChartOptions} />;
-                          }
-                        })()
-                      ) : (
-                        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                          <Typography variant="body1">No hay datos de clasificación</Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
         <Snackbar
           open={snackbarOpen}
           autoHideDuration={6000}
