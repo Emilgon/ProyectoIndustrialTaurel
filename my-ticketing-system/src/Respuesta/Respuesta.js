@@ -61,7 +61,7 @@ const Respuesta = () => {
   const { respuestas: respuestasCliente } =
     useRespuestaClienteController(consultaId);
 
-  const [allResponses, setAllResponses] = useState([]);
+  const [allresponses, setAllresponses] = useState([]);
   const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const Respuesta = () => {
       return b.timestamp.seconds - a.timestamp.seconds;
     });
 
-    setAllResponses(mergedArray);
+    setAllresponses(mergedArray);
   }, [respuestasCliente, respuestas, fileDownloadUrls]);
 
   // Use fetchDownloadUrls from model to avoid duplicated 'archivos/' prefix in storage path
@@ -131,8 +131,8 @@ const Respuesta = () => {
     }
   };
 
-  const filteredResponses = filterDate
-    ? allResponses.filter((response) => {
+  const filteredresponses = filterDate
+    ? allresponses.filter((response) => {
       const responseDate = new Date(response.timestamp.seconds * 1000);
       return (
         responseDate.getDate() === filterDate.getDate() &&
@@ -140,7 +140,7 @@ const Respuesta = () => {
         responseDate.getFullYear() === filterDate.getFullYear()
       );
     })
-    : allResponses;
+    : allresponses;
 
   const clearDateFilter = () => {
     setFilterDate(null);
@@ -357,8 +357,8 @@ const Respuesta = () => {
               )}
             </Box>
           </Box>
-          {filteredResponses.length > 0 ? (
-            filteredResponses.map((respuesta, index) => (
+          {filteredresponses.length > 0 ? (
+            filteredresponses.map((respuesta, index) => (
               <Box
                 key={index}
                 backgroundColor={

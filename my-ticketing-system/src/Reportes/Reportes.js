@@ -101,8 +101,8 @@ const getWeekNumber = (date) => {
 const Reports = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [consults, setConsults] = useState([]);
-  const [responses, setResponses] = useState([]);
+  const [consults, setconsults] = useState([]);
+  const [responses, setresponses] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -139,9 +139,9 @@ const Reports = () => {
 
   const [trendChartData, setTrendChartData] = useState({ labels: [], datasets: [] });
   const [responseRateChartData, setResponseRateChartData] = useState({ labels: [], datasets: [] });
-  const [clientsStaticData, setClientsStaticData] = useState({ labels: [], datasets: [] });
+  const [clientsStaticData, setusersStaticData] = useState({ labels: [], datasets: [] });
   const [typesStaticData, setTypesStaticData] = useState({ labels: [], datasets: [] });
-  const [clientsTimeData, setClientsTimeData] = useState({ labels: [], datasets: [] });
+  const [clientsTimeData, setusersTimeData] = useState({ labels: [], datasets: [] });
   const [typesTimeData, setTypesTimeData] = useState({ labels: [], datasets: [] });
 
   const open = Boolean(anchorEl);
@@ -151,7 +151,7 @@ const Reports = () => {
       const db = getFirestore();
 
       try {
-        const consultsQuery = query(collection(db, 'Consults'));
+        const consultsQuery = query(collection(db, 'consults'));
         const consultsSnapshot = await getDocs(consultsQuery);
         const consultsData = consultsSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -159,16 +159,16 @@ const Reports = () => {
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }));
 
-        setConsults(consultsData);
+        setconsults(consultsData);
 
-        const responsesQuery = query(collection(db, 'Responses'));
+        const responsesQuery = query(collection(db, 'responses'));
         const responsesSnapshot = await getDocs(responsesQuery);
         const responsesData = responsesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }));
-        setResponses(responsesData);
+        setresponses(responsesData);
 
       } catch (error) {
         console.error('Error al obtener datos:', error);
@@ -185,7 +185,7 @@ const Reports = () => {
       try {
         const user = auth.currentUser;
         if (user && user.email) {
-          const advisorsRef = collection(db, "Advisors");
+          const advisorsRef = collection(db, "users");
           const q = query(advisorsRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
 
@@ -202,7 +202,7 @@ const Reports = () => {
     fetchAdvisorName();
   }, [auth]);
 
-  const filterConsults = (consults, { timeRange, startDate, endDate, typeFilter, statusFilter, companySearch }) => {
+  const filterconsults = (consults, { timeRange, startDate, endDate, typeFilter, statusFilter, companySearch }) => {
     let filtered = [...consults];
     const now = new Date();
 
@@ -249,12 +249,12 @@ const Reports = () => {
   };
 
   useEffect(() => {
-    const trendFiltered = filterConsults(consults, { ...filters.trend, ...timeFilter });
+    const trendFiltered = filterconsults(consults, { ...filters.trend, ...timeFilter });
     setTrendChartData(generateTimeData(trendFiltered, () => 'Consultas'));
   }, [consults, filters.trend, timeFilter]);
 
   useEffect(() => {
-    const responseFiltered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
+    const responseFiltered = filterconsults(consults, { ...filters.responseStatus, ...timeFilter });
     setResponseRateChartData({
       labels: ['Respondidas a tiempo', 'Respondidas tarde', 'No respondidas'],
       datasets: [{
@@ -280,7 +280,7 @@ const Reports = () => {
   }, [consults, filters.responseStatus, timeFilter]);
 
   useEffect(() => {
-    const typesFiltered = filterConsults(consults, { ...filters.consultTypes, ...timeFilter });
+    const typesFiltered = filterconsults(consults, { ...filters.consultTypes, ...timeFilter });
 
     const consultsByType = typesFiltered.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
@@ -307,15 +307,15 @@ const Reports = () => {
   }, [consults, filters.consultTypes, timeFilter]);
 
   useEffect(() => {
-    const clientsFiltered = filterConsults(consults, { ...filters.clients, ...timeFilter });
+    const clientsFiltered = filterconsults(consults, { ...filters.clients, ...timeFilter });
 
-    const topClients = clientsFiltered.reduce((acc, consult) => {
+    const topusers = clientsFiltered.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
       return acc;
     }, {});
 
-    const filteredClients = Object.entries(topClients)
+    const filteredusers = Object.entries(topusers)
       .filter(([client]) =>
         filters.clients.companySearch === '' ||
         client.toLowerCase().includes(filters.clients.companySearch.toLowerCase())
@@ -323,24 +323,24 @@ const Reports = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    setClientsStaticData({
-      labels: filteredClients.map(([client]) => client),
+    setusersStaticData({
+      labels: filteredusers.map(([client]) => client),
       datasets: [{
         label: 'Consultas por cliente',
-        data: filteredClients.map(([_, count]) => count),
-        backgroundColor: filteredClients.map((_, index) =>
-          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%, 0.6)`
+        data: filteredusers.map(([_, count]) => count),
+        backgroundColor: filteredusers.map((_, index) =>
+          `hsl(${(index * 360 / filteredusers.length)}, 70%, 50%, 0.6)`
         ),
-        borderColor: filteredClients.map((_, index) =>
-          `hsl(${(index * 360 / filteredClients.length)}, 70%, 50%)`
+        borderColor: filteredusers.map((_, index) =>
+          `hsl(${(index * 360 / filteredusers.length)}, 70%, 50%)`
         ),
         borderWidth: 1,
       }]
     });
 
-    setClientsTimeData(generateTimeData(
+    setusersTimeData(generateTimeData(
       clientsFiltered.filter(consult =>
-        filteredClients.some(([client]) =>
+        filteredusers.some(([client]) =>
           client === (consult.company || consult.email || 'Cliente no identificado')
         )
       ),
@@ -453,9 +453,9 @@ const Reports = () => {
   };
 
   useEffect(() => {
-    const classifiedConsults = consults.filter(consult => consult.type === 'Clasificación arancelaria');
+    const classifiedconsults = consults.filter(consult => consult.type === 'Clasificación arancelaria');
 
-    const itemsByClient = classifiedConsults.reduce((acc, consult) => {
+    const itemsByClient = classifiedconsults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + (consult.itemsCount || 0);
       return acc;
@@ -477,7 +477,7 @@ const Reports = () => {
     });
 
     setClassificationTimeData(generateTimeData(
-      classifiedConsults,
+      classifiedconsults,
       consult => consult.company || consult.email || 'Cliente no identificado'
     ));
   }, [consults]);
@@ -623,14 +623,14 @@ const Reports = () => {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const monthlyConsults = consults.filter(consult =>
+    const monthlyconsults = consults.filter(consult =>
       consult.timestamp >= firstDay && consult.timestamp <= lastDay
     );
 
-    const responseData = getMonthlyResponseData(monthlyConsults);
-    const classifiedItems = calculateMonthlyClassifiedItems(monthlyConsults);
-    const topClients = getTopClients(monthlyConsults, 5);
-    const consultsByType = getConsultsByType(monthlyConsults);
+    const responseData = getMonthlyResponseData(monthlyconsults);
+    const classifiedItems = calculateMonthlyClassifiedItems(monthlyconsults);
+    const topusers = getTopusers(monthlyconsults, 5);
+    const consultsByType = getconsultsByType(monthlyconsults);
 
     const styles = {
       header: {
@@ -721,7 +721,7 @@ const Reports = () => {
         { v: 'CONSULTAS', t: 's', s: styles.subHeader },
         { v: 'PORCENTAJE', t: 's', s: styles.subHeader }
       ],
-      ...topClients.map(client => [
+      ...topusers.map(client => [
         client.name,
         client.count,
         { v: client.count / responseData.total, t: 'n', s: styles.percentage }
@@ -791,7 +791,7 @@ const Reports = () => {
     setSnackbarOpen(true);
   };
 
-  const getTopClients = (consults, limit) => {
+  const getTopusers = (consults, limit) => {
     const clients = consults.reduce((acc, consult) => {
       const clientKey = consult.company || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
@@ -804,7 +804,7 @@ const Reports = () => {
       .map(([name, count]) => ({ name, count }));
   };
 
-  const getConsultsByType = (consults) => {
+  const getconsultsByType = (consults) => {
     return consults.reduce((acc, consult) => {
       const type = classifyConsultType(consult);
       acc[type] = (acc[type] || 0) + 1;
@@ -812,13 +812,13 @@ const Reports = () => {
     }, {});
   };
 
-  const getMonthlyResponseData = (monthlyConsults) => {
-    const totalConsults = monthlyConsults.length;
-    const answeredConsults = monthlyConsults.filter(consult =>
+  const getMonthlyResponseData = (monthlyconsults) => {
+    const totalconsults = monthlyconsults.length;
+    const answeredconsults = monthlyconsults.filter(consult =>
       responses.some(response => response.consultaId === consult.id)
     ).length;
 
-    const timelyAnswered = monthlyConsults.filter(consult => {
+    const timelyAnswered = monthlyconsults.filter(consult => {
       const response = responses.find(res => res.consultaId === consult.id);
       if (!response) return false;
 
@@ -827,19 +827,19 @@ const Reports = () => {
     }).length;
 
     return {
-      total: totalConsults,
-      answered: answeredConsults,
+      total: totalconsults,
+      answered: answeredconsults,
       timely: timelyAnswered,
-      unanswered: totalConsults - answeredConsults,
-      late: answeredConsults - timelyAnswered
+      unanswered: totalconsults - answeredconsults,
+      late: answeredconsults - timelyAnswered
     };
   };
 
-  const calculateMonthlyClassifiedItems = (monthlyConsults) => {
+  const calculateMonthlyClassifiedItems = (monthlyconsults) => {
     const itemsByClient = {};
     let totalItems = 0;
 
-    monthlyConsults.forEach(consult => {
+    monthlyconsults.forEach(consult => {
       if (consult.type === 'Clasificación arancelaria' && consult.itemsCount) {
         const clientKey = consult.company || consult.email || 'Cliente no identificado';
         itemsByClient[clientKey] = (itemsByClient[clientKey] || 0) + consult.itemsCount;
@@ -854,9 +854,9 @@ const Reports = () => {
   };
 
   const getResponseData = () => {
-    const filtered = filterConsults(consults, { ...filters.responseStatus, ...timeFilter });
-    const totalConsults = filtered.length;
-    const answeredConsults = filtered.filter(consult =>
+    const filtered = filterconsults(consults, { ...filters.responseStatus, ...timeFilter });
+    const totalconsults = filtered.length;
+    const answeredconsults = filtered.filter(consult =>
       responses.some(response => response.consultaId === consult.id)
     ).length;
 
@@ -869,11 +869,11 @@ const Reports = () => {
     }).length;
 
     return {
-      total: totalConsults,
-      answered: answeredConsults,
+      total: totalconsults,
+      answered: answeredconsults,
       timely: timelyAnswered,
-      unanswered: totalConsults - answeredConsults,
-      late: answeredConsults - timelyAnswered
+      unanswered: totalconsults - answeredconsults,
+      late: answeredconsults - timelyAnswered
     };
   };
 
@@ -1089,7 +1089,7 @@ const Reports = () => {
                           case 'line':
                             return <Line
                               data={generateTimeData(
-                                filterConsults(consults, filters.responseStatus),
+                                filterconsults(consults, filters.responseStatus),
                                 classifyResponseStatus
                               )}
                               options={commonChartOptions}

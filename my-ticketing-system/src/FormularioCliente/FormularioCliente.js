@@ -136,13 +136,14 @@ const FormularioCliente = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       console.log('Usuario registrado con éxito:', userCredential.user);
-      await addDoc(collection(db, 'Clients'), {
-        address: formData.address,
-        company: formData.company,
-        company_role: formData.company_role,
+      await addDoc(collection(db, 'users'), {
+        companyAddress: formData.address,
+        companyName: formData.company,
+        companyPhone: formData.phone,
         email: formData.email,
         name: formData.name,
-        phone: formData.phone, // Asegúrate de que sea una cadena
+        request: formData.company_role,
+        role: 'client',
       });
       Swal.fire({
         icon: 'success',

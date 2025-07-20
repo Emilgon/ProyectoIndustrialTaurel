@@ -7,8 +7,8 @@ import { db, storage } from "../firebaseConfig";
  * @async
  * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de asesor.
  */
-export const fetchAdvisors = async () => {
-  const querySnapshot = await getDocs(collection(db, "Advisors"));
+export const fetchUsers = async () => {
+  const querySnapshot = await getDocs(collection(db, "users"));
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
@@ -22,13 +22,13 @@ export const fetchAdvisors = async () => {
  * @returns {Promise<object>} Una promesa que se resuelve con el objeto del asesor.
  * @throws {Error} Si el asesor con el ID especificado no se encuentra.
  */
-export const fetchAdvisorById = async (clientId) => {
-  const advisorDocRef = doc(db, "Advisors", clientId);
-  const advisorDoc = await getDoc(advisorDocRef);
-  if (!advisorDoc.exists()) {
-    throw new Error(`Advisor with ID ${clientId} not found`);
+export const fetchUserById = async (userId) => {
+  const userDocRef = doc(db, "users", userId);
+  const userDoc = await getDoc(userDocRef);
+  if (!userDoc.exists()) {
+    throw new Error(`User with ID ${userId} not found`);
   }
-  return { id: advisorDoc.id, ...advisorDoc.data() };
+  return { id: userDoc.id, ...userDoc.data() };
 };
 
 /**

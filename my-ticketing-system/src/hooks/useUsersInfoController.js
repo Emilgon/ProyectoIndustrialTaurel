@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  fetchClients,
+  fetchUsers,
   fetchConsultasByClientName,
   fetchDownloadUrls
-} from "../models/clientsInfoModel";
+} from "../models/usersInfoModel";
 
 /**
  * Hook personalizado para manejar la lógica de la vista de información de clientes.
  * Obtiene y gestiona los datos de los clientes y sus consultas.
  * @returns {object} Un objeto con los estados y funciones para la vista de información de clientes.
  */
-const useClientsInfoController = () => {
-  const [clients, setClients] = useState([]);
+const useUsersInfoController = () => {
+  const [users, setUsers] = useState([]);
   const [expandedClientId, setExpandedClientId] = useState(null);
   const [consultas, setConsultas] = useState([]);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
@@ -21,11 +21,11 @@ const useClientsInfoController = () => {
   const [showAllQueries, setShowAllQueries] = useState(false);
 
   useEffect(() => {
-    const loadClients = async () => {
-      const data = await fetchClients();
-      // Procesamos los clientes para contar consultas activas y adjuntar consultas
-      const processedClients = await Promise.all(data.map(async (client) => {
-        const consultasData = await fetchConsultasByClientName(client.name, 5); // Obtenemos las últimas 5 consultas
+    const loadUsers = async () => {
+      const data = await fetchUsers();
+      // Procesamos los users para contar consultas activas y adjuntar consultas
+      const processedUsers = await Promise.all(data.map(async (user) => {
+        const consultasData = await fetchConsultasByClientName(user.name, 5); // Obtenemos las últimas 5 consultas
 
         // CORRECCIÓN: Asegurarnos de contar correctamente las consultas "En proceso"
         const activeConsultas = consultasData.filter(consulta =>
@@ -33,14 +33,14 @@ const useClientsInfoController = () => {
         ).length;
 
         return {
-          ...client,
+          ...user,
           numConsultas: activeConsultas,
           consultas: consultasData
         };
       }));
-      setClients(processedClients);
+      setUsers(processedUsers);
     };
-    loadClients();
+    loadUsers();
   }, []);
 
   const handleRowClick = async (clientId, clientName) => {
@@ -100,12 +100,12 @@ const useClientsInfoController = () => {
     setFileDownloadUrls(prev => ({ ...prev, ...urls }));
   };
 
-  const filteredClients = clients.filter(client =>
-    client.company.toLowerCase().includes(searchClient.toLowerCase())
+  const filteredUsers = users.filter(user =>
+    user.companyName.toLowerCase().includes(searchClient.toLowerCase())
   );
 
   return {
-    clients: filteredClients,
+    users: filteredUsers,
     expandedClientId,
     consultas,
     fileDownloadUrls,
@@ -124,4 +124,4 @@ const useClientsInfoController = () => {
   };
 };
 
-export default useClientsInfoController;
+export default useUsersInfoController;

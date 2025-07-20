@@ -20,16 +20,16 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import useClientsInfoController from "../hooks/useClientsInfoController";
+import useUsersInfoController from "../hooks/useUsersInfoController";
 
 /**
  * Componente para mostrar y gestionar la información de los clientes.
  * Permite buscar, filtrar, ordenar y ver detalles de las consultas de los clientes.
  * @returns {JSX.Element} El elemento JSX que representa la interfaz de información de clientes.
  */
-const ClientsInfo = () => {
+const UsersInfo = () => {
   const {
-    clients,
+    users,
     expandedClientId,
     consultas,
     fileDownloadUrls,
@@ -42,7 +42,7 @@ const ClientsInfo = () => {
     showLastQuery,
     showLastFiveQueries,
     showAllQueries
-  } = useClientsInfoController();
+  } = useUsersInfoController();
 
   const [activeTab, setActiveTab] = useState(0);
   const [favorites, setFavorites] = useState([]);
@@ -66,7 +66,7 @@ const ClientsInfo = () => {
       try {
         const user = auth.currentUser;
         if (user && user.email) {
-          const advisorsRef = collection(db, "Advisors");
+          const advisorsRef = collection(db, "users");
           const q = query(advisorsRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
 
@@ -105,21 +105,21 @@ const ClientsInfo = () => {
     handleDatePickerClose();
   };
 
-  const filteredClients = clients
-    .filter(client => {
+  const filteredUsers = users
+    .filter(user => {
       if (!quickSearch.trim()) return true;
 
       const searchTerm = quickSearch.toLowerCase().trim();
 
       if (
-        (client.company && client.company.toLowerCase().includes(searchTerm)) ||
-        (client.email && client.email.toLowerCase().includes(searchTerm))
+        (user.companyName && user.companyName.toLowerCase().includes(searchTerm)) ||
+        (user.email && user.email.toLowerCase().includes(searchTerm))
       ) {
         return true;
       }
 
-      if (client.consultas && client.consultas.length > 0) {
-        return client.consultas.some(consulta =>
+      if (user.consultas && user.consultas.length > 0) {
+        return user.consultas.some(consulta =>
           consulta.messageContent &&
           consulta.messageContent.toLowerCase().includes(searchTerm)
         );
@@ -127,12 +127,12 @@ const ClientsInfo = () => {
 
       return false;
     })
-    .filter(client => {
-      // If no date filter is set, include all clients
+    .filter(user => {
+      // If no date filter is set, include all users
       if (!startDate && !endDate) return true;
 
-      if (client.consultas && client.consultas.length > 0) {
-        return client.consultas.some(consulta => {
+      if (user.consultas && user.consultas.length > 0) {
+        return user.consultas.some(consulta => {
           if (!consulta.timestamp?.seconds) return false;
 
           // Convert Firestore timestamp to Date object
@@ -155,14 +155,14 @@ const ClientsInfo = () => {
       }
       return false;
     })
-    .filter(client => activeTab !== 1 || favorites.includes(client.id))
+    .filter(user => activeTab !== 1 || favorites.includes(user.id))
     .sort((a, b) => {
       if (sortOption === "recent") {
         const aDate = a.lastInteraction || (a.consultas?.[0]?.timestamp?.seconds || 0);
         const bDate = b.lastInteraction || (b.consultas?.[0]?.timestamp?.seconds || 0);
         return bDate - aDate;
       }
-      if (sortOption === "name") return (a.company || "").localeCompare(b.company || "");
+      if (sortOption === "name") return (a.companyName || "").localeCompare(b.companyName || "");
       if (sortOption === "consultas") return (b.numConsultas || 0) - (a.numConsultas || 0);
       return 0;
     });
@@ -350,25 +350,25 @@ const ClientsInfo = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredClients.map((client) => (
-                <React.Fragment key={client.id}>
+              {filteredUsers.map((user) => (
+                <React.Fragment key={user.id}>
                   <TableRow
                     hover
-                    onClick={() => handleRowClick(client.id, client.name)}
+                    onClick={() => handleRowClick(user.id, user.name)}
                     sx={{
                       cursor: 'pointer',
-                      backgroundColor: favorites.includes(client.id) ? '#fff8e1' : 'inherit'
+                      backgroundColor: favorites.includes(user.id) ? '#fff8e1' : 'inherit'
                     }}
                   >
                     <TableCell>
                       <IconButton
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleFavorite(client.id);
+                          toggleFavorite(user.id);
                         }}
                         size="small"
                       >
-                        {favorites.includes(client.id) ? (
+                        {favorites.includes(user.id) ? (
                           <Star color="warning" />
                         ) : (
                           <StarBorder />
@@ -381,13 +381,13 @@ const ClientsInfo = () => {
                           sx={{
                             width: 32,
                             height: 32,
-                            bgcolor: stringToColor(client.company)
+                            bgcolor: stringToColor(user.companyName)
                           }}
                         >
-                          {client.company?.charAt(0)}
+                          {user.companyName?.charAt(0)}
                         </Avatar>
-                        {client.company}
-                        {client.premium && (
+                        {user.companyName}
+                        {user.premium && (
                           <Chip
                             label="Premium"
                             size="small"
@@ -397,18 +397,18 @@ const ClientsInfo = () => {
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell>{client.email}</TableCell>
+                    <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      {client.numConsultas > 0 ? (
+                      {user.numConsultas > 0 ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Chip
-                            label={client.numConsultas}
+                            label={user.numConsultas}
                             color="primary"
                             size="small"
                             sx={{ fontWeight: 'bold' }}
                           />
                           {/*
-                          {client.consultas?.some(c =>
+                          {user.consultas?.some(c =>
                             c.status && c.status.toLowerCase() === "pendiente"
                           ) && (
                               <Chip
@@ -426,7 +426,7 @@ const ClientsInfo = () => {
                   </TableRow>
                   <TableRow>
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-                      <Collapse in={expandedClientId === client.id} timeout="auto" unmountOnExit>
+                      <Collapse in={expandedClientId === user.id} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
                           <Box sx={{
                             display: 'flex',
@@ -455,7 +455,7 @@ const ClientsInfo = () => {
                                   border: '2px solid #1B5C94'
                                 }
                               }}
-                              onClick={() => fetchLastQuery(client.name)}
+                              onClick={() => fetchLastQuery(user.name)}
                             >
                               Última consulta
                             </Button>
@@ -470,7 +470,7 @@ const ClientsInfo = () => {
                                   border: '2px solid #1B5C94'
                                 }
                               }}
-                              onClick={() => fetchLastFiveQueries(client.name)}
+                              onClick={() => fetchLastFiveQueries(user.name)}
                             >
                               Últimas 5 consultas
                             </Button>
@@ -485,7 +485,7 @@ const ClientsInfo = () => {
                                   border: '2px solid #1B5C94'
                                 }
                               }}
-                              onClick={() => fetchAllQueries(client.name)}
+                              onClick={() => fetchAllQueries(user.name)}
                             >
                               Todas las consultas
                             </Button>
@@ -581,10 +581,10 @@ const ClientsInfo = () => {
           borderRadius: 1
         }}>
           <Typography variant="body2">
-            Mostrando {filteredClients.length} de {clients.length} clientes
+            Mostrando {filteredUsers.length} de {users.length} usuarios
           </Typography>
           <Typography variant="body2">
-            {clients.filter(c => c.numConsultas > 0).length} clientes con consultas activas
+            {users.filter(c => c.numConsultas > 0).length} usuarios con consultas activas
           </Typography>
         </Box>
       </Box>
@@ -618,4 +618,4 @@ function stringToColor(string) {
   return color;
 }
 
-export default ClientsInfo;
+export default UsersInfo;
