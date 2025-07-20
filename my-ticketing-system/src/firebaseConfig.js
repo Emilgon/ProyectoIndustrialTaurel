@@ -18,13 +18,13 @@ import { getAnalytics } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD3SntYBXMfTyomUvfIeunYA9341F081Ok",
-  authDomain: "proyectoindustrialtaurel.firebaseapp.com",
-  projectId: "proyectoindustrialtaurel",
-  storageBucket: "proyectoindustrialtaurel.firebasestorage.app",
-  messagingSenderId: "797021083723",
-  appId: "1:797021083723:web:60766602838b30773855ce",
-  measurementId: "G-H843JF99Z1"
+  apiKey: "AIzaSyCxP9YE9KCo72qNvObiBZsGl1TICT9-7ac",
+  authDomain: "taurel-prod.firebaseapp.com",
+  projectId: "taurel-prod",
+  storageBucket: "taurel-prod.firebasestorage.app",
+  messagingSenderId: "8159792865",
+  appId: "1:8159792865:web:bcaaade923a61e377731a0",
+  measurementId: "G-R0X1311N4K"
 };
 
 // Inicializa Firebase

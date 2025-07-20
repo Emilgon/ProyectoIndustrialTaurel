@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect } from "react";
 import {
   fetchUsers,
-  fetchConsultasByClientName,
   fetchDownloadUrls
 } from "../models/usersInfoModel";
+
+import { fetchConsultasByClientName } from "../models/clientsInfoModel";
 
 /**
  * Hook personalizado para manejar la lógica de la vista de información de clientes.
