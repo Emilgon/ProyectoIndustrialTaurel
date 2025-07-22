@@ -31,13 +31,13 @@ export const addConsulta = async (mensaje, archivo, affair) => {
 
   if (!userData) throw new Error("User data not found");
 
-  const company = userData.data().company;
+  const companyName = userData.data().companyName;
   const name = userData.data().name;
   const clientId = userData.id;
 
   const docRef = await addDoc(collection(db, "consults"), {
     name,
-    company,
+    company: companyName,
     type: null,
     start_date: new Date(),
     indicator: null,

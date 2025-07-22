@@ -45,7 +45,7 @@ const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
   const [fileUrls, setFileUrls] = useState({});
-  const [newresponsesCount, setNewresponsesCount] = useState({});
+  const [newResponsesCount, setNewResponsesCount] = useState({});
   const navigate = useNavigate();
   const storage = getStorage();
 
@@ -77,7 +77,7 @@ const VistaCliente = () => {
 
       for (let consulta of consultasArray) {
         const respuestasRef = query(
-          collection(db, "responses"),
+          collection(db, "responsesclients"),
           where("consultaId", "==", consulta.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
@@ -94,10 +94,10 @@ const VistaCliente = () => {
 
   // Listener para nuevas respuestas del asesor
   useEffect(() => {
-    const unsubscriberesponses = onSnapshot(
+    const unsubscribeResponses = onSnapshot(
       collection(db, "responses"),
       async (snapshot) => {
-        const newCounts = { ...newresponsesCount };
+        const newCounts = { ...newResponsesCount };
         let hasChanges = false;
 
         for (const change of snapshot.docChanges()) {
@@ -124,13 +124,13 @@ const VistaCliente = () => {
         }
 
         if (hasChanges) {
-          setNewresponsesCount(newCounts);
+          setNewResponsesCount(newCounts);
         }
       }
     );
 
-    return () => unsubscriberesponses();
-  }, [newresponsesCount]);
+    return () => unsubscribeResponses();
+  }, [newResponsesCount]);
 
   // Cargar notificaciones existentes al iniciar
   useEffect(() => {
@@ -175,7 +175,7 @@ const VistaCliente = () => {
         }
       }
 
-      setNewresponsesCount(counts);
+      setNewResponsesCount(counts);
     };
 
     loadInitialNotifications();
@@ -311,7 +311,7 @@ const VistaCliente = () => {
       });
 
       // Resetear el contador de notificaciones
-      setNewresponsesCount(prev => ({
+      setNewResponsesCount(prev => ({
         ...prev,
         [consultaId]: 0
       }));
@@ -346,13 +346,13 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <BusinessIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Empresa:</strong> {userData.company || "No disponible"}
+                  <strong>Empresa:</strong> {userData.companyName || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <WorkIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Rol en la empresa:</strong> {userData.company_role || "No disponible"}
+                  <strong>Rol en la empresa:</strong> {userData.role || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -364,7 +364,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <LocationOnIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Dirección:</strong> {userData.address || "No disponible"}
+                  <strong>Dirección:</strong> {userData.companyAddress || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -376,7 +376,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PhoneIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Teléfono:</strong> {userData.phone || "No disponible"}
+                  <strong>Teléfono:</strong> {userData.companyPhone || "No disponible"}
                 </Typography>
               </Box>
             </Box>
@@ -425,9 +425,9 @@ const VistaCliente = () => {
                         >
                           VER RESPUESTAS
                         </Button>
-                        {newresponsesCount[consulta.id] > 0 && (
+                        {newResponsesCount[consulta.id] > 0 && (
                           <Badge
-                            badgeContent={newresponsesCount[consulta.id]}
+                            badgeContent={newResponsesCount[consulta.id]}
                             color="error"
                             overlap="circular"
                             sx={{

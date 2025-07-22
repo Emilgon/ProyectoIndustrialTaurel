@@ -18,7 +18,7 @@ import { db, storage, auth } from "../firebaseConfig";
  */
 export const fetchRespuestasByConsultaId = async (consultaId) => {
   const respuestasRef = query(
-    collection(db, "responsesClients"),
+    collection(db, "responsesclients"),
     where("consultaId", "==", consultaId)
   );
   const respuestasSnapshot = await getDocs(respuestasRef);
@@ -101,7 +101,7 @@ export const addRespuesta = async (consultaId, content, file) => {
     attachment: file ? file.name : null, // Solo el nombre del archivo, sin ruta
   };
 
-  const docRef = await addDoc(collection(db, "responsesClients"), responseData);
+  const docRef = await addDoc(collection(db, "responsesclients"), responseData);
 
   let downloadUrl = null;
   if (file) {

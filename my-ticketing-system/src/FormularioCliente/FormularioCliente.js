@@ -139,11 +139,10 @@ const FormularioCliente = () => {
       await addDoc(collection(db, 'users'), {
         companyAddress: formData.address,
         companyName: formData.company,
-        companyPhone: formData.phone,
+        role: formData.company_role,
         email: formData.email,
         name: formData.name,
-        request: formData.company_role,
-        role: 'client',
+        companyPhone: formData.phone,
       });
       Swal.fire({
         icon: 'success',

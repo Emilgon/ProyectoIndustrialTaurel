@@ -10,8 +10,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: functions.config().outlook.email,
-    pass: functions.config().outlook.password,
+    user: "",
+    pass: "",
   },
   tls: {
     ciphers: "SSLv3",
@@ -19,7 +19,9 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
+exports.sendResponseEmail = functions.https.onCall(async (datos, context) => {
+  const data = datos.data;
+
   try {
     // Validar datos requeridos
     if (!data.consultaId || !data.reply || !data.clientId || !data.advisorEmail || !data.clientEmail) {
@@ -29,7 +31,7 @@ exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
       );
     }
 
-    // Usar clientEmail directamente
+
     const clientEmail = data.clientEmail;
 
     if (!clientEmail) {
@@ -45,18 +47,49 @@ exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
 
     // Configuración del correo
     const mailOptions = {
-      from: `"Consultas TCCS" <consultastccs@taurel.com>`,
-      replyTo: data.advisorEmail,
+      from: `"Consultas Técnicas Taurel" <consultastccs@taurel.com>`,
+      replyTo: `${data.consultaId}.${data.clientId}@reply.taurel.com`, // Mantenemos el formato para tracking
       to: clientEmail,
-      subject: `Respuesta a consulta #${data.consultaId}`,
+      subject: `Respuesta a su consulta: "${data.affair}"`, // Usamos el asunto en lugar del ID
       text: [
-        `Hola,\n\n${data.advisorEmail} ha respondido a su consulta:`,
-        `\n\n${data.reply}\n\n`,
-        data.downloadUrl ? `Archivo adjunto: ${data.downloadUrl}\n\n` : "",
-        "Saludos,\nEquipo de Consultas TCCS"
+        `Estimado/a cliente,\n\n`,
+        `En relación a su consulta sobre "${data.affair}", nuestro equipo técnico le informa:\n\n`,
+        `----------------------------------------\n`,
+        `${data.reply}\n`,
+        `----------------------------------------\n\n`,
+        data.downloadUrl ? `📌 Archivo adjunto: ${data.downloadUrl}\n\n` : "",
+        `**Puede responder directamente a este correo para cualquier aclaratoria.**\n\n`,
+        `Atentamente,\n`,
+        `Equipo de Operaciones Taurel\n`,
+        `Teléfono: [Inserte teléfono]\n`,
+        `Sitio web: [Inserte URL]`
+      ].join(""),
+      html: [
+        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0;">`,
+        `  <div style="background-color: #1B5C94; padding: 15px 20px; color: white;">`,
+        `    <h2 style="margin: 0;">Consultas Técnicas Taurel</h2>`,
+        `  </div>`,
+        `  <div style="padding: 20px;">`,
+        `    <p>Estimado/a cliente,</p>`,
+        `    <p>En relación a su consulta sobre <strong>"${data.affair}"</strong>, nuestro equipo técnico le informa:</p>`,
+        `    <div style="background-color: #f8f9fa; padding: 15px; border-left: 3px solid #1B5C94; margin: 15px 0;">`,
+        `      <p style="white-space: pre-line; margin: 0;">${data.reply}</p>`,
+        `    </div>`,
+        data.downloadUrl ? `    <p>📌 <strong>Archivo adjunto:</strong> <a href="${data.downloadUrl}" style="color: #1B5C94;">Descargar documento</a></p>` : "",
+        `    <p style="margin-top: 25px; font-weight: bold;">Puede responder directamente a este correo para cualquier aclaratoria.</p>`,
+        `    <p>Atentamente,</p>`,
+        `    <p style="color: #1B5C94; font-weight: bold;">Equipo de Operaciones Taurel</p>`,
+        `    <div style="margin-top: 20px; font-size: 0.85em; color: #666; border-top: 1px solid #eee; padding-top: 10px;">`,
+        `      <p>Teléfono: [Inserte teléfono]</p>`,
+        `      <p>Sitio web: [Inserte URL]</p>`,
+        `    </div>`,
+        `  </div>`,
+        `</div>`
       ].join(""),
       headers: {
-        'X-Consulta-ID': data.consultaId
+        'X-Consulta-ID': data.consultaId,
+        'X-Consulta-Asunto': data.affair, // Nuevo header para tracking
+        'Message-ID': `<${data.consultaId}@taurel.com>`
       }
     };
 
@@ -84,5 +117,6 @@ exports.sendResponseEmail = functions.https.onCall(async (data, context) => {
         clientId: data.clientId
       }
     );
+
   }
 });

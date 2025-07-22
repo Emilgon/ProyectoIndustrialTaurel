@@ -124,7 +124,7 @@ const VistaAsesorFormulario = () => {
   const [tipoAsesoria, setTipoAsesoria] = useState("");
   const [advisorName, setAdvisorName] = useState("");
   const auth = getAuth();
-  const [newresponsesCount, setNewresponsesCount] = useState(() => {
+  const [newResponsesCount, setNewResponsesCount] = useState(() => {
     const savedCounts = localStorage.getItem('responseCounts');
     return savedCounts ? JSON.parse(savedCounts) : {};
   });
@@ -147,8 +147,8 @@ const VistaAsesorFormulario = () => {
     return remainingDays > 0 ? remainingDays : 0;
   };
   useEffect(() => {
-    localStorage.setItem('responseCounts', JSON.stringify(newresponsesCount));
-  }, [newresponsesCount]);
+    localStorage.setItem('responseCounts', JSON.stringify(newResponsesCount));
+  }, [newResponsesCount]);
   useEffect(() => {
     const fetchAdvisorName = async () => {
       try {
@@ -173,7 +173,7 @@ const VistaAsesorFormulario = () => {
 
   useEffect(() => {
     // Replace initial fetch with real-time listener on "consults"
-    const unsubscribeconsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
+    const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
 
@@ -227,8 +227,8 @@ const VistaAsesorFormulario = () => {
     });
 
     // Configurar listeners para respuestas de clientes
-    const unsubscriberesponses = onSnapshot(
-      collection(db, "responsesusers"),
+    const unsubscribeResponses = onSnapshot(
+      collection(db, "responsesClients"),
       (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
@@ -247,7 +247,7 @@ const VistaAsesorFormulario = () => {
               const lastViewedDate = consultaData.lastViewed?.toDate?.();
 
               if (!lastViewedDate || (responseDate && responseDate > lastViewedDate)) {
-                setNewresponsesCount(prev => {
+                setNewResponsesCount(prev => {
                   const newCount = (prev[newResponse.consultaId] || 0) + 1;
                   const newCounts = { ...prev, [newResponse.consultaId]: newCount };
                   localStorage.setItem('responseCounts', JSON.stringify(newCounts));
@@ -279,8 +279,8 @@ const VistaAsesorFormulario = () => {
 
     return () => {
       clearInterval(interval);
-      unsubscriberesponses();
-      unsubscribeconsults();
+      unsubscribeResponses();
+      unsubscribeConsults();
     };
   }, []);
 
@@ -381,7 +381,7 @@ const VistaAsesorFormulario = () => {
     const hasTypeAssigned = consulta.type && consulta.type !== "No Asignado";
 
     // Fetch responses count from Firestore for the consulta
-    let hasresponses = false;
+    let hasResponses = false;
     try {
       const respuestasRef = query(
         collection(db, "responses"),
@@ -389,15 +389,15 @@ const VistaAsesorFormulario = () => {
       );
       const respuestasSnapshot = await getDocs(respuestasRef);
       if (!respuestasSnapshot.empty) {
-        hasresponses = true;
+        hasResponses = true;
       }
     } catch (error) {
       console.error("Error fetching responses count:", error);
       // Assume no responses if error occurs
-      hasresponses = false;
+      hasResponses = false;
     }
 
-    if (!hasTypeAssigned || !hasresponses) {
+    if (!hasTypeAssigned || !hasResponses) {
       Swal.fire({
         title: "No se puede marcar como resuelta",
         text: "No puede marcar como resuelta una consulta sin tipo asignado o sin respuestas.",
@@ -484,7 +484,7 @@ const VistaAsesorFormulario = () => {
       setHistorialAbierto(id);
 
       // Resetear el contador local
-      setNewresponsesCount(prev => {
+      setNewResponsesCount(prev => {
         const newCounts = { ...prev, [id]: 0 };
         localStorage.setItem('responseCounts', JSON.stringify(newCounts));
         return newCounts;
@@ -505,7 +505,7 @@ const VistaAsesorFormulario = () => {
       }));
 
       const respuestasClienteRef = query(
-        collection(db, "responsesusers"),
+        collection(db, "responsesClients"),
         where("consultaId", "==", consultaId)
       );
       const respuestasClienteSnapshot = await getDocs(respuestasClienteRef);
@@ -1089,7 +1089,7 @@ const VistaAsesorFormulario = () => {
       transform: "translateY(0)",
     }
   };
-  const filteredresponses = filterDate
+  const filteredResponses = filterDate
     ? respuestas.filter((response) => {
       if (!response.timestamp?.seconds) return false;
 
@@ -1925,7 +1925,7 @@ const VistaAsesorFormulario = () => {
                           Historial
                         </Button>
                         <Badge
-                          badgeContent={newresponsesCount[consulta.id] || 0}
+                          badgeContent={newResponsesCount[consulta.id] || 0}
                           color="error"
                           sx={{
                             position: 'absolute',
@@ -2094,8 +2094,8 @@ const VistaAsesorFormulario = () => {
                                   )}
                                 </Box>
                               </Box>
-                              {filteredresponses.length > 0 ? (
-                                filteredresponses.map((respuesta) => (
+                              {filteredResponses.length > 0 ? (
+                                filteredResponses.map((respuesta) => (
                                   <Box
                                     key={respuesta.id}
                                     backgroundColor={

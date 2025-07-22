@@ -5,7 +5,7 @@ import {
   fetchDownloadUrls,
   addRespuesta,
 } from "../models/respuestaModel";
-import { fetchClientById } from "../models/clientsInfoModel";
+import { fetchUserById } from "../models/clientsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
@@ -150,7 +150,7 @@ const useRespuestaController = (consultaId) => {
       let clientEmail = null;
       if (consultaData?.clientId) {
         try {
-          const clientData = await fetchClientById(consultaData.clientId);
+          const clientData = await fetchUserById(consultaData.clientId);
           clientEmail = clientData.email || null;
         } catch (error) {
           console.error("Error fetching client email:", error);
