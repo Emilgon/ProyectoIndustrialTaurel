@@ -172,7 +172,7 @@ const VistaAsesorFormulario = () => {
   }, [auth]);
 
   useEffect(() => {
-    // Replace initial fetch with real-time listener on "Consults"
+    // Replace initial fetch with real-time listener on "consults"
     const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
@@ -228,7 +228,7 @@ const VistaAsesorFormulario = () => {
 
     // Configurar listeners para respuestas de clientes
     const unsubscribeResponses = onSnapshot(
-      collection(db, "responsesclients"),
+      collection(db, "responsesClients"),
       (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
@@ -505,7 +505,7 @@ const VistaAsesorFormulario = () => {
       }));
 
       const respuestasClienteRef = query(
-        collection(db, "ResponsesClients"),
+        collection(db, "responsesClients"),
         where("consultaId", "==", consultaId)
       );
       const respuestasClienteSnapshot = await getDocs(respuestasClienteRef);

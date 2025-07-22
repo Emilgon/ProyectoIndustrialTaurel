@@ -66,7 +66,7 @@ const ClientsInfo = () => {
       try {
         const user = auth.currentUser;
         if (user && user.email) {
-          const advisorsRef = collection(db, "Advisors");
+          const advisorsRef = collection(db, "users");
           const q = query(advisorsRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
 
@@ -112,7 +112,7 @@ const ClientsInfo = () => {
       const searchTerm = quickSearch.toLowerCase().trim();
 
       if (
-        (client.company && client.company.toLowerCase().includes(searchTerm)) ||
+        (client.companyName && client.companyName.toLowerCase().includes(searchTerm)) ||
         (client.email && client.email.toLowerCase().includes(searchTerm))
       ) {
         return true;
@@ -162,7 +162,7 @@ const ClientsInfo = () => {
         const bDate = b.lastInteraction || (b.consultas?.[0]?.timestamp?.seconds || 0);
         return bDate - aDate;
       }
-      if (sortOption === "name") return (a.company || "").localeCompare(b.company || "");
+      if (sortOption === "name") return (a.companyName || "").localeCompare(b.companyName || "");
       if (sortOption === "consultas") return (b.numConsultas || 0) - (a.numConsultas || 0);
       return 0;
     });
@@ -381,12 +381,12 @@ const ClientsInfo = () => {
                           sx={{
                             width: 32,
                             height: 32,
-                            bgcolor: stringToColor(client.company)
+                            bgcolor: stringToColor(client.companyName)
                           }}
                         >
-                          {client.company?.charAt(0)}
+                          {client.companyName?.charAt(0)}
                         </Avatar>
-                        {client.company}
+                        {client.companyName}
                         {client.premium && (
                           <Chip
                             label="Premium"
