@@ -1147,7 +1147,7 @@ const matchesCompany =
                   >
                     Empresa
                   </TableCell>
-<TableCell>{consulta.companyName || "No disponible"}</TableCell>
+                  <TableCell>{consulta.companyName || "No disponible"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell
@@ -1895,7 +1895,7 @@ const matchesCompany =
                               : "none"
                   }}
                 >
-                  <TableCell>{consulta.company}</TableCell>
+                  <TableCell>{consulta.companyName}</TableCell>
                   <TableCell>{consulta.type || "No Asignado"}</TableCell>
                   <TableCell align="center">{formatDateTime(consulta.start_date || consulta.timestamp || consulta.apply_date)}</TableCell>
                   <TableCell align="center">{renderRemainingDays(consulta)}</TableCell>

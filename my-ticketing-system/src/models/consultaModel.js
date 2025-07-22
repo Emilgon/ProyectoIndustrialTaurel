@@ -37,7 +37,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
 
   const docRef = await addDoc(collection(db, "consults"), {
     name,
-    company: companyName,
+    companyName: companyName,
     type: null,
     start_date: new Date(),
     indicator: null,

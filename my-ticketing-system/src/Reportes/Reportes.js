@@ -267,7 +267,7 @@ const Reports = () => {
     // Filtro por búsqueda de empresa
     if (companySearch && companySearch !== '') {
       filtered = filtered.filter(consult =>
-        (consult.company || consult.email || 'Cliente no identificado').toLowerCase()
+        (consult.companyName || consult.email || 'Cliente no identificado').toLowerCase()
           .includes(companySearch.toLowerCase())
       );
     }
@@ -353,7 +353,7 @@ const Reports = () => {
     const clientsFiltered = filterConsults(consults, { ...filters.clients, ...timeFilter });
 
     const topClients = clientsFiltered.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      const clientKey = consult.companyName || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
       return acc;
     }, {});
@@ -384,10 +384,10 @@ const Reports = () => {
     setClientsTimeData(generateTimeData(
       clientsFiltered.filter(consult =>
         filteredClients.some(([client]) =>
-          client === (consult.company || consult.email || 'Cliente no identificado')
+          client === (consult.companyName || consult.email || 'Cliente no identificado')
         )
       ),
-      consult => consult.company || consult.email || 'Cliente no identificado'
+      consult => consult.companyName || consult.email || 'Cliente no identificado'
     ));
   }, [consults, filters.clients, timeFilter]);
 
@@ -516,7 +516,7 @@ const Reports = () => {
 
     // Datos estáticos
     const itemsByClient = classifiedConsults.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      const clientKey = consult.companyName || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + (consult.itemsCount || 0);
       return acc;
     }, {});
@@ -539,7 +539,7 @@ const Reports = () => {
     // Datos temporales
     setClassificationTimeData(generateTimeData(
       classifiedConsults,
-      consult => consult.company || consult.email || 'Cliente no identificado'
+      consult => consult.companyName || consult.email || 'Cliente no identificado'
     ));
   }, [consults]);
 
@@ -897,7 +897,7 @@ const Reports = () => {
    */
   const getTopClients = (consults, limit) => {
     const clients = consults.reduce((acc, consult) => {
-      const clientKey = consult.company || consult.email || 'Cliente no identificado';
+      const clientKey = consult.companyName || consult.email || 'Cliente no identificado';
       acc[clientKey] = (acc[clientKey] || 0) + 1;
       return acc;
     }, {});
@@ -953,7 +953,7 @@ const Reports = () => {
 
     monthlyConsults.forEach(consult => {
       if (consult.type === 'Clasificación arancelaria' && consult.itemsCount) {
-        const clientKey = consult.company || consult.email || 'Cliente no identificado';
+        const clientKey = consult.companyName || consult.email || 'Cliente no identificado';
         itemsByClient[clientKey] = (itemsByClient[clientKey] || 0) + consult.itemsCount;
         totalItems += consult.itemsCount;
       }

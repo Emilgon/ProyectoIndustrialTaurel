@@ -14,21 +14,21 @@ import './FormularioCliente.css';
  */
 const FormularioCliente = () => {
   const [formData, setFormData] = useState({
-    address: '',          // Campo para la dirección
-    company: '',          // Campo para la compañía
-    company_role: '',     // Campo para el rol en la compañía
+    companyAddress: '',          // Campo para la dirección
+    companyName: '',          // Campo para la compañía
+    role: '',     // Campo para el rol en la compañía
     email: '',            // Campo para el email
     name: '',             // Nombre completo del cliente
-    phone: '',            // Número de teléfono
+    companyPhone: '',            // Número de teléfono
     password: '',         // Contraseña del cliente
   });
   const [errors, setErrors] = useState({
-    address: '',
-    company: '',
-    company_role: '',
+    companyAddress: '',
+    companyName: '',
+    role: '',
     email: '',
     name: '',
-    phone: '',
+    companyPhone: '',
     password: '',
   });
   const [passwordStrength, setPasswordStrength] = useState('');
@@ -123,10 +123,10 @@ const FormularioCliente = () => {
       const passwordError = validatePassword(formData.password);
       if (passwordError) newErrors.password = passwordError;
     }
-    if (String(formData.phone).trim() === '') newErrors.phone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
-    if (formData.address.trim() === '') newErrors.address = 'El campo dirección no puede estar vacío.';
-    if (formData.company.trim() === '') newErrors.company = 'El campo empresa/compañía no puede estar vacío.';
-    if (formData.company_role.trim() === '') newErrors.company_role = 'El campo rol en la compañía no puede estar vacío.';
+    if (String(formData.companyPhone).trim() === '') newErrors.companyPhone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
+    if (formData.companyAddress.trim() === '') newErrors.companyAddress = 'El campo dirección no puede estar vacío.';
+    if (formData.companyName.trim() === '') newErrors.companyName = 'El campo empresa/compañía no puede estar vacío.';
+    if (formData.role.trim() === '') newErrors.role = 'El campo rol en la compañía no puede estar vacío.';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -137,12 +137,12 @@ const FormularioCliente = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       console.log('Usuario registrado con éxito:', userCredential.user);
       await addDoc(collection(db, 'users'), {
-        companyAddress: formData.address,
-        companyName: formData.company,
-        role: formData.company_role,
+        companyAddress: formData.companyAddress,
+        companyName: formData.companyName,
+        role: formData.role,
         email: formData.email,
         name: formData.name,
-        companyPhone: formData.phone,
+        companyPhone: formData.companyPhone,
       });
       Swal.fire({
         icon: 'success',
@@ -193,14 +193,14 @@ const FormularioCliente = () => {
           />
           <TextField
             label="Teléfono"
-            name="phone"
-            value={formData.phone}
+            name="companyPhone"
+            value={formData.companyPhone}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
             placeholder="+58 04XX-XXX-XXXX" // Placeholder con el formato deseado
-            error={errors.phone !== ''}
-            helperText={errors.phone}
+            error={errors.companyPhone !== ''}
+            helperText={errors.companyPhone}
             InputProps={{
               startAdornment: <PhoneIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
@@ -220,39 +220,39 @@ const FormularioCliente = () => {
           />
           <TextField
             label="Empresa/Compañía"
-            name="company"
-            value={formData.company}
+            name="companyName"
+            value={formData.companyName}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={errors.company !== ''}
-            helperText={errors.company}
+            error={errors.companyName !== ''}
+            helperText={errors.companyName}
             InputProps={{
               startAdornment: <BusinessIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
           />
           <TextField
             label="Rol en la compañía"
-            name="company_role"
-            value={formData.company_role}
+            name="role"
+            value={formData.role}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={errors.company_role !== ''}
-            helperText={errors.company_role}
+            error={errors.role !== ''}
+            helperText={errors.role}
             InputProps={{
               startAdornment: <WorkIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
           />
           <TextField
             label="Dirección"
-            name="address"
-            value={formData.address}
+            name="companyAddress"
+            value={formData.companyAddress}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={errors.address !== ''}
-            helperText={errors.address}
+            error={errors.companyAddress !== ''}
+            helperText={errors.companyAddress}
             InputProps={{
               startAdornment: <HomeIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
