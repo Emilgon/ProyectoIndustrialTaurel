@@ -36,7 +36,7 @@ export const fetchRespuestasByConsultaId = async (consultaId) => {
  * @returns {Promise<object|null>} Una promesa que se resuelve con el objeto de la consulta o null si no se encuentra.
  */
 export const fetchConsultaById = async (consultaId) => {
-  const consultaRef = doc(db, "Consults", consultaId);
+  const consultaRef = doc(db, "consults", consultaId);
   const consultaDoc = await getDoc(consultaRef);
   if (consultaDoc.exists()) {
     return consultaDoc.data();
@@ -114,7 +114,7 @@ export const addRespuesta = async (consultaId, content, file) => {
     attachment: file ? file.name : null, // Solo el nombre, sin ruta
   };
 
-  const docRef = await addDoc(collection(db, "Responses"), responseData);
+  const docRef = await addDoc(collection(db, "responses"), responseData);
 
   let downloadUrl = null;
   if (file) {

@@ -170,7 +170,7 @@ const Reports = () => {
       const db = getFirestore();
 
       try {
-        const consultsQuery = query(collection(db, 'Consults'));
+        const consultsQuery = query(collection(db, 'consults'));
         const consultsSnapshot = await getDocs(consultsQuery);
         const consultsData = consultsSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -180,7 +180,7 @@ const Reports = () => {
 
         setConsults(consultsData);
 
-        const responsesQuery = query(collection(db, 'Responses'));
+        const responsesQuery = query(collection(db, 'responses'));
         const responsesSnapshot = await getDocs(responsesQuery);
         const responsesData = responsesSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -208,7 +208,7 @@ const Reports = () => {
       try {
         const user = auth.currentUser;
         if (user && user.email) {
-          const advisorsRef = collection(db, "Advisors");
+          const advisorsRef = collection(db, "users");
           const q = query(advisorsRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
 

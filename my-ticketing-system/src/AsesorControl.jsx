@@ -21,7 +21,7 @@ const AsesorControl = () => {
     const fetchConsultCount = async () => {
       try {
         const db = getFirestore();
-        const consultsRef = collection(db, "Consults");
+        const consultsRef = collection(db, "consults");
         const consultsSnapshot = await getDocs(consultsRef);
         setConsultCount(consultsSnapshot.size);
       } catch (error) {

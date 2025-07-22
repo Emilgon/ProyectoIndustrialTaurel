@@ -118,7 +118,7 @@ const VistaAsesorFormulario = () => {
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
   const [anchorElIndicador, setAnchorElIndicador] = useState(null);
   const [indicadorFilter, setIndicadorFilter] = useState("todos");
-  const [searchCompany, setSearchCompany] = useState("");
+const [searchCompany, setSearchCompany] = useState("");
   const [anchorElSearch, setAnchorElSearch] = useState(null);
   const [itemsCount, setItemsCount] = useState(null);
   const [tipoAsesoria, setTipoAsesoria] = useState("");
@@ -173,7 +173,7 @@ const VistaAsesorFormulario = () => {
 
   useEffect(() => {
     // Replace initial fetch with real-time listener on "consults"
-    const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
+const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
 
@@ -322,7 +322,7 @@ const VistaAsesorFormulario = () => {
 
   const handleResponderConsulta = async (id) => {
     try {
-      const consultaRef = doc(db, "Consults", id);
+      const consultaRef = doc(db, "consults", id);
       await updateDoc(consultaRef, {
         status: "En proceso",
       });
@@ -422,7 +422,7 @@ const VistaAsesorFormulario = () => {
 
     if (isConfirmed) {
       try {
-        const consultaRef = doc(db, "Consults", id);
+        const consultaRef = doc(db, "consults", id);
 
         // Calcular remaining_days basado en la fecha actual
         const remainingDays = consulta.start_date
@@ -472,7 +472,7 @@ const VistaAsesorFormulario = () => {
     } else {
       // Marcar como leído en Firebase
       try {
-        const consultaRef = doc(db, "Consults", id);
+        const consultaRef = doc(db, "consults", id);
         await updateDoc(consultaRef, {
           lastViewed: new Date()
         });
@@ -494,11 +494,11 @@ const VistaAsesorFormulario = () => {
 
   const obtenerRespuestas = async (consultaId) => {
     try {
-      const respuestasRef = query(
-        collection(db, "Responses"),
-        where("consultaId", "==", consultaId)
-      );
-      const respuestasSnapshot = await getDocs(respuestasRef);
+          const respuestasRef = query(
+            collection(db, "responses"),
+            where("consultaId", "==", consultaId)
+          );
+          const respuestasSnapshot = await getDocs(respuestasRef);
       const respuestasData = respuestasSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -674,7 +674,7 @@ const VistaAsesorFormulario = () => {
         daysToResolve = tipoAsesoria === "Interna" ? 2 : 10;
       }
 
-      const consultaRef = doc(db, "Consults", selectedConsultId);
+      const consultaRef = doc(db, "consults", selectedConsultId);
       const now = new Date();
       const updateData = {
         type: editType,
@@ -799,7 +799,7 @@ const VistaAsesorFormulario = () => {
 
     if (comment) {
       try {
-        const consultaRef = doc(db, "Consults", id);
+        const consultaRef = doc(db, "consults", id);
         await updateDoc(consultaRef, { comentario: comment });
 
         // Actualizar el estado local inmediatamente
@@ -840,7 +840,7 @@ const VistaAsesorFormulario = () => {
       });
       if (isConfirmed) {
         try {
-          const consultaRef = doc(db, "Consults", id);
+          const consultaRef = doc(db, "consults", id);
           await updateDoc(consultaRef, { comentario: "" });
           setConsultas(
             consultas.map((c) => (c.id === id ? { ...c, comentario: "" } : c))
@@ -864,7 +864,7 @@ const VistaAsesorFormulario = () => {
     });
     if (isConfirmed) {
       try {
-        const consultaRef = doc(db, "Consults", id);
+        const consultaRef = doc(db, "consults", id);
         await deleteDoc(consultaRef);
         setConsultas(consultas.filter((c) => c.id !== id));
         Swal.fire("Eliminado", "La consulta ha sido eliminada.", "success");
@@ -943,9 +943,9 @@ const VistaAsesorFormulario = () => {
         }
       }
 
-      const matchesCompany =
+const matchesCompany =
         !searchCompany ||
-        (consulta.company && consulta.company.toLowerCase().includes(searchCompany.toLowerCase()));
+        (consulta.companyName && consulta.companyName.toLowerCase().includes(searchCompany.toLowerCase()));
 
       return (
         matchesType &&
@@ -1147,7 +1147,7 @@ const VistaAsesorFormulario = () => {
                   >
                     Empresa
                   </TableCell>
-                  <TableCell>{consulta.company || "No disponible"}</TableCell>
+<TableCell>{consulta.companyName || "No disponible"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell

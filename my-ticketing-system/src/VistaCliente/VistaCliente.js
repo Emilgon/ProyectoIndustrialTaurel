@@ -77,7 +77,7 @@ const VistaCliente = () => {
 
       for (let consulta of consultasArray) {
         const respuestasRef = query(
-          collection(db, "responsesclients"),
+          collection(db, "responsesClients"),
           where("consultaId", "==", consulta.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
