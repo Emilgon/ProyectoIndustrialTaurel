@@ -3,12 +3,12 @@ import { ref, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebaseConfig";
 
 /**
- * Obtiene todos los clientes de la base de datos.
+ * Obtiene todos los usuarios de la base de datos.
  * @async
- * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de cliente.
+ * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de usuario.
  */
-export const fetchClients = async () => {
-  const querySnapshot = await getDocs(collection(db, "Clients"));
+export const fetchUsers = async () => {
+  const querySnapshot = await getDocs(collection(db, "users"));
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -16,32 +16,32 @@ export const fetchClients = async () => {
 };
 
 /**
- * Obtiene un cliente específico por su ID.
+ * Obtiene un usuario específico por su ID.
  * @async
- * @param {string} clientId - El ID del cliente a obtener.
- * @returns {Promise<object>} Una promesa que se resuelve con el objeto del cliente.
- * @throws {Error} Si el cliente con el ID especificado no se encuentra.
+ * @param {string} userId - El ID del usuario a obtener.
+ * @returns {Promise<object>} Una promesa que se resuelve con el objeto del usuario.
+ * @throws {Error} Si el usuario con el ID especificado no se encuentra.
  */
-export const fetchClientById = async (clientId) => {
-  const clientDocRef = doc(db, "Clients", clientId);
-  const clientDoc = await getDoc(clientDocRef);
-  if (!clientDoc.exists()) {
-    throw new Error(`Client with ID ${clientId} not found`);
+export const fetchUserById = async (userId) => {
+  const userDocRef = doc(db, "users", userId);
+  const userDoc = await getDoc(userDocRef);
+  if (!userDoc.exists()) {
+    throw new Error(`User with ID ${userId} not found`);
   }
-  return { id: clientDoc.id, ...clientDoc.data() };
+  return { id: userDoc.id, ...userDoc.data() };
 };
 
 /**
- * Obtiene las consultas de un cliente específico por su nombre.
+ * Obtiene las consultas de un usuario específico por su nombre.
  * @async
- * @param {string} clientName - El nombre del cliente.
+ * @param {string} userName - El nombre del usuario.
  * @param {number} [limitCount=1] - El número máximo de consultas a obtener.
  * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de consulta.
  */
-export const fetchConsultasByClientName = async (clientName, limitCount = 1) => {
+export const fetchConsultasByUserName = async (userName, limitCount = 1) => {
   const consultasRef = query(
-    collection(db, "Consults"),
-    where("name", "==", clientName),
+    collection(db, "consults"),
+    where("name", "==", userName),
     orderBy("timestamp", "desc"),
     limit(limitCount)
   );

@@ -52,7 +52,7 @@ const VistaCliente = () => {
   const fetchUserData = async () => {
     const user = auth.currentUser;
     if (user) {
-      const userRef = collection(db, "Clients");
+      const userRef = collection(db, "users");
       const q = query(userRef, where("email", "==", user.email.toLowerCase()));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -66,7 +66,7 @@ const VistaCliente = () => {
     const user = auth.currentUser;
     if (user) {
       const consultsRef = query(
-        collection(db, "Consults"),
+        collection(db, "consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
@@ -77,7 +77,7 @@ const VistaCliente = () => {
 
       for (let consulta of consultasArray) {
         const respuestasRef = query(
-          collection(db, "Responses"),
+          collection(db, "responsesclients"),
           where("consultaId", "==", consulta.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
@@ -95,7 +95,7 @@ const VistaCliente = () => {
   // Listener para nuevas respuestas del asesor
   useEffect(() => {
     const unsubscribeResponses = onSnapshot(
-      collection(db, "Responses"),
+      collection(db, "responses"),
       async (snapshot) => {
         const newCounts = { ...newResponsesCount };
         let hasChanges = false;
@@ -104,7 +104,7 @@ const VistaCliente = () => {
           if (change.type === "added" || change.type === "modified") {
             const newResponse = change.doc.data();
             try {
-              const consultaRef = doc(db, "Consults", newResponse.consultaId);
+              const consultaRef = doc(db, "consults", newResponse.consultaId);
               const consultaDoc = await getDoc(consultaRef);
 
               if (consultaDoc.exists()) {
@@ -142,7 +142,7 @@ const VistaCliente = () => {
 
       // Obtener todas las consultas del usuario
       const consultsRef = query(
-        collection(db, "Consults"),
+        collection(db, "consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
@@ -154,7 +154,7 @@ const VistaCliente = () => {
 
         // Obtener respuestas de esta consulta
         const respuestasRef = query(
-          collection(db, "Responses"),
+          collection(db, "responses"),
           where("consultaId", "==", consultaDoc.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
@@ -305,7 +305,7 @@ const VistaCliente = () => {
   const handleVerRespuestas = async (consultaId) => {
     try {
       // Marcar como visto al entrar
-      const consultaRef = doc(db, "Consults", consultaId);
+      const consultaRef = doc(db, "consults", consultaId);
       await updateDoc(consultaRef, {
         lastViewed: new Date()
       });
@@ -346,13 +346,13 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <BusinessIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Empresa:</strong> {userData.company || "No disponible"}
+                  <strong>Empresa:</strong> {userData.companyName || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <WorkIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Rol en la empresa:</strong> {userData.company_role || "No disponible"}
+                  <strong>Rol en la empresa:</strong> {userData.role || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -364,7 +364,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <LocationOnIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Dirección:</strong> {userData.address || "No disponible"}
+                  <strong>Dirección:</strong> {userData.companyAddress || "No disponible"}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -376,7 +376,7 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PhoneIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Teléfono:</strong> {userData.phone || "No disponible"}
+                  <strong>Teléfono:</strong> {userData.companyPhone || "No disponible"}
                 </Typography>
               </Box>
             </Box>

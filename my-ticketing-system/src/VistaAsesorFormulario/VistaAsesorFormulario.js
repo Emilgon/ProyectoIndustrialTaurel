@@ -154,7 +154,7 @@ const VistaAsesorFormulario = () => {
       try {
         const user = auth.currentUser;
         if (user && user.email) {
-          const advisorsRef = collection(db, "Advisors");
+          const advisorsRef = collection(db, "users");
           const q = query(advisorsRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
 
@@ -173,7 +173,7 @@ const VistaAsesorFormulario = () => {
 
   useEffect(() => {
     // Replace initial fetch with real-time listener on "Consults"
-    const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapshot) => {
+    const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
 
@@ -228,13 +228,13 @@ const VistaAsesorFormulario = () => {
 
     // Configurar listeners para respuestas de clientes
     const unsubscribeResponses = onSnapshot(
-      collection(db, "ResponsesClients"),
+      collection(db, "responsesclients"),
       (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
             const newResponse = change.doc.data();
             try {
-              const consultaRef = doc(db, "Consults", newResponse.consultaId);
+              const consultaRef = doc(db, "consults", newResponse.consultaId);
               const consultaDoc = await getDoc(consultaRef);
 
               if (!consultaDoc.exists()) {

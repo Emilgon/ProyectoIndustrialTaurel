@@ -23,7 +23,7 @@ export const addConsulta = async (mensaje, archivo, affair) => {
   const user = auth.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userRef = collection(db, "Clients");
+  const userRef = collection(db, "users");
   const querySnapshot = await getDocs(userRef);
   const userData = querySnapshot.docs.find(
     (doc) => doc.data().email === user.email
@@ -31,13 +31,13 @@ export const addConsulta = async (mensaje, archivo, affair) => {
 
   if (!userData) throw new Error("User data not found");
 
-  const company = userData.data().company;
+  const companyName = userData.data().companyName;
   const name = userData.data().name;
   const clientId = userData.id;
 
-  const docRef = await addDoc(collection(db, "Consults"), {
+  const docRef = await addDoc(collection(db, "consults"), {
     name,
-    company,
+    company: companyName,
     type: null,
     start_date: new Date(),
     indicator: null,

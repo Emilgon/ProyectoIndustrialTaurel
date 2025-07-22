@@ -1,7 +1,7 @@
  import { useState, useEffect } from "react";
 import {
-  fetchClients,
-  fetchConsultasByClientName,
+  fetchUsers,
+  fetchConsultasByUserName,
   fetchDownloadUrls
 } from "../models/clientsInfoModel";
 
@@ -22,10 +22,10 @@ const useClientsInfoController = () => {
 
   useEffect(() => {
     const loadClients = async () => {
-      const data = await fetchClients();
+      const data = await fetchUsers();
       // Procesamos los clientes para contar consultas activas y adjuntar consultas
       const processedClients = await Promise.all(data.map(async (client) => {
-        const consultasData = await fetchConsultasByClientName(client.name, 5); // Obtenemos las últimas 5 consultas
+        const consultasData = await fetchConsultasByUserName(client.name, 5); // Obtenemos las últimas 5 consultas
 
         // CORRECCIÓN: Asegurarnos de contar correctamente las consultas "En proceso"
         const activeConsultas = consultasData.filter(consulta =>
@@ -57,7 +57,7 @@ const useClientsInfoController = () => {
   };
 
   const fetchLastQuery = async (clientName) => {
-    const consultasData = await fetchConsultasByClientName(clientName, 1);
+    const consultasData = await fetchConsultasByUserName(clientName, 1);
     await fetchAndSetDownloadUrls(consultasData);
     setConsultas(consultasData);
     setShowLastQuery(true);
@@ -66,7 +66,7 @@ const useClientsInfoController = () => {
   };
 
   const fetchLastFiveQueries = async (clientName) => {
-    const consultasData = await fetchConsultasByClientName(clientName, 5);
+    const consultasData = await fetchConsultasByUserName(clientName, 5);
     await fetchAndSetDownloadUrls(consultasData);
     setConsultas(consultasData);
     setShowLastQuery(false);
@@ -76,7 +76,7 @@ const useClientsInfoController = () => {
 
   const fetchAllQueries = async (clientName) => {
     // Usamos un número grande como límite para obtener todas las consultas
-    const consultasData = await fetchConsultasByClientName(clientName, 1000);
+    const consultasData = await fetchConsultasByUserName(clientName, 1000);
     await fetchAndSetDownloadUrls(consultasData);
     setConsultas(consultasData);
     setShowLastQuery(false);
