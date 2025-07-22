@@ -1,18 +1,17 @@
  import { useState, useEffect } from "react";
 import {
-  fetchUsers,
+  fetchClients,
+  fetchConsultasByClientName,
   fetchDownloadUrls
-} from "../models/usersInfoModel";
-
-import { fetchConsultasByClientName } from "../models/clientsInfoModel";
+} from "../models/clientsInfoModel";
 
 /**
  * Hook personalizado para manejar la lógica de la vista de información de clientes.
  * Obtiene y gestiona los datos de los clientes y sus consultas.
  * @returns {object} Un objeto con los estados y funciones para la vista de información de clientes.
  */
-const useUsersInfoController = () => {
-  const [users, setUsers] = useState([]);
+const useClientsInfoController = () => {
+  const [clients, setClients] = useState([]);
   const [expandedClientId, setExpandedClientId] = useState(null);
   const [consultas, setConsultas] = useState([]);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
@@ -22,11 +21,11 @@ const useUsersInfoController = () => {
   const [showAllQueries, setShowAllQueries] = useState(false);
 
   useEffect(() => {
-    const loadUsers = async () => {
-      const data = await fetchUsers();
-      // Procesamos los users para contar consultas activas y adjuntar consultas
-      const processedUsers = await Promise.all(data.map(async (user) => {
-        const consultasData = await fetchConsultasByClientName(user.name, 5); // Obtenemos las últimas 5 consultas
+    const loadClients = async () => {
+      const data = await fetchClients();
+      // Procesamos los clientes para contar consultas activas y adjuntar consultas
+      const processedClients = await Promise.all(data.map(async (client) => {
+        const consultasData = await fetchConsultasByClientName(client.name, 5); // Obtenemos las últimas 5 consultas
 
         // CORRECCIÓN: Asegurarnos de contar correctamente las consultas "En proceso"
         const activeConsultas = consultasData.filter(consulta =>
@@ -34,14 +33,14 @@ const useUsersInfoController = () => {
         ).length;
 
         return {
-          ...user,
+          ...client,
           numConsultas: activeConsultas,
           consultas: consultasData
         };
       }));
-      setUsers(processedUsers);
+      setClients(processedClients);
     };
-    loadUsers();
+    loadClients();
   }, []);
 
   const handleRowClick = async (clientId, clientName) => {
@@ -101,12 +100,12 @@ const useUsersInfoController = () => {
     setFileDownloadUrls(prev => ({ ...prev, ...urls }));
   };
 
-  const filteredUsers = users.filter(user =>
-    user.companyName.toLowerCase().includes(searchClient.toLowerCase())
+  const filteredClients = clients.filter(client =>
+    client.company.toLowerCase().includes(searchClient.toLowerCase())
   );
 
   return {
-    users: filteredUsers,
+    clients: filteredClients,
     expandedClientId,
     consultas,
     fileDownloadUrls,
@@ -125,4 +124,4 @@ const useUsersInfoController = () => {
   };
 };
 
-export default useUsersInfoController;
+export default useClientsInfoController;

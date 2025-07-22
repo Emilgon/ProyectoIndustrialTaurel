@@ -30,8 +30,8 @@ const LoginRegisterAdvisor = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Asesor logueado con éxito:", userCredential.user);
 
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", email), where("role", "==", "advisor"));
+      const advisorsRef = collection(db, "Advisors");
+      const q = query(advisorsRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {

@@ -56,7 +56,7 @@ const VistaClienteConsulta = () => {
 
   const { respuestas: respuestasAsesor } = useRespuestaController(consultaId);
 
-  const [allresponses, setAllresponses] = useState([]);
+  const [allResponses, setAllResponses] = useState([]);
   const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ const VistaClienteConsulta = () => {
       return b.timestamp.seconds - a.timestamp.seconds;
     });
 
-    setAllresponses(mergedArray);
+    setAllResponses(mergedArray);
   }, [respuestasAsesor, respuestas]);
 
   const getFileIcon = (fileName) => {
@@ -102,8 +102,8 @@ const VistaClienteConsulta = () => {
     }
   };
 
-  const filteredresponses = filterDate
-    ? allresponses.filter((response) => {
+  const filteredResponses = filterDate
+    ? allResponses.filter((response) => {
       const responseDate = new Date(response.timestamp.seconds * 1000);
       return (
         responseDate.getDate() === filterDate.getDate() &&
@@ -111,7 +111,7 @@ const VistaClienteConsulta = () => {
         responseDate.getFullYear() === filterDate.getFullYear()
       );
     })
-    : allresponses;
+    : allResponses;
 
   const clearDateFilter = () => {
     setFilterDate(null);
@@ -329,8 +329,8 @@ const VistaClienteConsulta = () => {
               )}
             </Box>
           </Box>
-          {filteredresponses.length > 0 ? (
-            filteredresponses.map((respuesta, index) => (
+          {filteredResponses.length > 0 ? (
+            filteredResponses.map((respuesta, index) => (
               <Box
                 key={index}
                 backgroundColor={

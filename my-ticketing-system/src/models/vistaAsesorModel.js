@@ -8,7 +8,7 @@ import { db, storage } from "../firebaseConfig";
  * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de consulta.
  */
 export const fetchConsultas = async () => {
-  const querySnapshot = await getDocs(collection(db, "consults"));
+  const querySnapshot = await getDocs(collection(db, "Consults"));
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -23,7 +23,7 @@ export const fetchConsultas = async () => {
  * @returns {Promise<void>}
  */
 export const updateConsultaStatus = async (id, status) => {
-  const consultaRef = doc(db, "consults", id);
+  const consultaRef = doc(db, "Consults", id);
   await updateDoc(consultaRef, { status });
 };
 
@@ -34,7 +34,7 @@ export const updateConsultaStatus = async (id, status) => {
  * @returns {Promise<Array<object>>} Una promesa que se resuelve con un array de objetos de respuesta.
  */
 export const fetchRespuestasByConsultaId = async (consultaId) => {
-  const respuestasRef = query(collection(db, "responses"), where("consultaId", "==", consultaId));
+  const respuestasRef = query(collection(db, "Responses"), where("consultaId", "==", consultaId));
   const respuestasSnapshot = await getDocs(respuestasRef);
   return respuestasSnapshot.docs.map(doc => ({
     id: doc.id,
@@ -71,6 +71,6 @@ export const fetchDownloadUrls = async (attachments) => {
  * @returns {Promise<void>}
  */
 export const updateConsulta = async (id, updateData) => {
-  const consultaRef = doc(db, "consults", id);
+  const consultaRef = doc(db, "Consults", id);
   await updateDoc(consultaRef, updateData);
 };

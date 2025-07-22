@@ -18,7 +18,7 @@ import LoginRegisterClient from "./LoginRegisterClient/LoginRegisterClient";
 import LoginRegisterAdvisor from "./LoginRegisterAdvisor/LoginRegisterAdvisor";
 import AsesorControl from "./AsesorControl";
 import VistaAsesorFormulario from "./VistaAsesorFormulario/VistaAsesorFormulario";
-import UsersInfo from "./ClientsInfo/UsersInfo";
+import ClientsInfo from "./ClientsInfo/ClientsInfo";
 import Reportes from "./Reportes/Reportes";
 import Respuesta from "./Respuesta/Respuesta";
 import VistaCliente from "./VistaCliente/VistaCliente";
@@ -31,10 +31,10 @@ function Header() {
   const isVistaAsesorFormulario =
     location.pathname === "/vista-asesor-formulario";
   const isReportes = location.pathname === "/reportes";
-  const isusersInfo = location.pathname === "/users-info";
+  const isClientsInfo = location.pathname === "/clients-info";
   const isMenu = location.pathname === "/menu";
   const showAdminIcon =
-    !isVistaAsesorFormulario && !isReportes && !isusersInfo;
+    !isVistaAsesorFormulario && !isReportes && !isClientsInfo;
 
   // Tamaño aumentado para todos los íconos
   const iconStyle = {
@@ -95,13 +95,13 @@ function Header() {
             <>
               <div className="icon-tooltip">
                 <Link
-                  to="/users-info"
+                  to="/clients-info"
                   className="icon-link"
-                  aria-label="users"
+                  aria-label="Clientes"
                 >
                   <PeopleIcon style={iconStyle} />
                 </Link>
-                <span className="tooltip-text">Ver users</span>
+                <span className="tooltip-text">Ver clientes</span>
               </div>
 
               <div className="icon-tooltip">
@@ -129,7 +129,7 @@ function Header() {
           )}
 
           {/* Íconos para /clients-info */}
-          {isusersInfo && (
+          {isClientsInfo && (
             <>
               <div className="icon-tooltip">
                 <Link
@@ -182,13 +182,13 @@ function Header() {
 
               <div className="icon-tooltip">
                 <Link
-                  to="/users-info"
+                  to="/clients-info"
                   className="icon-link"
-                  aria-label="users"
+                  aria-label="Clientes"
                 >
                   <PeopleIcon style={iconStyle} />
                 </Link>
-                <span className="tooltip-text">Ver users</span>
+                <span className="tooltip-text">Ver clientes</span>
               </div>
 
               <div className="icon-tooltip">
@@ -243,7 +243,7 @@ function App() {
             path="/vista-asesor-formulario"
             element={<VistaAsesorFormulario />}
           />
-          <Route path="/users-info" element={<UsersInfo />} />
+          <Route path="/clients-info" element={<ClientsInfo />} />
           <Route path="/reportes" element={<Reportes />} />
           <Route path="/Respuestas/:consultaId" element={<Respuesta />} />
           <Route path="/vista-cliente" element={<VistaCliente />} />

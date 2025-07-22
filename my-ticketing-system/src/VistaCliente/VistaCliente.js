@@ -45,14 +45,14 @@ const VistaCliente = () => {
   const [userData, setUserData] = useState({});
   const [respuestas, setRespuestas] = useState([]);
   const [fileUrls, setFileUrls] = useState({});
-  const [newresponsesCount, setNewresponsesCount] = useState({});
+  const [newResponsesCount, setNewResponsesCount] = useState({});
   const navigate = useNavigate();
   const storage = getStorage();
 
   const fetchUserData = async () => {
     const user = auth.currentUser;
     if (user) {
-      const userRef = collection(db, "users");
+      const userRef = collection(db, "Clients");
       const q = query(userRef, where("email", "==", user.email.toLowerCase()));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -66,7 +66,7 @@ const VistaCliente = () => {
     const user = auth.currentUser;
     if (user) {
       const consultsRef = query(
-        collection(db, "consults"),
+        collection(db, "Consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
@@ -77,7 +77,7 @@ const VistaCliente = () => {
 
       for (let consulta of consultasArray) {
         const respuestasRef = query(
-          collection(db, "responses"),
+          collection(db, "Responses"),
           where("consultaId", "==", consulta.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
@@ -94,17 +94,17 @@ const VistaCliente = () => {
 
   // Listener para nuevas respuestas del asesor
   useEffect(() => {
-    const unsubscriberesponses = onSnapshot(
-      collection(db, "responses"),
+    const unsubscribeResponses = onSnapshot(
+      collection(db, "Responses"),
       async (snapshot) => {
-        const newCounts = { ...newresponsesCount };
+        const newCounts = { ...newResponsesCount };
         let hasChanges = false;
 
         for (const change of snapshot.docChanges()) {
           if (change.type === "added" || change.type === "modified") {
             const newResponse = change.doc.data();
             try {
-              const consultaRef = doc(db, "consults", newResponse.consultaId);
+              const consultaRef = doc(db, "Consults", newResponse.consultaId);
               const consultaDoc = await getDoc(consultaRef);
 
               if (consultaDoc.exists()) {
@@ -124,13 +124,13 @@ const VistaCliente = () => {
         }
 
         if (hasChanges) {
-          setNewresponsesCount(newCounts);
+          setNewResponsesCount(newCounts);
         }
       }
     );
 
-    return () => unsubscriberesponses();
-  }, [newresponsesCount]);
+    return () => unsubscribeResponses();
+  }, [newResponsesCount]);
 
   // Cargar notificaciones existentes al iniciar
   useEffect(() => {
@@ -142,7 +142,7 @@ const VistaCliente = () => {
 
       // Obtener todas las consultas del usuario
       const consultsRef = query(
-        collection(db, "consults"),
+        collection(db, "Consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
@@ -154,7 +154,7 @@ const VistaCliente = () => {
 
         // Obtener respuestas de esta consulta
         const respuestasRef = query(
-          collection(db, "responses"),
+          collection(db, "Responses"),
           where("consultaId", "==", consultaDoc.id)
         );
         const respuestasSnapshot = await getDocs(respuestasRef);
@@ -175,7 +175,7 @@ const VistaCliente = () => {
         }
       }
 
-      setNewresponsesCount(counts);
+      setNewResponsesCount(counts);
     };
 
     loadInitialNotifications();
@@ -305,13 +305,13 @@ const VistaCliente = () => {
   const handleVerRespuestas = async (consultaId) => {
     try {
       // Marcar como visto al entrar
-      const consultaRef = doc(db, "consults", consultaId);
+      const consultaRef = doc(db, "Consults", consultaId);
       await updateDoc(consultaRef, {
         lastViewed: new Date()
       });
 
       // Resetear el contador de notificaciones
-      setNewresponsesCount(prev => ({
+      setNewResponsesCount(prev => ({
         ...prev,
         [consultaId]: 0
       }));
@@ -425,9 +425,9 @@ const VistaCliente = () => {
                         >
                           VER RESPUESTAS
                         </Button>
-                        {newresponsesCount[consulta.id] > 0 && (
+                        {newResponsesCount[consulta.id] > 0 && (
                           <Badge
-                            badgeContent={newresponsesCount[consulta.id]}
+                            badgeContent={newResponsesCount[consulta.id]}
                             color="error"
                             overlap="circular"
                             sx={{

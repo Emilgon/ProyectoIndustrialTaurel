@@ -40,7 +40,7 @@ export const fetchClientById = async (clientId) => {
  */
 export const fetchConsultasByClientName = async (clientName, limitCount = 1) => {
   const consultasRef = query(
-    collection(db, "consults"),
+    collection(db, "Consults"),
     where("name", "==", clientName),
     orderBy("timestamp", "desc"),
     limit(limitCount)
