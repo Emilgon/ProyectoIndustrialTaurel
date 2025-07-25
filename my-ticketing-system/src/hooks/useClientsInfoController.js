@@ -101,7 +101,7 @@ const useClientsInfoController = () => {
   };
 
   const filteredClients = clients.filter(client =>
-    client.companyName.toLowerCase().includes(searchClient.toLowerCase())
+    client.companyName?.toLowerCase().includes(searchClient.toLowerCase())
   );
 
   return {

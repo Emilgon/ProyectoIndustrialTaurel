@@ -540,7 +540,10 @@ const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapsho
 
       const mergedArray = respuestas1.concat(respuestas2);
       mergedArray.sort((a, b) => {
-        return b.timestamp.seconds - a.timestamp.seconds;
+        const aTime = a.timestamp?.seconds ?? 0;
+        const bTime = b.timestamp?.seconds ?? 0;
+        // Sort descending: newest first
+        return aTime > bTime ? -1 : aTime < bTime ? 1 : 0;
       });
 
       setRespuestas(mergedArray);
@@ -1091,7 +1094,7 @@ const matchesCompany =
   };
   const filteredResponses = filterDate
     ? respuestas.filter((response) => {
-      if (!response.timestamp?.seconds) return false;
+      if (!response.timestamp?.seconds) return true; // Show responses without timestamp
 
       const responseDate = new Date(response.timestamp.seconds * 1000);
       const filterDay = filterDate ? filterDate.toDate() : null;
