@@ -4,20 +4,14 @@ import {
   fetchConsultaById,
   fetchDownloadUrls,
   addRespuesta,
-} from "../models/respuestaModel";
+} from "../models/unifiedViewModel";
 import { fetchUserById } from "../models/clientsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebaseConfig";
 
-/**
- * Hook personalizado para manejar la lógica de respuesta del asesor a una consulta.
- * Obtiene datos de la consulta, respuestas, gestiona el envío de nuevas respuestas y notificaciones por correo.
- * @param {string} consultaId - El ID de la consulta.
- * @returns {object} Un objeto con los estados y funciones para la vista de respuesta del asesor.
- */
-const useRespuestaController = (consultaId) => {
+const useUnifiedViewController = (consultaId, userType) => {
   const [consultaData, setConsultaData] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
   const [fileDownloadUrls, setFileDownloadUrls] = useState({});
@@ -27,7 +21,6 @@ const useRespuestaController = (consultaId) => {
 
   const functions = getFunctions();
   const auth = getAuth();
-  const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
     const fetchAllDownloadUrls = async (attachments) => {
@@ -38,10 +31,8 @@ const useRespuestaController = (consultaId) => {
 
       for (let fileReference of files) {
         try {
-          // Extraer SOLO el nombre del archivo (última parte después del último /)
           const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
 
-          // Primero intentar con la ruta directa en 'archivos/' (sin prefijos adicionales)
           try {
             const storageRef = ref(storage, `archivos/${fileName}`);
             const url = await getDownloadURL(storageRef);
@@ -54,7 +45,6 @@ const useRespuestaController = (consultaId) => {
             console.log(`Archivo no encontrado en archivos/${fileName}, probando otras rutas`);
           }
 
-          // Si no se encuentra, probar con la referencia original (por si ya incluye 'archivos/')
           try {
             const url = await getDownloadURL(ref(storage, fileReference));
             urlMap[fileReference] = {
@@ -70,18 +60,17 @@ const useRespuestaController = (consultaId) => {
           }
         } catch (error) {
           console.error(`Error final procesando referencia '${fileReference}':`, error);
-          // Asegurar que displayFileName tenga un valor incluso en error para la clave
           let displayFileName = '';
           if (!displayFileName && fileReference) {
              displayFileName = decodeURIComponent(fileReference.substring(fileReference.lastIndexOf('/') + 1).split('?')[0] || fileReference);
           } else if (!displayFileName) {
             displayFileName = "archivo_desconocido";
           }
-          const keyForUrlMap = displayFileName; // Usar el nombre extraído o por defecto como clave en error
+          const keyForUrlMap = displayFileName;
 
           urlMap[keyForUrlMap] = {
             url: null,
-            displayName: fileReference.split('/').pop() // Fallback simple
+            displayName: fileReference.split('/').pop()
           };
         }
       }
@@ -94,9 +83,7 @@ const useRespuestaController = (consultaId) => {
         const consulta = await fetchConsultaById(consultaId);
         setConsultaData(consulta);
 
-        // Procesar adjuntos de la consulta inicial
         if (consulta?.attachment) {
-          console.log("Procesando adjuntos de la consulta inicial:", consulta.attachment);
           const consultaAttachmentUrls = await fetchAllDownloadUrls(consulta.attachment);
           setFileDownloadUrls(consultaAttachmentUrls);
         }
@@ -104,17 +91,13 @@ const useRespuestaController = (consultaId) => {
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
 
-        // Procesar adjuntos de las respuestas
         const responseUrls = {};
         for (const respuesta of respuestasData) {
           if (respuesta.attachment) {
-            console.log(`Procesando adjuntos de respuesta ${respuesta.id}:`, respuesta.attachment);
             const urls = await fetchAllDownloadUrls(respuesta.attachment);
             Object.assign(responseUrls, urls);
           }
         }
-        // Combinar URLs de adjuntos de consulta y respuestas
-        // Dando prioridad a las URLs de respuesta si hay colisión de claves (poco probable si las claves son nombres de archivo únicos)
         setFileDownloadUrls(prev => ({ ...prev, ...responseUrls }));
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -143,51 +126,61 @@ const useRespuestaController = (consultaId) => {
     }
 
     try {
-      // 1. Guardar la respuesta en Firestore
-      const { downloadUrl } = await addRespuesta(consultaId, reply, file);
+      const { downloadUrl } = await addRespuesta(consultaId, reply, file, userType);
 
-      // 2. Obtener clientEmail
-      let clientEmail = null;
-      if (consultaData?.clientId) {
-        try {
-          const clientData = await fetchUserById(consultaData.clientId);
-          clientEmail = clientData.email || null;
-        } catch (error) {
-          console.error("Error fetching client email:", error);
+      if (userType === 'advisor') {
+        let clientEmail = null;
+        if (consultaData?.clientId) {
+          try {
+            const clientData = await fetchUserById(consultaData.clientId);
+            clientEmail = clientData.email || null;
+          } catch (error) {
+            console.error("Error fetching client email:", error);
+          }
+        }
+
+        if (consultaData?.clientId && clientEmail) {
+          const currentUser = auth.currentUser;
+          if (!currentUser?.email) {
+            throw new Error("No se pudo obtener el email del asesor");
+          }
+
+          const emailData = {
+            consultaId,
+            reply,
+            downloadUrl: downloadUrl || null,
+            clientId: consultaData.clientId,
+            clientEmail,
+            advisorEmail: currentUser.email,
+            affair: consultaData.affair || "Consulta sin asunto",
+          };
+
+          const response = await fetch(
+            "https://us-central1-taurel-prod.cloudfunctions.net/sendResponseEmail",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(emailData),
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error.message);
+          }
+
+          await response.json();
+        } else {
+          throw new Error("No se pudo obtener el email del cliente");
         }
       }
 
-      // 3. Enviar notificación por correo
-      if (consultaData?.clientId && clientEmail) {
-        const currentUser = auth.currentUser;
-        if (!currentUser?.email) {
-          throw new Error("No se pudo obtener el email del asesor");
-        }
-
-        const emailData = {
-          consultaId,
-          reply,
-          downloadUrl: downloadUrl || null,
-          clientId: consultaData.clientId,
-          clientEmail,
-          advisorEmail: currentUser.email,
-          affair: consultaData.affair || "Consulta sin asunto",
-        };
-
-        console.log("Enviando email con datos:", emailData);
-
-        const result = await sendResponseEmail(emailData);
-        console.log("Resultado del envío:", result.data);
-      } else {
-        throw new Error("No se pudo obtener el email del cliente");
-      }
-
-      // 4. Limpiar formulario
       setReply("");
       setFile(null);
       setFilePreview(null);
 
-      // 5. Actualizar lista de respuestas
       const updatedRespuestas = await fetchRespuestasByConsultaId(consultaId);
       setRespuestas(updatedRespuestas);
 
@@ -200,7 +193,6 @@ const useRespuestaController = (consultaId) => {
         stack: error.stack,
       });
 
-      // Custom error message for missing client email
       let userFriendlyMessage = error.message;
       if (
         error.message ===
@@ -235,4 +227,4 @@ const useRespuestaController = (consultaId) => {
   };
 };
 
-export default useRespuestaController;
+export default useUnifiedViewController;
