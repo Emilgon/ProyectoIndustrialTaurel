@@ -36,59 +36,112 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Swal from "sweetalert2";
 
-/**
- * Componente que muestra la vista principal del cliente.
- * Muestra los datos del cliente y su historial de consultas, permitiendo ver respuestas y hacer nuevas consultas.
- * @returns {JSX.Element} El elemento JSX que representa la vista del cliente.
- */
 const VistaCliente = () => {
-  const [userData, setUserData] = useState({});
+  const [userData, setUserData] = useState({
+    companyAddress: "Cargando...",
+    companyName: "Cargando...",
+    company_role: "Cargando...",
+    email: "Cargando...",
+    name: "Cargando...",
+    companyPhone: "Cargando...",
+    uid: ""
+  });
   const [respuestas, setRespuestas] = useState([]);
   const [fileUrls, setFileUrls] = useState({});
   const [newResponsesCount, setNewResponsesCount] = useState({});
   const navigate = useNavigate();
   const storage = getStorage();
 
-  const fetchUserData = async () => {
-    const user = auth.currentUser;
-    if (user) {
-      const userRef = collection(db, "users");
-      const q = query(userRef, where("email", "==", user.email.toLowerCase()));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        setUserData({ ...doc.data(), uid: user.uid });
+  // Función mejorada para obtener datos del usuario
+  const fetchUserData = async (user) => {
+    try {
+      console.log("Buscando datos para usuario:", user.uid);
+      
+      // Primero intentamos obtener por UID directo
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (userDocSnap.exists()) {
+        console.log("Documento encontrado por UID");
+        const data = userDocSnap.data();
+        updateUserData(data, user);
+        return;
       }
+      
+      // Si no existe por UID, buscamos por email
+      console.log("Buscando por email...");
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", user.email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        console.log("Documento encontrado por email");
+        const doc = querySnapshot.docs[0];
+        updateUserData(doc.data(), user);
+      } else {
+        console.warn("No se encontró documento para el usuario");
+        setUserData({
+          companyAddress: "Complete su registro",
+          companyName: "Complete su registro",
+          company_role: "Complete su registro",
+          email: user.email,
+          name: "Complete su registro",
+          companyPhone: "Complete su registro",
+          uid: user.uid
+        });
+      }
+    } catch (error) {
+      console.error("Error al obtener datos del usuario:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los datos del usuario'
+      });
     }
   };
 
-  const fetchRespuestas = async () => {
-    const user = auth.currentUser;
-    if (user) {
+  // Función auxiliar para actualizar los datos del usuario
+  const updateUserData = (firestoreData, authUser) => {
+    console.log("Datos crudos de Firestore:", firestoreData);
+    
+    setUserData({
+      companyAddress: firestoreData.companyAddress || firestoreData.direccion || "No especificado",
+      companyName: firestoreData.companyName || firestoreData.empresa || "No especificado",
+      company_role: firestoreData.company_role || firestoreData.rol || "No especificado",
+      email: firestoreData.email || authUser.email,
+      name: firestoreData.name || firestoreData.nombre || "No especificado",
+      companyPhone: firestoreData.companyPhone || firestoreData.telefono || "No especificado",
+      uid: authUser.uid
+    });
+  };
+
+  const fetchRespuestas = async (user) => {
+    try {
       const consultsRef = query(
         collection(db, "consults"),
         where("email", "==", user.email)
       );
       const consultsSnapshot = await getDocs(consultsRef);
-      const consultasArray = consultsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      for (let consulta of consultasArray) {
-        const respuestasRef = query(
-          collection(db, "responsesClients"),
-          where("consultaId", "==", consulta.id)
-        );
-        const respuestasSnapshot = await getDocs(respuestasRef);
-        const respuestasArray = respuestasSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        consulta.respuestas = respuestasArray;
-      }
-
+      
+      const consultasArray = await Promise.all(
+        consultsSnapshot.docs.map(async (doc) => {
+          const consulta = { id: doc.id, ...doc.data() };
+          
+          // Obtener respuestas para esta consulta
+          const respuestasRef = query(
+            collection(db, "responsesClients"),
+            where("consultaId", "==", consulta.id)
+          );
+          const respuestasSnapshot = await getDocs(respuestasRef);
+          consulta.respuestas = respuestasSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          
+          return consulta;
+        })
+      );
+      
       setRespuestas(consultasArray);
+    } catch (error) {
+      console.error("Error al obtener consultas:", error);
     }
   };
 
@@ -134,8 +187,7 @@ const VistaCliente = () => {
 
   // Cargar notificaciones existentes al iniciar
   useEffect(() => {
-    const loadInitialNotifications = async () => {
-      const user = auth.currentUser;
+    const loadInitialNotifications = async (user) => {
       if (!user) return;
 
       const counts = {};
@@ -178,8 +230,19 @@ const VistaCliente = () => {
       setNewResponsesCount(counts);
     };
 
-    loadInitialNotifications();
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("Usuario autenticado:", user);
+        fetchUserData(user);
+        fetchRespuestas(user);
+        loadInitialNotifications(user);
+      } else {
+        navigate("/menu");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -204,7 +267,6 @@ const VistaCliente = () => {
 
   const fetchDownloadUrl = async (consultaId, fileName) => {
     try {
-      // Si es una URL completa de Firebase Storage (gs://)
       if (fileName.startsWith('gs://')) {
         const path = fileName.split('/').slice(3).join('/');
         const storageRef = ref(storage, path);
@@ -212,7 +274,6 @@ const VistaCliente = () => {
         return { url, displayName: path.split('/').pop() };
       }
       
-      // Si es una URL HTTP de Firebase Storage
       if (fileName.includes('firebasestorage.googleapis.com')) {
         const urlObj = new URL(fileName);
         const path = decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
@@ -221,10 +282,8 @@ const VistaCliente = () => {
         return { url, displayName: path.split('/').pop() };
       }
 
-      // Si es solo un nombre de archivo (formato antiguo o inválido)
-      // Ya no se construye la URL a partir de partes, solo se aceptan URLs completas.
       console.warn(`Formato de archivo no soportado o ruta incompleta: ${fileName}`);
-      return null; // Indicar que este archivo no se puede procesar con la lógica actual.
+      return null;
     } catch (error) {
       console.error("Error al obtener la URL de descarga:", error);
       return null;
@@ -235,41 +294,37 @@ const VistaCliente = () => {
     const newUrls = {};
     
     for (const consulta of respuestas) {
-      // Procesar archivos adjuntos de la consulta
       if (consulta.attachment && (typeof consulta.attachment === 'string' || Array.isArray(consulta.attachment))) {
         const attachments = Array.isArray(consulta.attachment) 
           ? consulta.attachment 
-          : consulta.attachment.split(',').map(f => f.trim()).filter(f => f); // filtrar vacíos
+          : consulta.attachment.split(',').map(f => f.trim()).filter(f => f);
         
         for (const fileName of attachments) {
-          if (fileName && !fileUrls[fileName]) { // Asegurarse que fileName no sea vacío
-            const fileInfo = await fetchDownloadUrl(consulta.id, fileName); // consulta.id sigue siendo útil para logs o contexto si es necesario, pero no para formar la URL.
+          if (fileName && !fileUrls[fileName]) {
+            const fileInfo = await fetchDownloadUrl(consulta.id, fileName);
             if (fileInfo && fileInfo.url) {
               newUrls[fileName] = fileInfo;
             } else {
-              // Store a placeholder to indicate it was processed but resulted in an error/unsupported
-              // This ensures the UI can distinguish between "loading" and "failed to load".
-              newUrls[fileName] = { displayName: fileName, url: null, error: "Unsupported format or path" };
+              newUrls[fileName] = { displayName: fileName, url: null, error: "Formato no soportado" };
             }
           }
         }
       }
 
-      // Procesar archivos adjuntos de las respuestas
       if (consulta.respuestas) {
         for (const respuesta of consulta.respuestas) {
           if (respuesta.attachment && (typeof respuesta.attachment === 'string' || Array.isArray(respuesta.attachment))) {
             const attachments = Array.isArray(respuesta.attachment) 
               ? respuesta.attachment 
-              : respuesta.attachment.split(',').map(f => f.trim()).filter(f => f); // filtrar vacíos
+              : respuesta.attachment.split(',').map(f => f.trim()).filter(f => f);
             
             for (const fileName of attachments) {
-              if (fileName && !fileUrls[fileName]) { // Asegurarse que fileName no sea vacío
-                const fileInfoResult = await fetchDownloadUrl(consulta.id, fileName); // consulta.id sigue siendo útil para logs o contexto.
+              if (fileName && !fileUrls[fileName]) {
+                const fileInfoResult = await fetchDownloadUrl(consulta.id, fileName);
                 if (fileInfoResult && fileInfoResult.url) {
                   newUrls[fileName] = fileInfoResult;
                 } else {
-                  newUrls[fileName] = { displayName: fileName, url: null, error: "Unsupported format or path" };
+                  newUrls[fileName] = { displayName: fileName, url: null, error: "Formato no soportado" };
                 }
               }
             }
@@ -290,27 +345,16 @@ const VistaCliente = () => {
   }, [respuestas]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchUserData();
-        fetchRespuestas();
-      } else {
-        navigate("/menu");
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
+    console.log("Datos actuales del usuario:", userData);
+  }, [userData]);
 
   const handleVerRespuestas = async (consultaId) => {
     try {
-      // Marcar como visto al entrar
       const consultaRef = doc(db, "consults", consultaId);
       await updateDoc(consultaRef, {
         lastViewed: new Date()
       });
 
-      // Resetear el contador de notificaciones
       setNewResponsesCount(prev => ({
         ...prev,
         [consultaId]: 0
@@ -346,37 +390,37 @@ const VistaCliente = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <BusinessIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Empresa:</strong> {userData.companyName || "No disponible"}
+                  <strong>Empresa:</strong> {userData.companyName}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <WorkIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Rol en la empresa:</strong> {userData.company_role || "No disponible"}
+                  <strong>Rol en la empresa:</strong> {userData.company_role}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PersonIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Nombre:</strong> {userData.name || "No disponible"}
+                  <strong>Nombre:</strong> {userData.name}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <LocationOnIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Dirección:</strong> {userData.companyAddress || "No disponible"}
+                  <strong>Dirección:</strong> {userData.companyAddress}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <EmailIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Correo electrónico:</strong> {userData.email || "No disponible"}
+                  <strong>Correo electrónico:</strong> {userData.email}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PhoneIcon sx={{ color: "#1B5C94", mr: 2 }} />
                 <Typography>
-                  <strong>Teléfono:</strong> {userData.companyPhone || "No disponible"}
+                  <strong>Teléfono:</strong> {userData.companyPhone}
                 </Typography>
               </Box>
             </Box>

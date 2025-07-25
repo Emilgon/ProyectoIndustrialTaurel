@@ -173,7 +173,7 @@ const [searchCompany, setSearchCompany] = useState("");
 
   useEffect(() => {
     // Replace initial fetch with real-time listener on "consults"
-const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapshot) => {
+const unsubscribeConsults = onSnapshot(collection(db, "consults"), (querySnapshot) => {
       const consultasData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
 
@@ -384,7 +384,7 @@ const unsubscribeConsults = onSnapshot(collection(db, "Consults"), (querySnapsho
     let hasResponses = false;
     try {
       const respuestasRef = query(
-        collection(db, "Responses"),
+        collection(db, "responses"),
         where("consultaId", "==", id)
       );
       const respuestasSnapshot = await getDocs(respuestasRef);

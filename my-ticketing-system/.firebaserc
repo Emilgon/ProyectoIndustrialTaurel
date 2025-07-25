@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "proyectoindustrialtaurel"
-  }
+    "default": "taurel-prod",
+    "taurel-prod": "taurel-prod"
+  },
+  "targets": {},
+  "etags": {}
 }
