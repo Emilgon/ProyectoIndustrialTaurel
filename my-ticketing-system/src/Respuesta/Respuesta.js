@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import useUnifiedViewController from "../hooks/useUnifiedViewController";
+import useRespuestaClienteController from "../hooks/useRespuestaClienteController";
+import useRespuestaController from "../hooks/useRespuestaController";
 
 import {
   Box,
@@ -33,8 +34,13 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { fetchDownloadUrls as fetchModelDownloadUrls } from "../models/unifiedViewModel";
+import { fetchDownloadUrls as fetchModelDownloadUrls } from "../models/respuestaModel";
 
+/**
+ * Componente para que el asesor responda a una consulta específica de un cliente.
+ * Muestra los detalles de la consulta, el historial de respuestas y un formulario para enviar una nueva respuesta.
+ * @returns {JSX.Element} El elemento JSX que representa la interfaz de respuesta a consultas.
+ */
 const Respuesta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
@@ -50,9 +56,59 @@ const Respuesta = () => {
     handleFileChange,
     handleRemoveFile,
     handleSubmit,
-  } = useUnifiedViewController(consultaId, "advisor");
+  } = useRespuestaController(consultaId);
 
+  const { respuestas: respuestasCliente } =
+    useRespuestaClienteController(consultaId);
+
+  const [allResponses, setAllResponses] = useState([]);
   const [filterDate, setFilterDate] = useState(null);
+
+  useEffect(() => {
+    const respuestas1 = [...respuestasCliente];
+    const respuestas2 = [...respuestas];
+
+    respuestas1.forEach((item) => {
+      item["sender"] = "Cliente";
+      return item;
+    });
+
+    respuestas2.forEach((item) => {
+      item["sender"] = "Tú";
+      return item;
+    });
+
+    const mergedArray = respuestas1.concat(respuestas2);
+    mergedArray.sort((a, b) => {
+      return b.timestamp.seconds - a.timestamp.seconds;
+    });
+
+    setAllResponses(mergedArray);
+  }, [respuestasCliente, respuestas, fileDownloadUrls]);
+
+  // Use fetchDownloadUrls from model to avoid duplicated 'archivos/' prefix in storage path
+  const fetchDownloadUrls = async (attachments) => {
+    const urls = {};
+
+    // If attachments is a string, convert to array
+    const files = typeof attachments === 'string' ?
+      attachments.split(", ") :
+      Array.isArray(attachments) ? attachments : [];
+
+    for (const fileReference of files) {
+      try {
+        const result = await fetchModelDownloadUrls(fileReference, consultaId);
+        urls[fileReference] = result;
+      } catch (error) {
+        console.error("Error al obtener la URL de descarga:", error);
+        urls[fileReference] = {
+          url: null,
+          displayName: fileReference.split('/').pop()
+        };
+      }
+    }
+    return urls;
+  };
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -76,15 +132,15 @@ const Respuesta = () => {
   };
 
   const filteredResponses = filterDate
-    ? respuestas.filter((response) => {
-        const responseDate = new Date(response.timestamp.seconds * 1000);
-        return (
-          responseDate.getDate() === filterDate.getDate() &&
-          responseDate.getMonth() === filterDate.getMonth() &&
-          responseDate.getFullYear() === filterDate.getFullYear()
-        );
-      })
-    : respuestas;
+    ? allResponses.filter((response) => {
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
+    : allResponses;
 
   const clearDateFilter = () => {
     setFilterDate(null);

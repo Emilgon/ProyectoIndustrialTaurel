@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import useUnifiedViewController from "../hooks/useUnifiedViewController";
+import useRespuestaClienteController from "../hooks/useRespuestaClienteController";
+import useRespuestaController from "../hooks/useRespuestaController";
 
 import {
   Box,
@@ -31,6 +32,11 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
+/**
+ * Componente para que el cliente vea los detalles de una consulta específica y sus respuestas.
+ * Permite al cliente enviar nuevas respuestas a la consulta.
+ * @returns {JSX.Element} El elemento JSX que representa la vista de consulta del cliente.
+ */
 const VistaClienteConsulta = () => {
   const { consultaId } = useParams();
   const navigate = useNavigate();
@@ -46,9 +52,34 @@ const VistaClienteConsulta = () => {
     handleFileChange,
     handleRemoveFile,
     handleSubmit,
-  } = useUnifiedViewController(consultaId, "client");
+  } = useRespuestaClienteController(consultaId);
 
+  const { respuestas: respuestasAsesor } = useRespuestaController(consultaId);
+
+  const [allResponses, setAllResponses] = useState([]);
   const [filterDate, setFilterDate] = useState(null);
+
+  useEffect(() => {
+    const respuestas1 = [...respuestas];
+    const respuestas2 = [...respuestasAsesor];
+
+    respuestas1.forEach((item) => {
+      item["sender"] = "Tú";
+      return item;
+    });
+
+    respuestas2.forEach((item) => {
+      item["sender"] = "Asesor";
+      return item;
+    });
+
+    const mergedArray = respuestas1.concat(respuestas2);
+    mergedArray.sort((a, b) => {
+      return b.timestamp.seconds - a.timestamp.seconds;
+    });
+
+    setAllResponses(mergedArray);
+  }, [respuestasAsesor, respuestas]);
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -72,15 +103,15 @@ const VistaClienteConsulta = () => {
   };
 
   const filteredResponses = filterDate
-    ? respuestas.filter((response) => {
-        const responseDate = new Date(response.timestamp.seconds * 1000);
-        return (
-          responseDate.getDate() === filterDate.getDate() &&
-          responseDate.getMonth() === filterDate.getMonth() &&
-          responseDate.getFullYear() === filterDate.getFullYear()
-        );
-      })
-    : respuestas;
+    ? allResponses.filter((response) => {
+      const responseDate = new Date(response.timestamp.seconds * 1000);
+      return (
+        responseDate.getDate() === filterDate.getDate() &&
+        responseDate.getMonth() === filterDate.getMonth() &&
+        responseDate.getFullYear() === filterDate.getFullYear()
+      );
+    })
+    : allResponses;
 
   const clearDateFilter = () => {
     setFilterDate(null);
