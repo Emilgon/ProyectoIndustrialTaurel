@@ -19,7 +19,7 @@ import { db, storage, auth } from "../firebaseConfig";
  */
 export const fetchRespuestasByConsultaId = async (consultaId) => {
   const respuestasRef = query(
-    collection(db, "Responses"),
+    collection(db, "responses"),
     where("consultaId", "==", consultaId)
   );
   const respuestasSnapshot = await getDocs(respuestasRef);
