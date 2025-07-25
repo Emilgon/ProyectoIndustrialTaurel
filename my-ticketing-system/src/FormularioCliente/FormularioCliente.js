@@ -16,7 +16,7 @@ const FormularioCliente = () => {
   const [formData, setFormData] = useState({
     companyAddress: '',          // Campo para la dirección
     companyName: '',          // Campo para la compañía
-    role: '',     // Campo para el rol en la compañía
+    company_role: '',     // Campo para el rol en la compañía
     email: '',            // Campo para el email
     name: '',             // Nombre completo del cliente
     companyPhone: '',            // Número de teléfono
@@ -25,7 +25,7 @@ const FormularioCliente = () => {
   const [errors, setErrors] = useState({
     companyAddress: '',
     companyName: '',
-    role: '',
+    company_role: '',
     email: '',
     name: '',
     companyPhone: '',
@@ -126,7 +126,7 @@ const FormularioCliente = () => {
     if (String(formData.companyPhone).trim() === '') newErrors.companyPhone = 'El campo teléfono no puede estar vacío.'; // Convertir a cadena antes de usar trim
     if (formData.companyAddress.trim() === '') newErrors.companyAddress = 'El campo dirección no puede estar vacío.';
     if (formData.companyName.trim() === '') newErrors.companyName = 'El campo empresa/compañía no puede estar vacío.';
-    if (formData.role.trim() === '') newErrors.role = 'El campo rol en la compañía no puede estar vacío.';
+    if (formData.company_role.trim() === '') newErrors.company_role = 'El campo rol en la compañía no puede estar vacío.';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -139,7 +139,7 @@ const FormularioCliente = () => {
       await addDoc(collection(db, 'users'), {
         companyAddress: formData.companyAddress,
         companyName: formData.companyName,
-        role: formData.role,
+        company_role: formData.company_role,
         email: formData.email,
         name: formData.name,
         companyPhone: formData.companyPhone,
@@ -233,13 +233,13 @@ const FormularioCliente = () => {
           />
           <TextField
             label="Rol en la compañía"
-            name="role"
-            value={formData.role}
+            name="company_role"
+            value={formData.company_role}
             onChange={handleInputChange}
             variant="outlined"
             fullWidth
-            error={errors.role !== ''}
-            helperText={errors.role}
+            error={errors.company_role !== ''}
+            helperText={errors.company_role}
             InputProps={{
               startAdornment: <WorkIcon sx={{ color: '#1B5C94', mr: 1 }} />,
             }}
