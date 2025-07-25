@@ -21,7 +21,8 @@ const useConsultaController = () => {
 
   const handleEnviarConsulta = async (mensajeParam, archivoParam, affairParam) => {
     try {
-      await addConsulta(mensajeParam, archivoParam, affairParam);
+      // Add the path to your archivos folder
+      await addConsulta(mensajeParam, archivoParam, affairParam, 'archivos/');
       setMensaje("");
       setArchivo(null);
       setPreview(null);
