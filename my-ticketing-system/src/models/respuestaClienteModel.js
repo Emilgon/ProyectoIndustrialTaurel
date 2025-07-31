@@ -85,31 +85,31 @@ export const fetchDownloadUrls = async (attachments, consultaId) => {
 };
 
 /**
- * Agrega una nueva respuesta de cliente a una consulta.
+ * Adds a new client response to a query.
  * @async
- * @param {string} consultaId - El ID de la consulta a la que se responde.
- * @param {string} content - El contenido del mensaje de la respuesta.
- * @param {File} file - El archivo adjunto a la respuesta (opcional).
- * @returns {Promise<{id: string, downloadUrl: string|null}>} Una promesa que se resuelve con el ID de la respuesta creada y la URL de descarga del archivo si existe.
+ * @param {string} consultaId - The ID of the query being answered.
+ * @param {string} content - The message content of the response.
+ * @param {File} file - The file attached to the response (optional).
+ * @returns {Promise<{id: string, downloadUrl: string|null}>} A promise that resolves with the ID of the created response and the file's download URL if it exists.
  */
 export const addRespuesta = async (consultaId, content, file) => {
+  let downloadUrl = null;
+  if (file) {
+    // Always save to 'archivos/' without additional subfolders
+    const storageRef = ref(storage, `archivos/${file.name}`);
+    await uploadBytes(storageRef, file);
+    downloadUrl = await getDownloadURL(storageRef);
+  }
+
   const responseData = {
     consultaId,
     content,
     timestamp: new Date(),
     userId: auth.currentUser.uid,
-    attachment: file ? file.name : null, // Solo el nombre del archivo, sin ruta
+    attachment: downloadUrl, // Save the full download URL
   };
 
   const docRef = await addDoc(collection(db, "responsesclients"), responseData);
-
-  let downloadUrl = null;
-  if (file) {
-    // Guardar siempre en 'archivos/' sin subcarpetas adicionales
-    const storageRef = ref(storage, `archivos/${file.name}`);
-    await uploadBytes(storageRef, file);
-    downloadUrl = await getDownloadURL(storageRef);
-  }
 
   return { id: docRef.id, downloadUrl };
 };

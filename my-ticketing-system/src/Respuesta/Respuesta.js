@@ -33,8 +33,6 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { fetchDownloadUrls as fetchModelDownloadUrls } from "../models/respuestaModel";
 
 /**
  * Componente para que el asesor responda a una consulta específica de un cliente.
@@ -48,7 +46,6 @@ const Respuesta = () => {
   const {
     consultaData,
     respuestas,
-    fileDownloadUrls,
     reply,
     setReply,
     file,
@@ -65,50 +62,13 @@ const Respuesta = () => {
   const [filterDate, setFilterDate] = useState(null);
 
   useEffect(() => {
-    const respuestas1 = [...respuestasCliente];
-    const respuestas2 = [...respuestas];
+    const clienteResponses = respuestasCliente.map((r) => ({ ...r, sender: "Cliente" }));
+    const asesorResponses = respuestas.map((r) => ({ ...r, sender: "Tú" }));
 
-    respuestas1.forEach((item) => {
-      item["sender"] = "Cliente";
-      return item;
-    });
-
-    respuestas2.forEach((item) => {
-      item["sender"] = "Tú";
-      return item;
-    });
-
-    const mergedArray = respuestas1.concat(respuestas2);
-    mergedArray.sort((a, b) => {
-      return b.timestamp.seconds - a.timestamp.seconds;
-    });
-
-    setAllResponses(mergedArray);
-  }, [respuestasCliente, respuestas, fileDownloadUrls]);
-
-  // Use fetchDownloadUrls from model to avoid duplicated 'archivos/' prefix in storage path
-  const fetchDownloadUrls = async (attachments) => {
-    const urls = {};
-
-    // If attachments is a string, convert to array
-    const files = typeof attachments === 'string' ?
-      attachments.split(", ") :
-      Array.isArray(attachments) ? attachments : [];
-
-    for (const fileReference of files) {
-      try {
-        const result = await fetchModelDownloadUrls(fileReference, consultaId);
-        urls[fileReference] = result;
-      } catch (error) {
-        console.error("Error al obtener la URL de descarga:", error);
-        urls[fileReference] = {
-          url: null,
-          displayName: fileReference.split('/').pop()
-        };
-      }
-    }
-    return urls;
-  };
+    const merged = [...clienteResponses, ...asesorResponses];
+    merged.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+    setAllResponses(merged);
+  }, [respuestasCliente, respuestas]);
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop().toLowerCase();
@@ -259,61 +219,46 @@ const Respuesta = () => {
               <Typography variant="h6" fontWeight="bold" gutterBottom>
                 Archivo Adjunto
               </Typography>
-              {consultaData.attachment
-                .split(", ")
-                .map((fileReference, index) => {
-                  // Extraer solo el nombre del archivo de la referencia
-                  const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
-                  const fileData = fileDownloadUrls[fileReference];
-                  const fileUrl = fileData?.url;
-                  const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                    fileName.split(".").pop().toLowerCase()
-                  );
+              {(() => {
+                const attachment = consultaData.attachment;
+                const isUrl = typeof attachment === 'string' && attachment.startsWith('http');
+                const fileName = isUrl
+                  ? decodeURIComponent(new URL(attachment).pathname.split('/').pop())
+                  : attachment;
 
-                  return (
-                    <Box
-                      key={index}
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                      mb={1}
-                      sx={{
-                        p: 1,
-                        border: "1px solid #e0e0e0",
-                        borderRadius: 1,
-                        "&:hover": { backgroundColor: "#f5f5f5" },
-                      }}
-                    >
-                      {getFileIcon(fileName)}
-
-                      <Typography
-                        variant="body2"
-                        sx={{ flexGrow: 1, wordBreak: "break-all" }}
+                return (
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    gap={1}
+                    mb={1}
+                    sx={{
+                      p: 1,
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      "&:hover": { backgroundColor: "#f5f5f5" },
+                    }}
+                  >
+                    {getFileIcon(fileName)}
+                    <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
+                      {fileName}
+                    </Typography>
+                    {isUrl && (
+                      <IconButton
+                        component="a"
+                        href={attachment}
+                        download={fileName}
+                        sx={{
+                          color: "#1B5C94",
+                          "&:hover": { backgroundColor: "#e3f2fd" },
+                        }}
                       >
-                        {fileName}
-                      </Typography>
-
-                      {fileUrl && (
-                        <IconButton
-                          onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = fileUrl;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          sx={{
-                            color: "#1B5C94",
-                            "&:hover": { backgroundColor: "#e3f2fd" },
-                          }}
-                        >
-                          <DownloadIcon />
-                        </IconButton>
-                      )}
-                    </Box>
-                  );
-                })}
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
+                  </Box>
+                );
+              })()}
             </Box>
           )}
         </Card>
@@ -398,13 +343,12 @@ const Respuesta = () => {
                     </Typography>
                     {respuesta.attachment
                       .split(", ")
-                      .map((fileReference, index) => {
-                        const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
-                        const fileData = fileDownloadUrls[fileReference] || fileDownloadUrls[fileName];
-                        const fileUrl = fileData?.url;
-                        const isImage = ["jpg", "jpeg", "png", "gif"].includes(
-                          fileName.split(".").pop().toLowerCase()
-                        );
+                      .map((attachment, index) => {
+                        if (!attachment) return null;
+                        const isUrl = typeof attachment === 'string' && attachment.startsWith('http');
+                        const fileName = isUrl
+                          ? decodeURIComponent(new URL(attachment).pathname.split('/').pop())
+                          : attachment;
 
                         return (
                           <Box
@@ -420,24 +364,14 @@ const Respuesta = () => {
                             }}
                           >
                             {getFileIcon(fileName)}
-
-                            <Typography
-                              variant="body2"
-                              sx={{ flexGrow: 1, wordBreak: "break-all" }}
-                            >
+                            <Typography variant="body2" sx={{ flexGrow: 1, wordBreak: "break-all" }}>
                               {fileName}
                             </Typography>
-
-                            {fileUrl ? (
+                            {isUrl && (
                               <IconButton
-                                onClick={() => {
-                                  const link = document.createElement("a");
-                                  link.href = fileUrl;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
+                                component="a"
+                                href={attachment}
+                                download={fileName}
                                 sx={{
                                   color: "#1B5C94",
                                   "&:hover": { backgroundColor: "#e3f2fd" },
@@ -445,10 +379,6 @@ const Respuesta = () => {
                               >
                                 <DownloadIcon />
                               </IconButton>
-                            ) : (
-                              <Typography variant="caption" color="error">
-                                .
-                              </Typography>
                             )}
                           </Box>
                         );

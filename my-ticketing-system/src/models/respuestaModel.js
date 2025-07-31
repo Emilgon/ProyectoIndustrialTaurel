@@ -5,8 +5,7 @@ import {
   getDocs,
   addDoc,
   doc,
-  getDoc,
-  updateDoc
+  getDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../firebaseConfig";
@@ -98,31 +97,31 @@ export const fetchDownloadUrls = async (fileReference, consultaId) => {
 };
 
 /**
- * Agrega una nueva respuesta de asesor a una consulta.
+ * Adds a new advisor response to a query.
  * @async
- * @param {string} consultaId - El ID de la consulta a la que se responde.
- * @param {string} content - El contenido del mensaje de la respuesta.
- * @param {File} file - El archivo adjunto a la respuesta (opcional).
- * @returns {Promise<{id: string, downloadUrl: string|null}>} Una promesa que se resuelve con el ID de la respuesta creada y la URL de descarga del archivo si existe.
+ * @param {string} consultaId - The ID of the query being answered.
+ * @param {string} content - The message content of the response.
+ * @param {File} file - The file attached to the response (optional).
+ * @returns {Promise<{id: string, downloadUrl: string|null}>} A promise that resolves with the ID of the created response and the file's download URL if it exists.
  */
 export const addRespuesta = async (consultaId, content, file) => {
+  let downloadUrl = null;
+  if (file) {
+    // Upload directly to 'archivos/' without additional prefixes
+    const storageRef = ref(storage, `archivos/${file.name}`);
+    await uploadBytes(storageRef, file);
+    downloadUrl = await getDownloadURL(storageRef);
+  }
+
   const responseData = {
     consultaId,
     content,
     timestamp: new Date(),
     userId: auth.currentUser.uid,
-    attachment: file ? file.name : null, // Solo el nombre, sin ruta
+    attachment: downloadUrl, // Save the full download URL
   };
 
   const docRef = await addDoc(collection(db, "responses"), responseData);
-
-  let downloadUrl = null;
-  if (file) {
-    // Subir directamente a 'archivos/' sin prefijos adicionales
-    const storageRef = ref(storage, `archivos/${file.name}`);
-    await uploadBytes(storageRef, file);
-    downloadUrl = await getDownloadURL(storageRef);
-  }
 
   return { id: docRef.id, downloadUrl };
 };

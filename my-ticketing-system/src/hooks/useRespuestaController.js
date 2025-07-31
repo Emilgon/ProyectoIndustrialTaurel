@@ -2,14 +2,11 @@ import { useState, useEffect } from "react";
 import {
   fetchRespuestasByConsultaId,
   fetchConsultaById,
-  fetchDownloadUrls,
   addRespuesta,
 } from "../models/respuestaModel";
 import { fetchUserById } from "../models/clientsInfoModel";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebaseConfig";
 
 /**
  * Hook personalizado para manejar la lógica de respuesta del asesor a una consulta.
@@ -20,7 +17,6 @@ import { storage } from "../firebaseConfig";
 const useRespuestaController = (consultaId) => {
   const [consultaData, setConsultaData] = useState(null);
   const [respuestas, setRespuestas] = useState([]);
-  const [fileDownloadUrls, setFileDownloadUrls] = useState({});
   const [reply, setReply] = useState("");
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -30,92 +26,14 @@ const useRespuestaController = (consultaId) => {
   const sendResponseEmail = httpsCallable(functions, "sendResponseEmail");
 
   useEffect(() => {
-    const fetchAllDownloadUrls = async (attachments) => {
-      if (!attachments) return {};
-
-      const urlMap = {};
-      const files = attachments.split(", ");
-
-      for (let fileReference of files) {
-        try {
-          // Extraer SOLO el nombre del archivo (última parte después del último /)
-          const fileName = decodeURIComponent(fileReference.split('/').pop().split('?')[0]);
-
-          // Primero intentar con la ruta directa en 'archivos/' (sin prefijos adicionales)
-          try {
-            const storageRef = ref(storage, `archivos/${fileName}`);
-            const url = await getDownloadURL(storageRef);
-            urlMap[fileReference] = {
-              url: url,
-              displayName: fileName
-            };
-            continue;
-          } catch (error) {
-            console.log(`Archivo no encontrado en archivos/${fileName}, probando otras rutas`);
-          }
-
-          // Si no se encuentra, probar con la referencia original (por si ya incluye 'archivos/')
-          try {
-            const url = await getDownloadURL(ref(storage, fileReference));
-            urlMap[fileReference] = {
-              url: url,
-              displayName: fileName
-            };
-          } catch (error) {
-            console.error(`No se pudo encontrar el archivo ${fileName} en ninguna ubicación`, error);
-            urlMap[fileReference] = {
-              url: null,
-              displayName: fileName
-            };
-          }
-        } catch (error) {
-          console.error(`Error final procesando referencia '${fileReference}':`, error);
-          // Asegurar que displayFileName tenga un valor incluso en error para la clave
-          let displayFileName = '';
-          if (!displayFileName && fileReference) {
-             displayFileName = decodeURIComponent(fileReference.substring(fileReference.lastIndexOf('/') + 1).split('?')[0] || fileReference);
-          } else if (!displayFileName) {
-            displayFileName = "archivo_desconocido";
-          }
-          const keyForUrlMap = displayFileName; // Usar el nombre extraído o por defecto como clave en error
-
-          urlMap[keyForUrlMap] = {
-            url: null,
-            displayName: fileReference.split('/').pop() // Fallback simple
-          };
-        }
-      }
-      return urlMap;
-    };
-
     const fetchData = async () => {
       if (!consultaId) return;
       try {
         const consulta = await fetchConsultaById(consultaId);
         setConsultaData(consulta);
 
-        // Procesar adjuntos de la consulta inicial
-        if (consulta?.attachment) {
-          console.log("Procesando adjuntos de la consulta inicial:", consulta.attachment);
-          const consultaAttachmentUrls = await fetchAllDownloadUrls(consulta.attachment);
-          setFileDownloadUrls(consultaAttachmentUrls);
-        }
-
         const respuestasData = await fetchRespuestasByConsultaId(consultaId);
         setRespuestas(respuestasData);
-
-        // Procesar adjuntos de las respuestas
-        const responseUrls = {};
-        for (const respuesta of respuestasData) {
-          if (respuesta.attachment) {
-            console.log(`Procesando adjuntos de respuesta ${respuesta.id}:`, respuesta.attachment);
-            const urls = await fetchAllDownloadUrls(respuesta.attachment);
-            Object.assign(responseUrls, urls);
-          }
-        }
-        // Combinar URLs de adjuntos de consulta y respuestas
-        // Dando prioridad a las URLs de respuesta si hay colisión de claves (poco probable si las claves son nombres de archivo únicos)
-        setFileDownloadUrls(prev => ({ ...prev, ...responseUrls }));
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -224,7 +142,6 @@ const useRespuestaController = (consultaId) => {
   return {
     consultaData,
     respuestas,
-    fileDownloadUrls,
     reply,
     setReply,
     file,
